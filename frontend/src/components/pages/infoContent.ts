@@ -77,7 +77,7 @@ export const PROCESS_STEPS: ProcessStep[] = [
   {
     letter: 'S',
     name: 'Speech',
-    instruction: 'Read one fixed sentence out loud.',
+    instruction: 'Read a fixed sentence out loud.',
     looksFor: 'Slurring, unusual pauses, a flattened pitch, words that come out wrong.',
     measured: 'Articulation rate, pause structure, pitch variation and voice quality, plus phoneme accuracy against the target sentence when the optional phoneme model is on.',
   },

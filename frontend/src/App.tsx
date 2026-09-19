@@ -24,7 +24,7 @@ import { installBrowserLifecycle } from './lib/resilience/lifecycle'
 import { installConnectivityListeners } from './lib/resilience/network'
 import { installPrefetchOnConsent } from './lib/resilience/prefetch'
 import { resumeCheck } from './lib/resilience/resumeCheck'
-import { useSession, isResultPhase } from './lib/session/store'
+import { useSession, isResultPhase, isTestPhase } from './lib/session/store'
 import { FACE_MODEL, POSE_MODEL, WASM_BASE } from './lib/vision/useMediaPipe'
 import { pageTitle } from './lib/a11y/pageTitle'
 import { markAppReady } from './lib/a11y/useA11y'
@@ -182,7 +182,10 @@ function AppContent() {
       </main>
       {/* Persistent on every route and phase. Bottom padding keeps it clear of the fixed Call 911 / guide buttons. */}
       <footer className="mx-auto max-w-3xl px-4 pb-28 text-center sm:pb-24">
-        <Disclaimer variant="short" className="text-[0.8125rem] leading-snug text-ink-3" />
+        {/* Not during a check: the test screen already shows this same line, so a second copy at the very bottom just repeats it. */}
+        {!(route === 'home' && isTestPhase(phase)) && (
+          <Disclaimer variant="short" className="text-[0.8125rem] leading-snug text-ink-3" />
+        )}
         <button
           type="button"
           onClick={() => setPreflightOpen(true)}
