@@ -60,7 +60,9 @@ describe('the shared disclaimer is used on the key screens', () => {
   })
 
   it('the low-risk band cannot reassure', () => {
-    const s = src('components/result/ResultScreen.tsx')
+    // The band wording now lives in lib/copy/features.ts (shared with the copied summary); the screen must read it from there.
+    expect(src('components/result/ResultScreen.tsx')).toMatch(/RESULT_BAND_COPY/)
+    const s = src('lib/copy/features.ts')
     expect(s).toMatch(/cannot rule one out/)
     expect(s).toMatch(/call 911 right away/)
   })

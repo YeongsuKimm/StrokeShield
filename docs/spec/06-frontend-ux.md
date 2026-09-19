@@ -22,7 +22,7 @@ UI buttons call the **same** functions.
 ## Screens (two documents: the check, and the info page)
 Routing is `store.route` plus `store.phase` — no router library. `App.tsx` picks the screen.
 - **Home** (`HomePage`): consent panel (camera / mic / location, each with its reason and live grant state) beside the
-  hero and "Start the check". Sustained downward input opens the info document and **commits** (no half-scrolled state). The gesture lives in
+  hero and "Start the check". One quiet line of small text under the button says what happens next (`homeStepsHint`, ~12 words, no card or icon; `lib/copy/features.ts`). Sustained downward input opens the info document and **commits** (no half-scrolled state). The gesture lives in
   `lib/useScrollHandoff.ts` and is shared with the info page, which uses it in the other direction: **scrolling up
   past the top of the info page returns to the check**, alongside the "Back to the check" button (kept, since the
   gesture is only a shortcut). 186 px of wheel travel down / 287 px up (`HANDOFF_BUFFER_PX`; the way back asks for more, so a stray upward scroll can't eject the reader), a swipe (152 / 220 px), or ↓/PageDown/End (↑/PageUp/Home
@@ -58,7 +58,12 @@ Routing is `store.route` plus `store.phase` — no router library. `App.tsx` pic
 - **Countdown modal**: ring, reason line, big "Cancel the text" (autofocused, Escape also cancels; `<main>` is `inert`
   behind it; the voice-cancel hint shows only while the agent is connected), and a direct
   `tel:911` link. Copy says "emergency contact", never "911", because the backend only ever texts `DEMO_PHONE_NUMBER`.
+  **Alert preview:** under the 911 link (never above Cancel), `AlertPreview` shows the exact text ("This is the text that will be sent"), built by `lib/alertPreview.ts::buildShortMessage`, a mirror of `services/email_sms_service.py::build_short_message` pinned by the shared golden vectors `tests/fixtures/alert_message_vectors.json` (pytest and vitest read the same file; change the Python builder, the vectors and the TS mirror together). It adds "Delivery is best effort." when `/api/health` says live, "Demo mode: nothing will be sent." when it says dry-run, and neither line if health is unreachable; it never blocks or delays the countdown, and renders nothing if the text cannot be built. The result screen shows the text actually sent (`sentText`, memory only) after a send, or the failed one. The modal scrolls on short screens.
 - Persistent floating "Call 911" (`tel:`) on every screen, every phase.
+
+### Result screen extras (all in memory, nothing stored or sent)
+- **Copy summary** (small quiet button in the action row, `CopySummary`): `lib/summary.ts::buildSummary` writes date/time, checks completed and skipped, each check's plain flags, the result band in the SAME words as the screen (`RESULT_BAND_COPY`, never "all clear"), last known well if given, the short disclaimer and "Call 911 if you think this is a stroke." It leaves out location, names, scores and raw metrics. Clipboard API, then a hidden-textarea `execCommand`, then a selected read-only text area; "Summary copied" goes to a polite `role="status"`.
+- **The numbers behind each check** (`MeasuredPanel`, a collapsed `<details>` above the dashboard): `lib/measured.ts` turns the analyzers' metrics into plain rows (mouth-corner lift left vs right, each arm's lowest angle and drift, gaze range to each side, speaking rate / pauses / recording clarity), each check labelled "Measured, not a diagnosis."; skipped, unclear or missing checks say "Not measured." Patient-left/right throughout; numbers only, no video or frame replay.
 
 ### Result bands (UI only)
 `resultBand(risk)` in `config.ts`: `high` at ≥ `RISK_THRESHOLD`, `caution` at ≥ `CAUTION_RISK` (0.2, **uncalibrated**),

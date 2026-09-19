@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { COUNTDOWN_SECONDS, USER_REQUEST_COUNTDOWN_SECONDS } from '../lib/config'
 import { countdownAnnouncement } from '../lib/a11y/announce'
 import { useSession } from '../lib/session/store'
+import { AlertPreview } from './result/AlertPreview'
 import { Button } from './ui/Button'
 import { Icon } from './ui/Icon'
 import { Ring } from './ui/Primitives'
@@ -44,13 +45,13 @@ export function CountdownModal() {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/80 p-4"
+      className="fixed inset-0 z-50 flex overflow-y-auto bg-ink/80 p-4"
       role="alertdialog"
       aria-modal="true"
       aria-labelledby="countdown-title"
       aria-describedby="countdown-body"
     >
-      <div className="w-full max-w-lg rounded-[var(--radius-panel)] bg-surface p-8 text-center shadow-[var(--shadow-lift)] sm:p-12">
+      <div className="m-auto w-full max-w-lg rounded-[var(--radius-panel)] bg-surface p-8 text-center shadow-[var(--shadow-lift)] sm:p-12">
         <p className="label-micro flex items-center justify-center gap-2 text-danger">
           <Icon name="alert" size={15} />
           {alertReason === 'user_request' ? 'You asked for help' : 'Checks suggest urgent attention'}
@@ -89,6 +90,9 @@ export function CountdownModal() {
           <Icon name="phone" size={16} />
           Or call 911 yourself, right now
         </a>
+
+        {/* Below Cancel and 911 on purpose: a courtesy that never moves them, and never delays the countdown. */}
+        <AlertPreview stage="before" className="mt-6" />
       </div>
     </div>
   )

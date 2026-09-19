@@ -66,6 +66,8 @@ interface SessionState {
   alertResponse?: AlertResponse
   /** ms epoch of the last alert outcome (drives the retry wait shown after a rate limit). */
   alertResultAt?: number
+  /** The exact alert text built for the last send (memory only; shown on the result screen, wiped with the session). */
+  sentText?: string
   demoEnabled: boolean
   /** Live positioning caption, e.g. "Step back until I can see both hands." */
   hint?: string
@@ -96,6 +98,7 @@ interface SessionState {
   /** After a FAILED alert: send once more (no countdown). Returns false, and does nothing, unless the last attempt failed. */
   retryAlert: () => boolean
   setAlertResult: (status: AlertStatus, res?: AlertResponse) => void
+  setSentText: (text?: string) => void
   setDemoEnabled: (v: boolean) => void
   setHint: (hint?: string) => void
   reset: () => void
@@ -121,6 +124,7 @@ const initial = {
   alertReason: undefined,
   alertResponse: undefined,
   alertResultAt: undefined,
+  sentText: undefined,
   lastKnownWell: undefined,
 }
 
@@ -142,6 +146,7 @@ const freshRun = () => ({
   alertReason: undefined as AlertReason | undefined,
   alertResponse: undefined as AlertResponse | undefined,
   alertResultAt: undefined as number | undefined,
+  sentText: undefined as string | undefined,
   hint: undefined as string | undefined,
 })
 
@@ -262,6 +267,7 @@ export const useSession = create<SessionState>((set, get) => ({
     if (get().phase !== 'alerting' || (alertStatus !== 'sent' && alertStatus !== 'failed')) return
     set({ alertStatus, alertResponse, alertResultAt: Date.now(), phase: alertStatus === 'sent' ? 'alerted' : 'alerting' })
   },
+  setSentText: (sentText) => set({ sentText }),
   setDemoEnabled: (demoEnabled) => set({ demoEnabled }),
   setHint: (hint) => set({ hint }),
   // Permissions and the voice connection are facts about the browser / a live socket, not about this session: keep

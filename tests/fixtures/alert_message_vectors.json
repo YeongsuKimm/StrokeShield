@@ -1,0 +1,444 @@
+[
+  {
+    "name": "full alert with everything",
+    "request": {
+      "risk": {
+        "risk": 0.67,
+        "threshold": 0.5,
+        "contributions": [],
+        "triggered": true
+      },
+      "lastKnownWell": "8:30 pm",
+      "location": {
+        "lat": 39.32981234,
+        "lng": -76.61947,
+        "accuracyM": 12
+      },
+      "symptoms": [
+        "left arm drifted down",
+        "smile uneven"
+      ],
+      "reason": "risk_threshold",
+      "patient": {}
+    },
+    "expectedText": "StrokeShield ALERT: possible stroke signs. Last well: 8:30 pm. Map: maps.google.com/?q=39.3298,-76.6195 Flags: left arm drifted down; smile uneven. Risk 67%."
+  },
+  {
+    "name": "no location",
+    "request": {
+      "risk": {
+        "risk": 0.62,
+        "threshold": 0.5,
+        "contributions": [],
+        "triggered": true
+      },
+      "lastKnownWell": "8:30 pm",
+      "symptoms": [
+        "left arm drifted down"
+      ],
+      "reason": "risk_threshold",
+      "patient": {}
+    },
+    "expectedText": "StrokeShield ALERT: possible stroke signs. Last well: 8:30 pm. Location unavailable. Flags: left arm drifted down. Risk 62%. Demo message."
+  },
+  {
+    "name": "nothing optional (user request)",
+    "request": {
+      "reason": "user_request",
+      "patient": {},
+      "symptoms": []
+    },
+    "expectedText": "StrokeShield ALERT: possible stroke signs. Last well: unknown. Location unavailable. Demo message."
+  },
+  {
+    "name": "patient name is never included",
+    "request": {
+      "risk": {
+        "risk": 0.55,
+        "threshold": 0.5,
+        "contributions": [],
+        "triggered": true
+      },
+      "patient": {
+        "name": "Jane Roe",
+        "ageRange": "60-69"
+      },
+      "lastKnownWell": "noon",
+      "location": {
+        "lat": 39.32981234,
+        "lng": -76.61947,
+        "accuracyM": 12
+      },
+      "reason": "risk_threshold",
+      "symptoms": []
+    },
+    "expectedText": "StrokeShield ALERT: possible stroke signs. Last well: noon. Map: maps.google.com/?q=39.3298,-76.6195 Risk 55%. Demo message."
+  },
+  {
+    "name": "empty last known well reads unknown",
+    "request": {
+      "risk": {
+        "risk": 0.55,
+        "threshold": 0.5,
+        "contributions": [],
+        "triggered": true
+      },
+      "lastKnownWell": "",
+      "location": {
+        "lat": 39.32981234,
+        "lng": -76.61947,
+        "accuracyM": 12
+      },
+      "reason": "risk_threshold",
+      "patient": {},
+      "symptoms": []
+    },
+    "expectedText": "StrokeShield ALERT: possible stroke signs. Last well: unknown. Map: maps.google.com/?q=39.3298,-76.6195 Risk 55%. Demo message."
+  },
+  {
+    "name": "whitespace-only last known well",
+    "request": {
+      "lastKnownWell": "   ",
+      "location": {
+        "lat": 39.32981234,
+        "lng": -76.61947,
+        "accuracyM": 12
+      },
+      "reason": "risk_threshold",
+      "patient": {},
+      "symptoms": []
+    },
+    "expectedText": "StrokeShield ALERT: possible stroke signs. Last well: . Map: maps.google.com/?q=39.3298,-76.6195 Demo message."
+  },
+  {
+    "name": "200-character last known well is cut at 40 with an ellipsis",
+    "request": {
+      "risk": {
+        "risk": 0.9,
+        "threshold": 0.5,
+        "contributions": [],
+        "triggered": true
+      },
+      "lastKnownWell": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "location": {
+        "lat": 39.32981234,
+        "lng": -76.61947,
+        "accuracyM": 12
+      },
+      "symptoms": [
+        "face droop"
+      ],
+      "reason": "risk_threshold",
+      "patient": {}
+    },
+    "expectedText": "StrokeShield ALERT: possible stroke signs. Last well: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\u2026. Map: maps.google.com/?q=39.3298,-76.6195 Flags: face droop."
+  },
+  {
+    "name": "last known well of exactly 40 characters",
+    "request": {
+      "risk": {
+        "risk": 0.9,
+        "threshold": 0.5,
+        "contributions": [],
+        "triggered": true
+      },
+      "lastKnownWell": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "location": {
+        "lat": 39.32981234,
+        "lng": -76.61947,
+        "accuracyM": 12
+      },
+      "reason": "risk_threshold",
+      "patient": {},
+      "symptoms": []
+    },
+    "expectedText": "StrokeShield ALERT: possible stroke signs. Last well: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa. Map: maps.google.com/?q=39.3298,-76.6195 Risk 90%. Demo message."
+  },
+  {
+    "name": "last known well of 41 characters",
+    "request": {
+      "risk": {
+        "risk": 0.9,
+        "threshold": 0.5,
+        "contributions": [],
+        "triggered": true
+      },
+      "lastKnownWell": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "reason": "risk_threshold",
+      "patient": {},
+      "symptoms": []
+    },
+    "expectedText": "StrokeShield ALERT: possible stroke signs. Last well: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\u2026. Location unavailable. Risk 90%. Demo message."
+  },
+  {
+    "name": "symptoms list overflow (20 flags)",
+    "request": {
+      "risk": {
+        "risk": 0.8,
+        "threshold": 0.5,
+        "contributions": [],
+        "triggered": true
+      },
+      "lastKnownWell": "8:30 pm",
+      "location": {
+        "lat": 39.32981234,
+        "lng": -76.61947,
+        "accuracyM": 12
+      },
+      "symptoms": [
+        "flag number 0",
+        "flag number 1",
+        "flag number 2",
+        "flag number 3",
+        "flag number 4",
+        "flag number 5",
+        "flag number 6",
+        "flag number 7",
+        "flag number 8",
+        "flag number 9",
+        "flag number 10",
+        "flag number 11",
+        "flag number 12",
+        "flag number 13",
+        "flag number 14",
+        "flag number 15",
+        "flag number 16",
+        "flag number 17",
+        "flag number 18",
+        "flag number 19"
+      ],
+      "reason": "risk_threshold",
+      "patient": {}
+    },
+    "expectedText": "StrokeShield ALERT: possible stroke signs. Last well: 8:30 pm. Map: maps.google.com/?q=39.3298,-76.6195 Flags: flag number 0; flag number 1; flag numb\u2026."
+  },
+  {
+    "name": "one long symptom",
+    "request": {
+      "risk": {
+        "risk": 0.8,
+        "threshold": 0.5,
+        "contributions": [],
+        "triggered": true
+      },
+      "symptoms": [
+        "the left arm drifted down clearly during the ten second hold"
+      ],
+      "reason": "risk_threshold",
+      "patient": {}
+    },
+    "expectedText": "StrokeShield ALERT: possible stroke signs. Last well: unknown. Location unavailable. Flags: the left arm drifted down clearly durin\u2026. Risk 80%. Demo message."
+  },
+  {
+    "name": "control characters are flattened",
+    "request": {
+      "risk": {
+        "risk": 0.7,
+        "threshold": 0.5,
+        "contributions": [],
+        "triggered": true
+      },
+      "lastKnownWell": "8:30\r\nBcc: x@y.z\tpm\u0000\u007f",
+      "location": {
+        "lat": 39.32981234,
+        "lng": -76.61947,
+        "accuracyM": 12
+      },
+      "symptoms": [
+        "a\nb",
+        "c\u001bd"
+      ],
+      "reason": "risk_threshold",
+      "patient": {}
+    },
+    "expectedText": "StrokeShield ALERT: possible stroke signs. Last well: 8:30 Bcc: x@y.z pm. Map: maps.google.com/?q=39.3298,-76.6195 Flags: a b; c d. Risk 70%. Demo message."
+  },
+  {
+    "name": "optional parts drop when they do not fit",
+    "request": {
+      "risk": {
+        "risk": 0.7,
+        "threshold": 0.5,
+        "contributions": [],
+        "triggered": true
+      },
+      "lastKnownWell": "between 8 and 9 pm last night yes",
+      "location": {
+        "lat": 39.32981234,
+        "lng": -76.61947,
+        "accuracyM": 12
+      },
+      "symptoms": [
+        "left arm never rose",
+        "eyes did not follow the dot"
+      ],
+      "reason": "risk_threshold",
+      "patient": {}
+    },
+    "expectedText": "StrokeShield ALERT: possible stroke signs. Last well: between 8 and 9 pm last night yes. Map: maps.google.com/?q=39.3298,-76.6195 Risk 70%. Demo message."
+  },
+  {
+    "name": "location rounding, negative and tie values",
+    "request": {
+      "risk": {
+        "risk": 0.5,
+        "threshold": 0.5,
+        "contributions": [],
+        "triggered": true
+      },
+      "location": {
+        "lat": -0.03125,
+        "lng": 179.99995
+      },
+      "reason": "risk_threshold",
+      "patient": {},
+      "symptoms": []
+    },
+    "expectedText": "StrokeShield ALERT: possible stroke signs. Last well: unknown. Map: maps.google.com/?q=-0.0312,180.0000 Risk 50%. Demo message."
+  },
+  {
+    "name": "location tie rounds half to even",
+    "request": {
+      "location": {
+        "lat": 0.03125,
+        "lng": 0.09375
+      },
+      "reason": "risk_threshold",
+      "patient": {},
+      "symptoms": []
+    },
+    "expectedText": "StrokeShield ALERT: possible stroke signs. Last well: unknown. Map: maps.google.com/?q=0.0312,0.0938 Demo message."
+  },
+  {
+    "name": "risk 12.5 percent rounds half to even",
+    "request": {
+      "risk": {
+        "risk": 0.125,
+        "threshold": 0.5,
+        "contributions": [],
+        "triggered": false
+      },
+      "reason": "risk_threshold",
+      "patient": {},
+      "symptoms": []
+    },
+    "expectedText": "StrokeShield ALERT: possible stroke signs. Last well: unknown. Location unavailable. Risk 12%. Demo message."
+  },
+  {
+    "name": "risk 0.5 percent rounds half to even",
+    "request": {
+      "risk": {
+        "risk": 0.005,
+        "threshold": 0.5,
+        "contributions": [],
+        "triggered": false
+      },
+      "reason": "risk_threshold",
+      "patient": {},
+      "symptoms": []
+    },
+    "expectedText": "StrokeShield ALERT: possible stroke signs. Last well: unknown. Location unavailable. Risk 0%. Demo message."
+  },
+  {
+    "name": "risk 100 percent",
+    "request": {
+      "risk": {
+        "risk": 1.0,
+        "threshold": 0.5,
+        "contributions": [],
+        "triggered": true
+      },
+      "reason": "risk_threshold",
+      "patient": {},
+      "symptoms": []
+    },
+    "expectedText": "StrokeShield ALERT: possible stroke signs. Last well: unknown. Location unavailable. Risk 100%. Demo message."
+  },
+  {
+    "name": "risk 0",
+    "request": {
+      "risk": {
+        "risk": 0.0,
+        "threshold": 0.5,
+        "contributions": [],
+        "triggered": false
+      },
+      "reason": "risk_threshold",
+      "patient": {},
+      "symptoms": []
+    },
+    "expectedText": "StrokeShield ALERT: possible stroke signs. Last well: unknown. Location unavailable. Risk 0%. Demo message."
+  },
+  {
+    "name": "non-ASCII and astral characters count as one each",
+    "request": {
+      "lastKnownWell": "caf\u00e9 \ud83d\ude00caf\u00e9 \ud83d\ude00caf\u00e9 \ud83d\ude00caf\u00e9 \ud83d\ude00caf\u00e9 \ud83d\ude00caf\u00e9 \ud83d\ude00caf\u00e9 \ud83d\ude00caf\u00e9 \ud83d\ude00",
+      "location": {
+        "lat": 39.32981234,
+        "lng": -76.61947,
+        "accuracyM": 12
+      },
+      "reason": "risk_threshold",
+      "patient": {},
+      "symptoms": []
+    },
+    "expectedText": "StrokeShield ALERT: possible stroke signs. Last well: caf\u00e9 \ud83d\ude00caf\u00e9 \ud83d\ude00caf\u00e9 \ud83d\ude00caf\u00e9 \ud83d\ude00caf\u00e9 \ud83d\ude00caf\u00e9 \ud83d\ude00caf\u2026. Map: maps.google.com/?q=39.3298,-76.6195 Demo message."
+  },
+  {
+    "name": "byte order mark is not stripped",
+    "request": {
+      "lastKnownWell": "\ufeffnoon",
+      "location": {
+        "lat": 39.32981234,
+        "lng": -76.61947,
+        "accuracyM": 12
+      },
+      "reason": "risk_threshold",
+      "patient": {},
+      "symptoms": []
+    },
+    "expectedText": "StrokeShield ALERT: possible stroke signs. Last well: \ufeffnoon. Map: maps.google.com/?q=39.3298,-76.6195 Demo message."
+  },
+  {
+    "name": "next-line character is stripped",
+    "request": {
+      "lastKnownWell": "\u0085noon\u0085",
+      "location": {
+        "lat": 39.32981234,
+        "lng": -76.61947,
+        "accuracyM": 12
+      },
+      "reason": "risk_threshold",
+      "patient": {},
+      "symptoms": []
+    },
+    "expectedText": "StrokeShield ALERT: possible stroke signs. Last well: noon. Map: maps.google.com/?q=39.3298,-76.6195 Demo message."
+  },
+  {
+    "name": "unicode spaces are stripped",
+    "request": {
+      "lastKnownWell": "\u00a0\u3000noon\u2003",
+      "location": {
+        "lat": 39.32981234,
+        "lng": -76.61947,
+        "accuracyM": 12
+      },
+      "reason": "risk_threshold",
+      "patient": {},
+      "symptoms": []
+    },
+    "expectedText": "StrokeShield ALERT: possible stroke signs. Last well: noon. Map: maps.google.com/?q=39.3298,-76.6195 Demo message."
+  },
+  {
+    "name": "empty symptom entries",
+    "request": {
+      "symptoms": [
+        "",
+        ""
+      ],
+      "reason": "risk_threshold",
+      "patient": {}
+    },
+    "expectedText": "StrokeShield ALERT: possible stroke signs. Last well: unknown. Location unavailable. Flags: ;. Demo message."
+  }
+]

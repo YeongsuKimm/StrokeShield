@@ -1,10 +1,15 @@
 import { useRef, type RefObject } from 'react'
 import { useFocusHeading } from '../../lib/a11y/useA11y'
 import { resultBand, type ResultBand } from '../../lib/config'
+import { RESULT_BAND_COPY } from '../../lib/copy/features'
+import { isDemoNothingSent } from '../../lib/alertFailure'
 import { useSession } from '../../lib/session/store'
 import { lazyChunk } from '../../lib/resilience/lazyChunk'
 import { LazyBoundary } from '../LazyBoundary'
+import { AlertPreview } from './AlertPreview'
 import { AlertStatus } from './AlertStatus'
+import { CopySummary } from './CopySummary'
+import { MeasuredPanel } from './MeasuredPanel'
 import { ClearDataButton } from '../pages/ClearDataButton'
 import { ProgressDots } from '../test/ProgressDots'
 import { Button } from '../ui/Button'
@@ -20,22 +25,9 @@ const HOSPITAL_SEARCH = 'https://www.google.com/maps/search/emergency+room+near+
 
 function Banner({ band, risk, headingRef }: { band: ResultBand; risk: number; headingRef: RefObject<HTMLHeadingElement | null> }) {
   const copy = {
-    high: {
-      tone: 'bg-danger text-white',
-      label: 'The checks flagged possible signs',
-      body: 'One or more checks came back abnormal. This is not a diagnosis, but treat it as an emergency: call 911 now.',
-    },
-    caution: {
-      tone: 'bg-caution text-white',
-      label: 'One check was borderline',
-      body: 'This tool cannot tell whether it means anything. If this is new, or you are worried, call 911 or get seen right away.',
-    },
-    low: {
-      tone: 'bg-ink text-white', // neutral, not green: green could reassure someone who then delays care
-      label: 'These checks did not flag anything',
-      body: 'That does not mean you are not having a stroke: these checks cannot rule one out. If you have any symptoms now, or they start or change, call 911 right away.',
-    },
-  }[band]
+    ...RESULT_BAND_COPY[band],
+    tone: { high: 'bg-danger text-white', caution: 'bg-caution text-white', low: 'bg-ink text-white' /* neutral, not green: green could reassure someone who then delays care */ }[band],
+  }
 
   return (
     <div className={`rounded-[var(--radius-panel)] p-8 sm:p-10 ${copy.tone}`}>
@@ -119,6 +111,8 @@ export function ResultScreen() {
   const requestEmergency = useSession((s) => s.requestEmergency)
   const setRoute = useSession((s) => s.setRoute)
   const reset = useSession((s) => s.reset)
+  const alertStatus = useSession((s) => s.alertStatus)
+  const alertResponse = useSession((s) => s.alertResponse)
 
   const value = risk?.risk ?? 0
   const band = phase === 'alerted' || phase === 'alerting' ? 'high' : resultBand(value)
@@ -138,6 +132,8 @@ export function ResultScreen() {
 
       {/* What actually happened on the alert path. */}
       <AlertStatus />
+      {alertStatus === 'failed' && <AlertPreview stage="failed" className="mt-3" />}
+      {alertStatus === 'sent' && <AlertPreview stage={isDemoNothingSent(alertResponse) ? 'demoSent' : 'sent'} className="mt-3" />}
 
       {/* Actions. The high band keeps them too: a cancelled countdown still needs a way to get help. */}
       <div className="mt-6 grid gap-4 sm:grid-cols-[1.35fr_1fr_1fr]">
@@ -172,6 +168,7 @@ export function ResultScreen() {
         <Button tone="quiet" icon="refresh" onClick={reset}>
           Run the check again
         </Button>
+        <CopySummary band={band} />
       </div>
       <ClearDataButton className="mt-4" />
 
@@ -179,6 +176,7 @@ export function ResultScreen() {
         <MicroLabel level={2} className="mb-4">
           What the checks measured
         </MicroLabel>
+        <MeasuredPanel />
         <LazyBoundary what="The details" reset={Dashboard.reset}>
           <Dashboard />
         </LazyBoundary>
