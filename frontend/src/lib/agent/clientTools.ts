@@ -7,15 +7,11 @@ import { testRunner } from '../vision/useTestRunner'
 
 const s = () => useSession.getState()
 
-let setAgentMicMuted: ((muted: boolean) => void) | undefined
 let sendAgentContextualUpdate: ((message: string) => void) | undefined
+let speechToolsWaiting = 0
 
-export const registerAgentMicControl = (setMuted: (muted: boolean) => void) => {
-  setAgentMicMuted = setMuted
-  return () => {
-    if (setAgentMicMuted === setMuted) setAgentMicMuted = undefined
-  }
-}
+/** True while an agent `start_speech_test` call is waiting for the recording result. */
+export const isSpeechToolPending = () => speechToolsWaiting > 0
 
 export const registerAgentContextualUpdate = (send: (message: string) => void) => {
   sendAgentContextualUpdate = send
@@ -73,13 +69,15 @@ export const clientTools = {
     const blocked = phaseFor('speech')
     if (blocked) return blocked
     updateAgent('A website test has started. Wait for the tool result before continuing.')
-    setAgentMicMuted?.(true)
+    // The agent is silenced and its mic muted by `speechAudioGate` for exactly as long as the recorder runs, so this
+    // tool only waits. It stays counted as pending so the gate does not also announce a failed recording.
+    speechToolsWaiting++
     try {
       const result = await speechRunner.waitForUserResult()
       updateAgent('A website test has completed. Re-read the authoritative current website phase before speaking.')
       return summarize(result, 'Speech recorded.')
     } finally {
-      setAgentMicMuted?.(false)
+      speechToolsWaiting--
     }
   },
 
