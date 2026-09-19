@@ -21,7 +21,7 @@ uvicorn backend.main:app --reload --port 8000           # http://localhost:8000/
 ```
 **Frontend** (second terminal):
 ```bash
-cd frontend && pnpm install && pnpm dev                 # http://localhost:5173
+cd frontend && pnpm install && pnpm dev                 # http://localhost:5173  (install also copies the MediaPipe wasm; models are committed)
 pnpm test && pnpm typecheck && pnpm lint                # expect all green
 ```
 Open **http://localhost:5173/?demo=1**, click **Simulate stroke**: you'll see the whole flow with fake results and a countdown. If that works, your setup is good.
@@ -72,6 +72,14 @@ Ask your agent: "Update docs/STATUS.md and any spec my change made stale, then t
 | Camera/mic blocked | Use `http://localhost` or HTTPS; check browser permissions. |
 | Twilio "unverified number" | Trial accounts only reach verified numbers; ask the lead. |
 | Lost / unsure | Read [STATUS.md](STATUS.md), then the spec for your area, then ask in chat. |
+
+## 8. Live camera check (once per person/laptop, 5 min): helps everyone
+The vision tests assume which side of the face/body is the patient's left/right; that has NOT been confirmed on real hardware yet. Open **http://localhost:5173/?debug=1** (needs `pnpm install` once so the MediaPipe files are in place), allow the camera, then:
+1. Raise only your **right** hand: the orange `12/14/16` labels must follow it. If not, flip `ARMS_CONFIG.swapLeftRight` in `frontend/src/lib/vision/arms.ts`.
+2. Raise only your **left** hand: the cyan `11/13/15` labels must follow it.
+3. Smile on your **right** side only: orange `61` must be on that side and `mouthSmileRight` must rise. If the blendshapes are swapped, flip `FACE_CONFIG.blendshapeLeftIsPatientLeft` in `face.ts`.
+4. Use the **Run face test** / **Run arm test** buttons and check the results and captions make sense (step back for arms; ~2 m).
+Report what you found in chat and record any flag you flipped in `docs/STATUS.md`.
 
 ## Map of the docs
 [STATUS.md](STATUS.md) live board · [spec/00-overview.md](spec/00-overview.md) scope and decisions · [spec/01-architecture.md](spec/01-architecture.md) contracts and APIs · [spec/02-vision.md](spec/02-vision.md) · [spec/03-speech.md](spec/03-speech.md) · [spec/04-voice-agent.md](spec/04-voice-agent.md) · [spec/05-risk-and-alerts.md](spec/05-risk-and-alerts.md) · [spec/06-frontend-ux.md](spec/06-frontend-ux.md) · [spec/07-workflow.md](spec/07-workflow.md) timeline, demo script

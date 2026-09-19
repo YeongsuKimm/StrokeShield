@@ -38,7 +38,7 @@ Enabled with `?demo=1` or `Shift+D`. Shows a floating **Demo Panel**:
 - Keep the demo panel out of the default UI unless enabled.
 
 ## Performance & reliability
-- Load MediaPipe models on the consent screen (warm up) so tests start instantly.
+- MediaPipe models load when the page mounts (as built; the camera permission prompt therefore appears immediately). Models are committed in `frontend/public/models/`; wasm is copied from `node_modules` on `pnpm install`, so nothing depends on a CDN on demo day.
 - Cap detection to ~20 fps; avoid React state per frame (use refs/canvas for overlay).
 - Handle: camera denied, mic denied, no webcam, model load fail, backend down → each has an on-screen fallback and demo-mode escape hatch.
 
