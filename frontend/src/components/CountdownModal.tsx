@@ -70,7 +70,7 @@ export function CountdownModal() {
         </p>
 
         <Button autoFocus size="xl" tone="neutral" block className="mt-8" onClick={cancelCountdown}>
-          Cancel — I am OK
+          Cancel the text
         </Button>
 
         <a href="tel:911" className="mt-4 inline-flex items-center gap-2 font-medium text-danger underline underline-offset-4">

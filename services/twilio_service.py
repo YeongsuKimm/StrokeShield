@@ -1,11 +1,14 @@
-"""Twilio SMS alerts. SAFETY: the destination is ALWAYS DEMO_PHONE_NUMBER from env (see AGENTS.md rule 1)."""
+"""Alert delivery (email-to-SMS by default here, or Twilio SMS). SAFETY: the destination is ALWAYS derived from
+DEMO_PHONE_NUMBER in the environment (see AGENTS.md rule 1); nothing in a request can choose it."""
 import logging
 import os
+import smtplib
 import threading
 import time
 
 from backend import settings
 from backend.schemas import AlertRequest, AlertResponse
+from services import email_sms_service
 
 log = logging.getLogger("alert")
 
@@ -58,6 +61,9 @@ def place_alert(req: AlertRequest) -> AlertResponse:
     if not risk_confirmed(req):
         return AlertResponse(ok=False, dry_run=settings.dry_run(), error="risk below threshold; alert refused")
 
+    if settings.alert_channel() == "email_sms":
+        return _place_email_sms(req)
+
     message = build_message(req)
 
     if settings.dry_run():
@@ -85,3 +91,33 @@ def place_alert(req: AlertRequest) -> AlertResponse:
             return AlertResponse(ok=False, dry_run=False, error=f"SMS could not be sent{detail}")
         _last_alert_at = now
     return AlertResponse(ok=True, dry_run=False, sms_sid=sms.sid)
+
+
+def _place_email_sms(req: AlertRequest) -> AlertResponse:
+    """Email-to-SMS delivery: same guards as the Twilio path (env-only destination, DRY_RUN, one alert per 2 minutes)."""
+    global _last_alert_at
+
+    to = settings.sms_gateway_address()
+    if to is None:
+        return AlertResponse(ok=False, dry_run=settings.dry_run(), error="email-to-SMS needs a US DEMO_PHONE_NUMBER and a valid SMS_GATEWAY_DOMAIN")
+    message = email_sms_service.build_short_message(req)
+
+    if settings.dry_run():
+        log.info("DRY RUN alert (nothing sent), email-to-SMS would be %d chars", len(message))  # no PII in logs
+        return AlertResponse(ok=True, dry_run=True)
+
+    if email_sms_service.smtp_config() is None:
+        return AlertResponse(ok=False, dry_run=False, error="email-to-SMS is not configured (SMTP_USER / SMTP_APP_PASSWORD)")
+
+    with _send_lock:
+        now = time.monotonic()
+        if _last_alert_at is not None and now - _last_alert_at < MIN_SECONDS_BETWEEN_ALERTS:
+            return AlertResponse(ok=False, dry_run=False, error="rate limited: an alert was sent in the last 2 minutes")
+        try:
+            email_sms_service.send(to, message)
+        except Exception as exc:  # never show SMTP's raw text (it can echo the account or address) to the browser
+            log.error("email-to-SMS alert failed (%s)", type(exc).__name__)
+            login = " (email login failed: check SMTP_USER and the app password)" if isinstance(exc, smtplib.SMTPAuthenticationError) else ""
+            return AlertResponse(ok=False, dry_run=False, error=f"Alert could not be sent{login}")
+        _last_alert_at = now
+    return AlertResponse(ok=True, dry_run=False)

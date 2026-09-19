@@ -40,6 +40,24 @@ const summarize = (result: { needsRetry?: boolean; flags: string[] }, complete: 
       ? `Retry needed: ${result.flags[0] ?? 'I could not get a clear recording.'}`
       : complete
 
+// Eye check wording. Neutral in every case: a completed eye check is reported the same way whatever it found (the app's
+// risk score decides, never the agent), a failure is already being handled by the website (automatic retry, then Try
+// again / Continue without this check), and a skipped check is simply over. None of them invites another tool call.
+const summarizeEyes = (result: { needsRetry?: boolean; flags: string[] }): string => {
+  if (result.flags[0] === CANCELLED_FLAG) return summarize(result, '')
+  if (s().skipped.includes('eyes')) {
+    return 'The eye check was skipped and will not be scored. Do not repeat it. Follow the current website phase.'
+  }
+  if (result.needsRetry) {
+    return (
+      `The eye check could not get a clear reading (${result.flags[0] ?? 'the eyes were not visible'}). ` +
+      'The website retries by itself, then offers the user Try again or Continue without this check. ' +
+      'Do not call start_eye_test again. Briefly tell the user what the screen says and wait.'
+    )
+  }
+  return 'Eye check complete. Result recorded.'
+}
+
 export const clientTools = {
   start_face_test: async (): Promise<string> => {
     const blocked = phaseFor('face')
@@ -50,12 +68,13 @@ export const clientTools = {
     return summarize(result, 'Face test complete. Result recorded.')
   },
   start_eye_test: async (): Promise<string> => {
+    if (s().skipped.includes('eyes')) return summarizeEyes({ needsRetry: false, flags: [] })
     const blocked = phaseFor('eyes')
     if (blocked) return blocked
     updateAgent('A website test has started. Wait for the tool result before continuing.')
     const result = await testRunner.runEyes()
     updateAgent('A website test has completed. Re-read the authoritative current website phase before speaking.')
-    return summarize(result, 'Eye test complete. Result recorded.')
+    return summarizeEyes(result)
   },
   start_arm_test: async (): Promise<string> => {
     const blocked = phaseFor('arms')

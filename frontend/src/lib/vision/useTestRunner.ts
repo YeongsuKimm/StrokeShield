@@ -35,7 +35,8 @@ import { getVisionEngine, type FrameSource, type VisionSnapshot } from './useMed
 // The only place that knows the analyzers' call signatures. If analyzeFace/analyzeArms change, fix ONE line here.
 export type FaceAnalyzer = (neutral: FaceCaptureFrame[], smile: FaceCaptureFrame[]) => TestResult
 export type ArmsAnalyzer = (frames: PoseFrame[], aspectRatio: number) => TestResult
-export type EyesAnalyzer = (frames: FaceCaptureFrame[], aspectRatio: number) => TestResult
+/** `windowStartT` = when the capture window (and so the dot protocol) began, on the frames' clock. */
+export type EyesAnalyzer = (frames: FaceCaptureFrame[], aspectRatio: number, windowStartT?: number) => TestResult
 const analyzeFaceAdapter: FaceAnalyzer = (neutral, smile) => analyzeFace(neutral, smile)
 const analyzeArmsAdapter: ArmsAnalyzer = (frames, aspectRatio) => analyzeArms(frames, { aspectRatio })
 // --------------------------------------------------------------------------------------------------------------------
@@ -72,10 +73,11 @@ const defaultDeps = (): RunnerDeps => ({
     recordRun({ kind: 'arms', frames, aspectRatio }, result)
     return result
   },
-  analyzeEyes: (frames, aspectRatio) => {
-    // The capture window and EyeStimulus start together, so the first frame anchors the target protocol. The sync
-    // error is one camera frame against 1-2 second dot segments. Save these exact labelled analyzer inputs.
-    const labelled = labelEyeFrames(frames, frames[0]?.t ?? 0)
+  analyzeEyes: (frames, aspectRatio, windowStartT) => {
+    // The capture window and EyeStimulus start together, so the WINDOW start (not the first collected frame, which is
+    // later when the first frames were unusable) anchors the target protocol. The sync error is one camera frame
+    // against 1-2 second dot segments. Save these exact labelled analyzer inputs.
+    const labelled = labelEyeFrames(frames, windowStartT ?? frames[0]?.t ?? 0)
     const result = analyzeEyes(labelled, { aspect: aspectRatio })
     recordRun({ kind: 'eyes', frames: labelled, aspect: aspectRatio }, result)
     return result
@@ -147,7 +149,11 @@ export function createTestRunner(overrides: Partial<RunnerDeps> = {}): TestRunne
               missingFrame: (t) => ({ landmarks: [], blendshapes: {}, t, brightness: source.latest.brightness, aspect: source.latest.aspect }),
             })
           : test === 'eyes'
-            ? createEyesCapture<FaceCaptureFrame>((f) => deps.analyzeEyes(f, source.latest.aspect), { introMs })
+            ? createEyesCapture<FaceCaptureFrame>((f, info) => deps.analyzeEyes(f, source.latest.aspect, info.segmentStarts[0]), {
+                introMs,
+                // A frame with no face inside the window is kept as an empty frame so the analyzer can count and name it.
+                missingFrame: (t) => ({ landmarks: [], blendshapes: {}, t, brightness: source.latest.brightness, aspect: source.latest.aspect }),
+              })
             : createArmsCapture<PoseFrame>((f) => deps.analyzeArms(f, source.latest.aspect))
       ) as CaptureController<unknown>
       controllerRef.c = controller
@@ -161,8 +167,8 @@ export function createTestRunner(overrides: Partial<RunnerDeps> = {}): TestRunne
           const now = snap ? snap.t : deps.now()
           if (snap) lastFrameAt = now
           const yawLimit = test === 'eyes' ? deps.eyesYawLimitDeg : deps.faceYawLimitDeg
-          const { framing, frame } = snap ? inputFor(test, snap, yawLimit) : { framing: NO_CAMERA, frame: null }
-          const p = controller.tick(now, { framing, frame })
+          const { framing, frame, captureOk } = snap ? inputFor(test, snap, yawLimit) : { framing: NO_CAMERA, frame: null, captureOk: undefined }
+          const p = controller.tick(now, { framing, frame, captureOk })
           // Counted as shown only once it has actually run its course (a cancelled early mount must not use it up).
           if (introMs > 0 && p.phase !== 'intro') introDone.add(test)
           const key = `${p.phase}|${p.framingOk}|${p.hint}|${p.secondsLeft}`
@@ -263,13 +269,17 @@ function inputFor(
   test: RunnableTest,
   snap: VisionSnapshot,
   yawLimitDeg: number,
-): { framing: Framing; frame: FaceCaptureFrame | PoseFrame | null } {
+): { framing: Framing; frame: FaceCaptureFrame | PoseFrame | null; captureOk?: boolean } {
   if (test === 'arms') return { framing: checkArmFraming(snap.pose?.landmarks ?? null), frame: snap.pose }
   // Face and eyes share the close-up face gate; only the yaw limit differs (eyes need a stiller head).
   const face = snap.face
   // brightness (0..255) and aspect (video w/h) ride along on every face frame, as analyzeFace expects.
   const frame: FaceCaptureFrame | null = face ? { ...face, brightness: snap.brightness, aspect: snap.aspect } : null
-  return { framing: withYawGate(checkFaceFraming(face?.landmarks ?? null), face?.yawDeg, yawLimitDeg), frame }
+  const base = checkFaceFraming(face?.landmarks ?? null)
+  const framing = withYawGate(base, face?.yawDeg, yawLimitDeg)
+  // Eyes: the yaw gate only guards the START (and shows a live "look straight" hint); inside the window a turned head
+  // does not fail the run, the analyzer rejects those frames and names the cause.
+  return { framing, frame, captureOk: test === 'eyes' ? base.ok : undefined }
 }
 
 let shared: TestRunner | undefined

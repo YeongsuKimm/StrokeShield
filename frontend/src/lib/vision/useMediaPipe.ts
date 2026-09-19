@@ -9,8 +9,11 @@
 // * NOT verifiable without a browser/camera: GPU delegate, model loading, blendshape names, yaw sign, left/right.
 import { useEffect, useSyncExternalStore } from 'react'
 import type { FaceLandmarker, PoseLandmarker } from '@mediapipe/tasks-vision'
+import { useSession } from '../session/store'
+import { watchTracksEnded } from '../media/permissions'
 import type { FaceFrame, PoseFrame } from './landmarks'
 import {
+  CAMERA_ENDED_TEXT,
   CAMERA_ERROR_TEXT,
   buildFaceFrame,
   buildPoseFrame,
@@ -110,6 +113,7 @@ export class VisionEngine implements FrameSource {
 
   private _video: HTMLVideoElement | undefined
   private stream: MediaStream | undefined
+  private unwatchTracks: (() => void) | undefined
   private face: FaceLandmarker | undefined
   private pose: PoseLandmarker | undefined
   private detectors: Detectors = { face: true, pose: true }
@@ -250,6 +254,8 @@ export class VisionEngine implements FrameSource {
   }
 
   private releaseHardware(): void {
+    this.unwatchTracks?.() // our own stop() must not look like the camera dying
+    this.unwatchTracks = undefined
     this.stream?.getTracks().forEach((t) => t.stop())
     this.stream = undefined
     if (this._video) this._video.srcObject = null
@@ -268,6 +274,17 @@ export class VisionEngine implements FrameSource {
     const v = this.video
     v.srcObject = this.stream
     await v.play()
+    // Permission revoked mid-test, camera unplugged or taken by another app: the frames just freeze, so say so and
+    // offer "Try the camera again" / skip instead of leaving a dead picture. (`stop()` detaches its own tracks first.)
+    const stream = this.stream
+    const gen = this.gen
+    this.unwatchTracks?.()
+    this.unwatchTracks = watchTracksEnded(stream, () => {
+      if (gen !== this.gen || this.stream !== stream) return
+      console.debug('[vision] camera track ended')
+      cancelAnimationFrame(this.raf)
+      this.setSummary({ status: 'error', error: { kind: 'unknown', message: CAMERA_ENDED_TEXT } }, true)
+    })
   }
 
   /** GPU first, CPU fallback. */
@@ -429,7 +446,9 @@ export const getVisionEngine = (): VisionEngine => (shared ??= new VisionEngine(
  */
 export function useMediaPipe(): { engine: VisionEngine; summary: VisionSummary } {
   const engine = getVisionEngine()
-  useEffect(() => engine.acquire(), [engine])
+  // Consent gate: the camera only opens once the visitor has ticked the consent box, and closes if they withdraw it.
+  const consented = useSession((s) => s.consented)
+  useEffect(() => (consented ? engine.acquire() : undefined), [engine, consented])
   const summary = useSyncExternalStore(engine.subscribeSummary, () => engine.summary)
   return { engine, summary }
 }

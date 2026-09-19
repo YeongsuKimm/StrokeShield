@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { CountdownModal } from './components/CountdownModal'
 import { DemoPanel } from './components/DemoPanel'
@@ -8,6 +8,7 @@ import { SiteHeader } from './components/chrome/SiteHeader'
 import { HomePage } from './components/pages/HomePage'
 import { InfoPage } from './components/pages/InfoPage'
 import { ResultScreen } from './components/result/ResultScreen'
+import { Disclaimer } from './components/ui/Disclaimer'
 import { ArmsTest } from './components/test/ArmsTest'
 import { EyeTest } from './components/test/EyeTest'
 import { FaceTest } from './components/test/FaceTest'
@@ -15,15 +16,44 @@ import { SpeechTest } from './components/test/SpeechTest'
 import { SpeechRecordPanel } from './components/SpeechRecordPanel'
 import { api } from './lib/api'
 import { consumePendingAnchor } from './lib/anchorTarget'
+import { guideStartProblemText, locationForAlert } from './lib/media/permissions'
 import { isSpeechRecordSearch } from './lib/calibration/recorder'
 import { useSession, isResultPhase } from './lib/session/store'
 import { ConversationProvider } from '@elevenlabs/react'
 import { useAgent } from './lib/agent/useAgent'
+import { VOICE_CONSENT_TEXT } from './lib/privacy/consentText'
 
 function AgentControl() {
   const { start, end, status } = useAgent()
   const connected = status === 'connected'
   const connecting = status === 'connecting'
+  // The guide streams microphone audio to ElevenLabs, so it has its own opt-in, asked here at the point of use.
+  const voiceConsent = useSession((s) => s.voiceConsent)
+  const setVoiceConsent = useSession((s) => s.setVoiceConsent)
+  const [asking, setAsking] = useState(false)
+  const [note, setNote] = useState<string | null>(null)
+  // A blocked microphone, no device or a failed signed-URL request must say so, not fail silently.
+  const run = () => {
+    setNote(null)
+    start().catch((e: unknown) => {
+      console.debug('[agent] start failed', (e as { name?: string } | null)?.name)
+      setVoiceConsent(false)
+      setNote(guideStartProblemText(e))
+    })
+  }
+  const begin = () => {
+    setAsking(false)
+    setVoiceConsent(true)
+    run()
+  }
+  // However the session ended (button, dropped socket, Clear my data), the opt-in ends with it.
+  useEffect(() => {
+    if (status === 'disconnected') setVoiceConsent(false)
+  }, [status, setVoiceConsent])
+  const finish = () => {
+    setVoiceConsent(false) // ending the guide withdraws the opt-in; the next start asks again
+    void end()
+  }
 
   return (
     // Top-centre from `sm` up. On a phone the header already fills the top edge (brand + menu), so the control
@@ -34,12 +64,37 @@ function AgentControl() {
       </span>
       <button
         type="button"
-        onClick={() => void (connected ? end() : start())}
+        onClick={() => (connected ? finish() : voiceConsent ? run() : setAsking((v) => !v))}
         disabled={connecting}
         className="rounded-full bg-ink px-4 py-2 text-[0.875rem] font-semibold text-paper transition-opacity hover:opacity-80 disabled:opacity-50"
       >
         {connected ? 'End guide' : 'Start guide'}
       </button>
+      {note && !connected && !connecting && !asking && (
+        <p
+          role="alert"
+          className="absolute bottom-full right-0 mb-3 w-[min(20rem,calc(100vw-2.5rem))] rounded-[var(--radius-panel)] border border-line-strong bg-surface p-4 text-[0.9375rem] leading-snug text-danger shadow-[var(--shadow-lift)] sm:bottom-auto sm:left-1/2 sm:right-auto sm:top-full sm:mb-0 sm:mt-3 sm:-translate-x-1/2"
+        >
+          {note}
+        </p>
+      )}
+      {asking && !connected && (
+        <div
+          role="group"
+          aria-label="Voice guide consent"
+          className="absolute bottom-full right-0 mb-3 w-[min(20rem,calc(100vw-2.5rem))] rounded-[var(--radius-panel)] border border-line-strong bg-surface p-4 shadow-[var(--shadow-lift)] sm:bottom-auto sm:left-1/2 sm:right-auto sm:top-full sm:mb-0 sm:mt-3 sm:-translate-x-1/2"
+        >
+          <p className="text-[0.9375rem] leading-snug text-ink-2">{VOICE_CONSENT_TEXT}</p>
+          <div className="mt-3 flex gap-2">
+            <button type="button" onClick={begin} className="rounded-full bg-ink px-4 py-2 text-[0.875rem] font-semibold text-paper hover:opacity-80">
+              Allow and start
+            </button>
+            <button type="button" onClick={() => setAsking(false)} className="rounded-full border border-line-strong px-4 py-2 text-[0.875rem] font-semibold text-ink hover:bg-sunken">
+              Not now
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -51,15 +106,21 @@ function useAlertOnExpiry() {
     if (phase !== 'alerting') return
     const st = useSession.getState()
     const symptoms = Object.values(st.results).flatMap((r) => r?.flags ?? [])
-    api
-      .sendAlert({
-        reason: st.alertReason ?? 'user_request',
-        risk: st.risk ?? undefined,
-        patient: { name: st.patientName },
-        lastKnownWell: st.lastKnownWell,
-        location: st.location,
-        symptoms,
-      })
+    // Location never blocks the alert: at most ALERT_LOCATION_CAP_MS for a refresh (only if already granted, never a
+    // prompt), else the fix cached at the consent step, else none ("Location unavailable" in the text).
+    // Without the consent tick nothing location-related is read at all.
+    ;(st.consented ? locationForAlert(st.location) : Promise.resolve(undefined))
+      .catch(() => undefined)
+      .then((location) =>
+        api.sendAlert({
+          reason: st.alertReason ?? 'user_request',
+          risk: st.risk ?? undefined,
+          patient: { name: st.patientName },
+          lastKnownWell: st.lastKnownWell,
+          location,
+          symptoms,
+        }),
+      )
       .then((res) => st.setAlertResult(res.ok ? 'sent' : 'failed', res))
       .catch((e) => st.setAlertResult('failed', { ok: false, dryRun: false, error: String(e) }))
   }, [phase])
@@ -158,6 +219,10 @@ function AppContent() {
           </motion.div>
         </AnimatePresence>
       </main>
+      {/* Persistent on every route and phase. Bottom padding keeps it clear of the fixed Call 911 / guide buttons. */}
+      <footer className="mx-auto max-w-3xl px-4 pb-28 text-center sm:pb-24">
+        <Disclaimer variant="short" className="text-[0.8125rem] leading-snug text-ink-3" />
+      </footer>
       <EmergencyButton />
 
       {phase === 'countdown' && <CountdownModal />}

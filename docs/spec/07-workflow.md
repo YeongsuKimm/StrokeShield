@@ -4,7 +4,7 @@
 | Role | Owns | Spec |
 |---|---|---|
 | **A. Frontend + Agent lead** | Vite app, state machine, dashboard, ElevenLabs agent + client tools, demo panel | 04, 06 |
-| **B. Vision** | MediaPipe face/pose metrics, overlay math, Claude second opinion | 02 |
+| **B. Vision** | MediaPipe face/pose metrics, overlay math, Gemini second opinion | 02 |
 | **C. Speech** | Recorder/WAV, DSP features, Scribe integration, calibration | 03 |
 | **D. Backend + Alerts + Deploy** | FastAPI skeleton, schemas, Twilio, risk scoring, env, deployment, pitch/demo script | 01, 05 |
 
@@ -13,7 +13,7 @@ Everyone: keep `docs/spec/*` updated when reality diverges. Cross-role hand-offs
 ## Timeline (36–48 h)
 | Hours | Goal | Exit criteria |
 |---|---|---|
-| 0–3 | **Foundation** | Repo scaffolded (Vite + FastAPI running), contracts in TS + Pydantic, `.env` shared via password manager, keys for Twilio/ElevenLabs/Anthropic working, Vercel + backend host created |
+| 0–3 | **Foundation** | Repo scaffolded (Vite + FastAPI running), contracts in TS + Pydantic, `.env` shared via password manager, keys for Twilio/ElevenLabs/Gemini working, Vercel + backend host created |
 | 3–16 | **Parallel build against mocks** | A: state machine + UI with fake results. B: face/arm metrics passing fixture tests. C: record → WAV → `/speech/analyze` returns a score. D: `/alert` dry-run works, real Twilio SMS to demo number succeeds, risk fn tested. Agent responds and calls a stub tool |
 | 16–24 | **Integration** | End-to-end happy path in dev: agent → tests → risk → countdown → real SMS. Deployed preview works over HTTPS |
 | 24–32 | **Calibrate & harden** | Thresholds tuned on teammate fixtures, retries/fallbacks, demo mode, second opinion, geolocation link. Bug bash |
@@ -40,7 +40,7 @@ Everyone: keep `docs/spec/*` updated when reality diverges. Cross-role hand-offs
 
 ## Demo script (~3 min)
 1. **Problem** (20 s): stroke = time-critical, most people can't self-assess; FAST is the standard.
-2. **Healthy run** (45 s): guided test (close for face + speech, one step back for arms), dashboard stays green, agent says checks look okay.
+2. **Healthy run** (45 s): guided test (close for face + speech, one step back for arms), dashboard stays green, agent says nothing was flagged but the checks cannot rule out a stroke.
 3. **Symptom run** (75 s): teammate mimics droop/arm drop/slurring (or demo panel "Simulate stroke"); agent announces, countdown, the SMS with the map link arrives on your phone on stage.
 4. **Voice request** (20 s): "Call 911" mid-test → immediate countdown.
 5. **Tech + safety** (20 s): in-browser vision, DSP speech analysis, risk breakdown, demo-number guard, not a medical device.

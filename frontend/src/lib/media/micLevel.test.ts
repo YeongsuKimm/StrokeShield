@@ -9,6 +9,10 @@ describe('evaluateMic', () => {
     expect(input({ hasStream: false })).toEqual({ muted: true, reason: 'no-mic' })
   })
 
+  it('a track that ENDED (permission revoked mid-session, device unplugged) is flagged at once, not after the silence grace', () => {
+    expect(input({ trackEnded: true, msSinceSound: 0 })).toEqual({ muted: true, reason: 'track-off' })
+  })
+
   it('reports a disabled or hardware-muted track', () => {
     expect(input({ trackEnabled: false }).reason).toBe('track-off')
     expect(input({ trackMuted: true }).reason).toBe('track-off')

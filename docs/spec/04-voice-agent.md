@@ -42,12 +42,12 @@ cannot cause the agent to discuss a previous test. The agent must re-check the l
 4. Face (patient close): "Please look at the camera with a serious, neutral face, lips gently closed, like a passport photo." → `start_face_test`. The agent must NOT ask for the smile until the app says the resting-face capture is complete (`lib/agent/faceCues.ts` sends that cue when the capture goes neutral → smile, once per pass, including after an automatic retry); then "Now smile as wide as you can and hold it." That cue is a user message, which ElevenLabs treats like spoken input: it **interrupts** the agent mid-sentence (checked against the live agent: an `interruption` event arrived within 0.5 s of a text message sent during the greeting), so only one voice speaks. Contextual updates do not interrupt.
 5. Arms (patient steps back): "Now please step back about three feet, until I can see both of your hands." → `start_arm_test` (tool result says when they're in position). Then: "Hold both arms straight out to your sides, palms up, for ten seconds."
 6. Speech (patient returns close): "Now come back close to the screen and repeat after me: 'You can't teach an old dog new tricks.'" → `start_speech_test`. The tool waits for the user's Start recording click.
-7. App computes risk. If triggered: agent says *"I'm seeing signs that need urgent attention. I'm contacting emergency services in ten seconds. Say cancel to stop."* If not: *"These checks look okay, but if you feel unwell or symptoms change, tell me and I'll call for help."*
+7. App computes risk. If triggered: agent says *"I'm seeing signs that need urgent attention. I'm contacting emergency services in ten seconds. Say cancel to stop."* If not: *"Nothing was flagged, but these checks can't rule out a stroke. If you have any symptoms, or they start or change, call 911."*
 8. **Any time**: user says "call 911 / call for help / I need an ambulance" (or confusion/"help me") → `call_emergency`. Never ask twice.
 
 ## System prompt essentials (paste into agent config, keep in `docs/agent-prompt.md` if edited)
 - Persona: calm, warm, brief (1–2 short sentences), plain words, no medical jargon.
-- Never diagnose, never say the person is or isn't having a stroke. Say "I'm seeing signs" / "these checks look okay".
+- Never diagnose, never say the person is or isn't having a stroke. Say "I'm seeing signs" / "nothing was flagged", and always add that the checks cannot rule out a stroke. Never say the person is fine or all clear. If asked how accurate the check is: it is only a guide through BE-FAST, not clinically accurate, cannot diagnose or rule out a stroke (see "Always be honest about what this is" in `docs/agent-prompt.md`; the live agent prompt must match).
 - The order is face, speech, then arms (the patient steps back only once). Relay positioning hints from tool results/context updates in short plain words ("a little closer", "step back").
 - Follow the flow above in order; call the tool right after giving the instruction; **do not speak while a test tool is running** (wait for the tool result).
 - If the user sounds confused, distressed, or asks for help/ambulance/911 at any point: call `call_emergency` immediately.
@@ -60,3 +60,7 @@ cannot cause the agent to discuss a previous test. The agent must re-check the l
 - **Latency**: keep instructions short; app shows on-screen captions of what the agent said as a backup.
 - **Failure**: if the WebSocket drops, the UI continues the flow with on-screen prompts + browser `speechSynthesis` fallback and a big manual "Call for help" button.
 - **Cost**: end the conversation on completion; don't leave it open.
+
+## Stroke knowledge (only when asked)
+The agent prompt carries a short "Stroke facts" section (`docs/agent-prompt.md`): BE-FAST signs, call 911 even if signs pass, do not drive, time matters (tell the dispatcher when the person was last well), what to do while waiting (no food, drink or aspirin unless the dispatcher says), and the American Stroke Association warmline 1-888-4-STROKE (non-emergency, weekdays). Sources: CDC stroke signs page, NHS stroke symptoms page, AHA/Red Cross first-aid guidance, ASA warmline listing. Rules: answer only when asked, in one or two short sentences, then return to the current step; no diagnosis, no medicine or recovery advice; the only numbers it may say are 911 and the warmline. It lives in the prompt (not a knowledge base) so it adds no retrieval latency. Re-apply it if the agent is recreated.
+

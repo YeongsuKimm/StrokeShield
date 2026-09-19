@@ -4,6 +4,7 @@ import { useSession } from '../../lib/session/store'
 import { useScrollHandoff } from '../../lib/useScrollHandoff'
 import { Button } from '../ui/Button'
 import { Icon } from '../ui/Icon'
+import { Disclaimer } from '../ui/Disclaimer'
 import { MicroLabel } from '../ui/Primitives'
 import { PermissionsCard } from './PermissionsCard'
 
@@ -13,6 +14,7 @@ export function HomePage() {
   const start = useSession((s) => s.beginTests)
   const setRoute = useSession((s) => s.setRoute)
   const phase = useSession((s) => s.phase)
+  const consented = useSession((s) => s.consented)
   // Only while idle: once a check has started, scrolling must never carry the patient off to the info page.
   const pull = useScrollHandoff(phase === 'idle', 'down', () => setRoute('info'))
   const steps = testSequence()
@@ -42,25 +44,27 @@ export function HomePage() {
           className="rise order-1 rounded-[var(--radius-panel)] border border-line bg-surface p-7 shadow-[var(--shadow-panel)] sm:p-12 [@media(max-height:800px)]:sm:p-9 lg:order-2"
           style={{ '--i': 2 } as CSSProperties}
         >
-          <MicroLabel>Stroke check</MicroLabel>
+          <MicroLabel>BE-FAST guide</MicroLabel>
 
           <h1 className="mt-4 text-balance text-4xl font-semibold leading-[1.05] tracking-tight sm:text-6xl">
-            Check for a stroke in two minutes.
+            A guided BE-FAST check, in about two minutes.
           </h1>
 
           <p className="mt-5 max-w-[44ch] text-pretty text-lg leading-relaxed text-ink-2">
-            A voice guide walks you through {CHECK_COUNT_WORD[steps.length] ?? steps.length} short checks. If something
-            looks wrong, it texts your emergency contact with your location.
+            A voice guide walks you through {CHECK_COUNT_WORD[steps.length] ?? steps.length} short BE-FAST checks. If the checks
+            flag something, it can text your emergency contact with your location.
           </p>
 
           <div className="mt-8 flex flex-wrap items-center gap-3">
-            <Button size="xl" icon="arrowRight" onClick={start}>
+            <Button size="xl" icon="arrowRight" onClick={start} disabled={!consented}>
               Start the test
             </Button>
             <Button size="xl" tone="quiet" onClick={() => setRoute('info')}>
               How it works
             </Button>
           </div>
+
+          {!consented && <p className="mt-3 text-[0.9375rem] text-ink-3">Read and tick the consent box first.</p>}
 
           <ol className="mt-10 flex flex-wrap items-center gap-x-2 gap-y-3 border-t border-line pt-6">
             {steps.map((t, i) => (
@@ -74,10 +78,10 @@ export function HomePage() {
             ))}
           </ol>
 
-          <p className="mt-6 flex items-start gap-2 text-[0.9375rem] leading-snug text-ink-3">
+          <div className="mt-6 flex items-start gap-2 text-[0.9375rem] font-medium leading-snug text-ink-2">
             <Icon name="alert" size={15} className="mt-px shrink-0" />
-            Not a medical device. In an emergency, call 911.
-          </p>
+            <Disclaimer />
+          </div>
         </section>
       </div>
 

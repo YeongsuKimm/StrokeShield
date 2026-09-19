@@ -14,3 +14,6 @@ recordings/speech/*
 !recordings/speech/README.md
 .env.*
 !.env.example
+
+# ElevenLabs agent config backups written by scripts/elevenlabs_privacy.py
+elevenlabs_agent_backup_*.json

@@ -12,14 +12,14 @@ New human teammate? Point them to `docs/GETTING-STARTED.md`.
 ## What we're building
 A web app for HopHacks that runs a guided **FAST stroke check** (Face, Arms, Speech, Time) on a webcam + mic,
 narrated by an **ElevenLabs voice agent**. Each test produces a severity score; a weighted **risk score** decides
-whether to send an **emergency SMS via Twilio** (SMS only; no voice call). In the demo, the SMS goes ONLY to `DEMO_PHONE_NUMBER`.
+whether to send an **emergency text** (a text message only; no voice call), delivered by **email-to-SMS** (carrier gateway over Gmail SMTP; Twilio SMS is the legacy option, `ALERT_CHANNEL`). In the demo, the alert goes ONLY to the phone in `DEMO_PHONE_NUMBER`.
 It is a hackathon demo, **not a medical device**.
 
 ## Stack
 - Frontend: `frontend/` — Vite + React + TypeScript, Tailwind, Zustand. MediaPipe Tasks Vision (`@mediapipe/tasks-vision`) runs in the browser.
 - Backend: `backend/main.py` — FastAPI (Python **3.11 or 3.12**; mediapipe doesn't support 3.13 yet). Routers in `backend/routers/`, Pydantic schemas in `backend/schemas.py`.
 - `models/` — analysis logic (pure Python, no HTTP): `audio.py` speech DSP + scoring, `vision.py` second-opinion vision call.
-- `services/` — thin wrappers around external APIs: `elevenlabs_service.py`, `twilio_service.py`.
+- `services/` — thin wrappers around external APIs: `elevenlabs_service.py`, `twilio_service.py` (alert entry point, dispatches by `ALERT_CHANNEL`), `email_sms_service.py`.
 - Hosting: frontend on Vercel (HTTPS needed for camera/mic; `localhost` also works), backend on Railway (Dockerfile) or local.
 
 ## Commands
@@ -47,12 +47,12 @@ pnpm typecheck && pnpm lint
 | `docs/spec/02-vision.md` | Face + arm detection, second-opinion vision |
 | `docs/spec/03-speech.md` | Speech recording, DSP features, scoring |
 | `docs/spec/04-voice-agent.md` | ElevenLabs agent, client tools, prompt, flow |
-| `docs/spec/05-risk-and-alerts.md` | Risk score, thresholds, Twilio alert, safety guards |
+| `docs/spec/05-risk-and-alerts.md` | Risk score, thresholds, alert delivery (email-to-SMS / Twilio), safety guards |
 | `docs/spec/06-frontend-ux.md` | Session state machine, screens, dashboard, demo mode |
 | `docs/spec/07-workflow.md` | Team split, timeline, git rules, demo script |
 
 ## Hard rules
-1. **Safety guard:** the backend may only ever dial/text `DEMO_PHONE_NUMBER` from env. Never accept a destination number from a request body. Never hardcode 911. Respect `DRY_RUN`.
+1. **Safety guard:** the backend may only ever alert the phone in `DEMO_PHONE_NUMBER` from env (for email-to-SMS the recipient is that number at `SMS_GATEWAY_DOMAIN`, built server-side; there is no other recipient and no request field can set one). Never accept a destination number from a request body. Never hardcode 911. Respect `DRY_RUN`.
 2. **Secrets** live in `.env` (gitignored). Never commit keys, never put secret keys in `frontend/` code (only `VITE_*` public values).
 3. **Contracts are shared.** Types in `docs/spec/01-architecture.md` are mirrored in `frontend/src/lib/contracts.ts` and `backend/schemas.py`. Change both in the same PR and tell the team. Don't invent new fields silently.
 4. **Scoring/metric code must be pure functions** (input arrays → numbers). No DOM, no network, no globals. This makes them unit-testable with fixtures and lets you work without a webcam.

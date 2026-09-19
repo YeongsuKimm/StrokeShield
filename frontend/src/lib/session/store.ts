@@ -52,6 +52,11 @@ interface SessionState {
   location?: { lat: number; lng: number; accuracyM?: number }
   patientName?: string
   permissions: Record<PermissionKey, PermissionState>
+  /** The visitor ticked the consent box (docs/spec/06 "Privacy"). Until then nothing opens the camera or microphone,
+   *  asks the browser for a permission, or starts a check. Not persisted anywhere: every page load starts unconsented. */
+  consented: boolean
+  /** Separate opt-in for the ElevenLabs voice guide, which streams microphone audio to a third party. */
+  voiceConsent: boolean
   agentConnected: boolean
   transcript: TranscriptLine[]
   /** True while the patient's microphone is muted or silent — the speech test cannot work in that state. */
@@ -67,6 +72,8 @@ interface SessionState {
   goHome: () => void
   start: () => void
   acceptConsent: () => void
+  giveConsent: () => void
+  setVoiceConsent: (v: boolean) => void
   beginTests: () => void
   setLastKnownWell: (text: string) => void
   setPhase: (phase: Phase) => void
@@ -88,6 +95,8 @@ interface SessionState {
   setDemoEnabled: (v: boolean) => void
   setHint: (hint?: string) => void
   reset: () => void
+  /** Withdraw consent and forget everything held in memory (see lib/privacy/clearData.ts for the full wipe). */
+  clearAll: () => void
 }
 
 const initial = {
@@ -98,6 +107,8 @@ const initial = {
   opinions: [],
   risk: null,
   permissions: { camera: 'unknown', microphone: 'unknown', location: 'unknown' } as Record<PermissionKey, PermissionState>,
+  consented: false,
+  voiceConsent: false,
   agentConnected: false,
   transcript: [] as TranscriptLine[],
   micMuted: false,
@@ -125,7 +136,13 @@ export const useSession = create<SessionState>((set, get) => ({
   goHome: () => set({ route: 'home', phase: 'idle' }),
   start: () => set({ phase: 'consent', route: 'home' }),
   acceptConsent: () => set({ phase: 'intro' }),
-  beginTests: () => set({ phase: testSequence()[0], route: 'home' }),
+  giveConsent: () => set({ consented: true }),
+  setVoiceConsent: (voiceConsent) => set({ voiceConsent }),
+  // No consent, no check: the camera and microphone are only ever opened by a screen that this transition reveals.
+  beginTests: () => {
+    if (!get().consented) return
+    set({ phase: testSequence()[0], route: 'home' })
+  },
   setLastKnownWell: (lastKnownWell) => set({ lastKnownWell }),
   setPhase: (phase) => set({ phase, route: 'home' }),
   setLocation: (location) => set({ location }),
@@ -194,5 +211,26 @@ export const useSession = create<SessionState>((set, get) => ({
   // them. Clearing them made the consent card claim "Not asked yet" for a camera the patient already allowed (it
   // only re-queries the browser when it mounts) and the transcript strip say "not connected" mid-conversation
   // (the agent only reports connect/disconnect events, never again).
-  reset: () => set({ ...initial, permissions: { ...get().permissions }, agentConnected: get().agentConnected }),
+  // Consent is also a fact about the visitor rather than the run, so "Run the check again" does not ask again; the
+  // logo and "Clear my data" use `clearAll`, which forgets it.
+  reset: () =>
+    set({
+      ...initial,
+      permissions: { ...get().permissions },
+      agentConnected: get().agentConnected,
+      consented: get().consented,
+      voiceConsent: get().voiceConsent,
+    }),
+  clearAll: () =>
+    set({
+      ...initial,
+      transcript: [],
+      skipped: [],
+      opinions: [],
+      results: {},
+      permissions: { camera: 'unknown', microphone: 'unknown', location: 'unknown' },
+      location: undefined,
+      patientName: undefined,
+      lastKnownWell: undefined,
+    }),
 }))

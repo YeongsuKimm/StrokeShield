@@ -23,10 +23,12 @@ export function evaluateMic(input: {
   hasStream: boolean
   trackEnabled: boolean
   trackMuted: boolean
+  /** The track stopped by itself (permission revoked, device unplugged): it will never deliver sound again. */
+  trackEnded?: boolean
   msSinceSound: number
 }): MicVerdict {
   if (!input.hasStream) return { muted: true, reason: 'no-mic' }
-  if (!input.trackEnabled || input.trackMuted) return { muted: true, reason: 'track-off' }
+  if (!input.trackEnabled || input.trackMuted || input.trackEnded) return { muted: true, reason: 'track-off' }
   if (input.msSinceSound >= SILENCE_GRACE_MS) return { muted: true, reason: 'no-sound' }
   return { muted: false, reason: 'ok' }
 }
@@ -87,6 +89,12 @@ class MicMonitor {
     this.publish({ level: 0, verdict: { muted: true, reason: 'no-mic' } })
   }
 
+  /** Stop the microphone for good: stops the tracks (the browser's recording indicator goes off), then detaches. */
+  release(): void {
+    this.stream?.getTracks().forEach((t) => t.stop())
+    this.detach()
+  }
+
   /** Mute/unmute the outgoing track (used while the agent speaks, and by the mute button). */
   setEnabled(enabled: boolean): void {
     this.stream?.getAudioTracks().forEach((t) => (t.enabled = enabled))
@@ -117,6 +125,7 @@ class MicMonitor {
       hasStream: !!this.stream,
       trackEnabled: track?.enabled ?? false,
       trackMuted: track?.muted ?? false,
+      trackEnded: track?.readyState === 'ended',
       msSinceSound: now - this.lastSoundAt,
     })
 

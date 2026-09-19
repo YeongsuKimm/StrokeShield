@@ -1,4 +1,4 @@
-"""Is the SMS alert ready to send? Diagnoses the whole chain and tells you what to fix. Sends NOTHING unless --send.
+"""Is the alert ready to send? (Twilio, or email-to-SMS when ALERT_CHANNEL=email_sms.) Diagnoses the whole chain and tells you what to fix. Sends NOTHING unless --send.
 
     python scripts/sms_check.py            # read-only: checks .env, then asks Twilio (no message sent, no cost)
     python scripts/sms_check.py --send     # after all checks pass, sends ONE real test SMS to DEMO_PHONE_NUMBER
@@ -134,10 +134,83 @@ def send_test(env: Mapping[str, str]) -> Check:
     req = AlertRequest(reason="user_request", patient={"name": "TEST"}, symptoms=["this is a test message from sms_check.py"], last_known_well="now")
     res = place_alert(req)
     if res.ok:
+        if not res.sms_sid:  # email-to-SMS has no message id
+            return Check("Test SMS", "PASS", "handed to the mail server. The text should reach the phone within a minute; check spam-blocking on the carrier side if not.")
         return Check("Test SMS", "PASS", f"queued (sid {res.sms_sid}). It should arrive in a few seconds; if not, open the message log in the Twilio console for the error code.")
     code = re.search(r"\b(\d{5})\b", res.error or "")
     hint = TWILIO_HELP.get(int(code.group(1))) if code else None
     return Check("Test SMS", "FAIL", f"{res.error}" + (f"\n      -> {hint}" if hint else ""))
+
+
+GMAIL_HELP = {
+    534: "Google wants an APP PASSWORD, not your normal password (turn on 2-Step Verification, then myaccount.google.com/apppasswords).",
+    535: "Gmail rejected the login: the address or app password is wrong. Create a fresh app password and paste it as SMTP_APP_PASSWORD.",
+}
+
+
+def check_email_env(env: Mapping[str, str]) -> list[Check]:
+    """Email-to-SMS settings (ALERT_CHANNEL=email_sms). Secrets are never printed."""
+    g = lambda k: (env.get(k) or "").strip()  # noqa: E731
+    out: list[Check] = []
+    dry = g("DRY_RUN").lower() in {"", "1", "true", "yes", "on"}
+    out.append(Check("DRY_RUN", "INFO", "true: the app only LOGS alerts. Set DRY_RUN=false in .env to really send." if dry else "false: the app will really send."))
+    to = g("DEMO_PHONE_NUMBER")
+    domain = (g("SMS_GATEWAY_DOMAIN") or "vtext.com").lower()
+    if re.match(r"^\+1\d{10}$", to) and re.match(r"^[a-z0-9.-]+\.[a-z]{2,}$", domain):
+        out.append(Check("Gateway address", "PASS", f"the alert will go to ***{to[-4:]}@{domain} (built from DEMO_PHONE_NUMBER)"))
+    else:
+        out.append(Check("Gateway address", "FAIL", "needs a US DEMO_PHONE_NUMBER (+1XXXXXXXXXX) and a valid SMS_GATEWAY_DOMAIN (Verizon: vtext.com)"))
+    user, pw = g("SMTP_USER"), g("SMTP_APP_PASSWORD").replace(" ", "")
+    out.append(Check("SMTP_USER", "PASS" if re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", user) else "FAIL", "set" if user else "missing: the Gmail address the text is sent from"))
+    if not pw:
+        out.append(Check("SMTP_APP_PASSWORD", "FAIL", "missing: create one at myaccount.google.com/apppasswords (needs 2-Step Verification)"))
+    else:
+        out.append(Check("SMTP_APP_PASSWORD", "PASS" if len(pw) == 16 else "WARN", f"set, {len(pw)} characters (Google app passwords are 16)"))
+    if domain == "vtext.com":
+        out.append(Check("Carrier", "INFO", "Verizon's vtext.com gateway is scheduled to shut down 2027-03-31; delivery is best-effort and has no receipt."))
+    return out
+
+
+def check_smtp_login(env: Mapping[str, str], smtp_factory=None) -> list[Check]:
+    """Read-only: connect, STARTTLS, log in, quit. Sends no mail."""
+    import smtplib
+
+    g = lambda k: (env.get(k) or "").strip()  # noqa: E731
+    host, port = g("SMTP_HOST") or "smtp.gmail.com", int(g("SMTP_PORT") or 587)
+    factory = smtp_factory or smtplib.SMTP
+    try:
+        with factory(host, port, timeout=10) as smtp:
+            smtp.starttls()
+            smtp.login(g("SMTP_USER"), g("SMTP_APP_PASSWORD").replace(" ", ""))
+    except smtplib.SMTPAuthenticationError as exc:
+        return [Check("SMTP login", "FAIL", GMAIL_HELP.get(exc.smtp_code, f"the mail server refused the login (code {exc.smtp_code})"))]
+    except Exception as exc:  # network down, DNS, blocked port 587
+        return [Check("SMTP login", "FAIL", f"could not reach {host}:{port} ({type(exc).__name__}). Is port 587 blocked on this network?")]
+    return [Check("SMTP login", "PASS", f"logged in to {host} as the sender (no mail was sent)")]
+
+
+def main_email(args, env: Mapping[str, str], out: Callable[[str], None], smtp_factory=None) -> int:
+    out("Email-to-SMS readiness check (nothing is sent unless you pass --send)\n")
+    checks = check_email_env(env)
+    render(checks, out)
+    if all(c.status != "FAIL" for c in checks):
+        more = check_smtp_login(env, smtp_factory)
+        out("\nAsking the mail server (read-only, no mail sent):")
+        render(more, out)
+        checks += more
+    failed = [c for c in checks if c.status == "FAIL"]
+    out("")
+    if failed:
+        out(f"NOT READY: fix the {len(failed)} FAIL item(s) above, then run this again.")
+        return 1
+    out("READY: every check passed.")
+    if args.send:
+        out("\nSending ONE real test text through the app's alert path...")
+        res = send_test(env)
+        render([res], out)
+        return 0 if res.status == "PASS" else 1
+    out("Next: set DRY_RUN=false in .env only when you want real sends, and run:  python scripts/sms_check.py --send")
+    return 0
 
 
 def render(checks: list[Check], out: Callable[[str], None]) -> None:
@@ -145,7 +218,7 @@ def render(checks: list[Check], out: Callable[[str], None]) -> None:
         out(f"  [{c.status:4}] {c.name}: {c.detail}")
 
 
-def main(argv: list[str] | None = None, client_factory=None, env: Mapping[str, str] | None = None, out: Callable[[str], None] = print) -> int:
+def main(argv: list[str] | None = None, client_factory=None, env: Mapping[str, str] | None = None, out: Callable[[str], None] = print, smtp_factory=None) -> int:
     ap = argparse.ArgumentParser(description="Check (and optionally test) the Twilio SMS alert setup. Sends nothing without --send.")
     ap.add_argument("--send", action="store_true", help="after all checks pass, send ONE real test SMS to DEMO_PHONE_NUMBER")
     args = ap.parse_args(argv)
@@ -153,6 +226,8 @@ def main(argv: list[str] | None = None, client_factory=None, env: Mapping[str, s
         from backend import settings  # noqa: F401  (loads .env)
 
         env = os.environ
+    if (env.get("ALERT_CHANNEL") or "").strip().lower() == "email_sms":
+        return main_email(args, env, out, smtp_factory)
     out("SMS readiness check (nothing is sent unless you pass --send)\n")
     checks = check_env(env)
     render(checks, out)
