@@ -21,7 +21,7 @@ export function SectionHead({ index, title, lede }: { index: string; title: stri
         <span className="label-micro text-accent">{index}</span>
         <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">{title}</h2>
       </div>
-      {lede && <p className="mt-3 max-w-[60ch] text-lg leading-relaxed text-ink-2">{lede}</p>}
+      {lede && <p className="mt-3 max-w-[60ch] text-lg leading-relaxed text-ink-body">{lede}</p>}
     </header>
   )
 }

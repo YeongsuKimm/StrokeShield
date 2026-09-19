@@ -113,8 +113,9 @@ export function PermissionsCard() {
   const outstanding = ROWS.filter((r) => permissions[r.key] !== 'granted')
 
   return (
-    <section className="rounded-[var(--radius-panel)] border border-line bg-surface p-5 shadow-[var(--shadow-panel)]">
-      <h2 className="text-lg font-semibold tracking-tight">Before we start</h2>
+    <section className="rounded-[var(--radius-panel)] border border-accent bg-surface p-5 shadow-[var(--shadow-panel)]">
+      {/* Inline weight: the global heading rule in index.css (weight 500, unlayered) would otherwise beat font-bold. */}
+      <h2 className="text-[1.3125rem] tracking-tight" style={{ fontWeight: 700 }}>Before we start</h2>
 
       <ul className="mt-3 space-y-2 text-[0.9375rem] leading-snug text-ink-2">
         {CONSENT_POINTS.map(({ label, text }) => (

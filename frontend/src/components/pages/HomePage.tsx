@@ -65,7 +65,7 @@ export function HomePage() {
             </Button>
           </div>
 
-          {!consented && <p id="start-hint" className="mt-3 text-[0.9375rem] text-ink-3">Read and tick the consent box first.</p>}
+          {!consented && <p id="start-hint" className="mt-3 text-[1.0625rem] text-ink-body">Read and tick the consent box first.</p>}
 
           <ol className="mt-10 flex flex-wrap items-center gap-x-2 gap-y-3 border-t border-line pt-6">
             {steps.map((t, i) => (
