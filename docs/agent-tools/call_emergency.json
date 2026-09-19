@@ -1,0 +1,28 @@
+{
+  "type": "client",
+  "name": "call_emergency",
+  "description": "Start the website emergency countdown immediately when the user asks for an ambulance, emergency services, 911, or says they need help.",
+  "expects_response": true,
+  "response_timeout_secs": 10,
+  "parameters": [
+    {
+      "id": "reason",
+      "name": "reason",
+      "type": "string",
+      "description": "Why the user requested emergency help.",
+      "required": false,
+      "dynamic_variable": "",
+      "constant_value": ""
+    }
+  ],
+  "dynamic_variables": {
+    "dynamic_variable_placeholders": {}
+  },
+  "assignments": [],
+  "interruption_mode": "allow",
+  "pre_tool_speech": "auto",
+  "tool_call_sound": null,
+  "tool_call_sound_behavior": "auto",
+  "execution_mode": "immediate",
+  "response_mocks": []
+}

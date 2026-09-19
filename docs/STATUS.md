@@ -27,7 +27,7 @@ Status values: `not started` · `in progress` · `blocked` · `done (untested li
 | Speech: browser recorder + panels (`lib/speech/*`) | open | done (untested live) | 16 kHz WAV capture, auto-stop, `speechRunner.runSpeech()`, isolated `?record=speech` scenarios. Never run on a real mic: see the manual checklist in the recorder report / GETTING-STARTED |
 | Speech: endpoint + calibration CLI | majesticcoder14 | done | `/api/speech/analyze` hardened (5 MB, 10 s, retry-not-500); `python -m models.calibrate` |
 | Speech: ElevenLabs Scribe transcript + voice agent | open | done (untested live) | Agent client tools call the real speech and vision runners; verify agent mic muting and live transcript behavior with configured ElevenLabs credentials. |
-| Eyes test (BE-FAST) — now in the MVP | majesticcoder14 + leo | done (untested live), **wired + flag ON** | `createEyesCapture` + `runEyes` + `EyeTest` screen now drive `analyzeEyes`/`EyeStimulus`; `FEATURES.eyesTest = true` and the order is Speech → Eyes → Face → Arms. Open: agent tool `start_eye_test`, **live verify of the left/right mapping (`?debug=1`)**, calibrate. Flip the flag off if it misbehaves |
+| Eyes test (BE-FAST) — now in the MVP | majesticcoder14 + leo | done (untested live), **wired + flag ON** | `createEyesCapture` + `runEyes` + `EyeTest` screen now drive `analyzeEyes`/`EyeStimulus`; `FEATURES.eyesTest = true` and the order is Eyes → Face → Arms → Speech. Open: agent tool `start_eye_test`, **live verify of the left/right mapping (`?debug=1`)**, calibrate. Flip the flag off if it misbehaves |
 | Phoneme scoring (wav2vec2 via PyTorch, optional) | majesticcoder14 | done (TTS-verified only) | `models/phoneme.py`; `pip install -r requirements-ml.txt` + `python -m models.phoneme --download` (378 MB); enable with `PHONEME_SCORING=true`; warmed at backend startup. Real-speech behavior unverified |
 | Stretch: Claude vision second opinion | open | stub | `models/vision.py` returns `unclear` |
 | Deploy (Vercel + Railway) | backend | not started | Backend runs on demo laptop; Railway is backup (torch-free) |
@@ -39,12 +39,13 @@ Status values: `not started` · `in progress` · `blocked` · `done (untested li
 - **Decision needed:** speech max risk weight is 0.5, so a clear speech-only deficit (0.45) does NOT alert while a clear face/arm deficit does. Raise `MAX_WEIGHTS.speech` to 0.6 for "any one FAST sign alerts"? Revisit once speech is calibrated (spec 05, `consistency.test.ts`).
 - **Speech risks to watch:** noisy rooms/accents/cheap mics raise severity (10 dB SNR TTS scored 0.32) and could false-alarm; phoneme model has no declared licence (credit it in the pitch); it needs ~1.4 GB RAM on the demo laptop; real-mic capture (AudioWorklet, 16 kHz, echo-cancellation off) is untested.
 - Live-camera verification of left/right mapping (face landmarks, blendshapes, arms 11/13/15, eye landmarks) is pending on real hardware: see spec 02 "Shared conventions".
-- Test order is Face → (Eyes) → Speech → Arms (patient steps back once). Change `testSequence()` in `frontend/src/lib/config.ts` if the team disagrees.
+- Test order is Eyes → Face → Arms → Speech (patient steps back once, then returns close). Change `testSequence()` in `frontend/src/lib/config.ts` if the team disagrees.
 
 ## Known issues
 - All thresholds/weights are uncalibrated (see spec files). Calibrate on teammate fixtures around hour ~20.
 
 ## Recent changes (newest first)
+- 2026-09-19 — voice-agent/config — synced the latest main branch with Eyes → Face → Arms → Speech, guarded agent tools, and button-only speech recording.
 - 2026-09-19 — frontend/ui — info "BE-FAST in four checks" now follows the new test order (Eyes 01, Face 02, Arms 03, Speech 04; Time stays 05; the menu's process list follows). Stat digits roll 0.3 s longer. Scroll-UP back to the check now needs 170 px of wheel travel (130 px swipe) vs 110 px down, so a stray upward scroll is less likely to eject you from the info page.
 - 2026-09-19 — frontend/ui — **test order is now Eyes → Face → Arms → Speech** (speech last; `testSequence()`, store + speechRunner tests updated; speech screen tells the patient to move back close). **Waveform fix:** the wave only read the consent-time mic monitor, which has no stream unless "Allow" was pressed this session, so it stayed flat while the recorder heard you; it now also plots the recorder's level (`useSpeechProgress.level`), whichever is louder.
 - 2026-09-19 — alerts/contracts — Twilio is now messaging-only: removed the voice-call/TwiML path and `callSid` contract field; countdown and public copy now promise one SMS to the configured demo number.

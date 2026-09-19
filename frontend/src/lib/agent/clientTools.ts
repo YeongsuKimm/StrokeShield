@@ -4,26 +4,78 @@
 import { useSession } from '../session/store'
 import { speechRunner } from '../speech/speechRunner'
 import { testRunner } from '../vision/useTestRunner'
-import type { TestResult } from '../contracts'
 
 const s = () => useSession.getState()
-const summarize = (result: TestResult, complete: string): string =>
-  result.needsRetry ? `Retry needed: ${result.flags[0] || 'capture was unclear'}` : complete
+
+let setAgentMicMuted: ((muted: boolean) => void) | undefined
+let sendAgentContextualUpdate: ((message: string) => void) | undefined
+
+export const registerAgentMicControl = (setMuted: (muted: boolean) => void) => {
+  setAgentMicMuted = setMuted
+  return () => {
+    if (setAgentMicMuted === setMuted) setAgentMicMuted = undefined
+  }
+}
+
+export const registerAgentContextualUpdate = (send: (message: string) => void) => {
+  sendAgentContextualUpdate = send
+  return () => {
+    if (sendAgentContextualUpdate === send) sendAgentContextualUpdate = undefined
+  }
+}
+
+const updateAgent = (message: string) => sendAgentContextualUpdate?.(`App update: ${message}`)
+
+const phaseFor = (test: 'speech' | 'eyes' | 'face' | 'arms') => {
+  const phase = s().phase
+  if (phase !== test) {
+    return `Please wait for the website. The user must click Start the test before the ${test} check can run.`
+  }
+  return undefined
+}
+
+const summarize = (result: { needsRetry?: boolean; flags: string[] }, complete: string) =>
+  result.needsRetry ? `Retry needed: ${result.flags[0] ?? 'I could not get a clear recording.'}` : complete
 
 export const clientTools = {
   start_face_test: async (): Promise<string> => {
-    return summarize(await testRunner.runFace(), 'Face test complete. Result recorded.')
-  },
-  start_arm_test: async (): Promise<string> => {
-    return summarize(await testRunner.runArms(), 'Arm test complete. Result recorded.')
+    const blocked = phaseFor('face')
+    if (blocked) return blocked
+    updateAgent('Face check has started. Wait for the tool result before continuing.')
+    const result = await testRunner.runFace()
+    updateAgent('Face check complete. Continue to the next on-screen step.')
+    return summarize(result, 'Face test complete. Result recorded.')
   },
   start_eye_test: async (): Promise<string> => {
-    return summarize(await testRunner.runEyes(), 'Eye test complete. Result recorded.')
+    const blocked = phaseFor('eyes')
+    if (blocked) return blocked
+    updateAgent('Eye check has started. Wait for the tool result before continuing.')
+    const result = await testRunner.runEyes()
+    updateAgent('Eye check complete. Continue to the next on-screen step.')
+    return summarize(result, 'Eye test complete. Result recorded.')
   },
-  start_speech_test: async (_params: { phrase?: string } = {}): Promise<string> => {
-    // The shared runner owns recording, QC, upload, result storage, cancellation, and the canonical target phrase.
-    return summarize(await speechRunner.runSpeech(), 'Speech test complete. Result recorded.')
+  start_arm_test: async (): Promise<string> => {
+    const blocked = phaseFor('arms')
+    if (blocked) return blocked
+    updateAgent('Arm check has started. Wait for the tool result before continuing.')
+    const result = await testRunner.runArms()
+    updateAgent('Arm check complete. This was the final physical check.')
+    return summarize(result, 'Arm test complete. Result recorded.')
   },
+  start_speech_test: async (): Promise<string> => {
+    const blocked = phaseFor('speech')
+    if (blocked) return blocked
+    updateAgent('Speech check has started. Wait for the tool result before continuing.')
+    setAgentMicMuted?.(true)
+    try {
+      const result = await speechRunner.waitForUserResult()
+      updateAgent('Speech check complete. Continue to the next on-screen step.')
+      return summarize(result, 'Speech recorded.')
+    } finally {
+      setAgentMicMuted?.(false)
+    }
+  },
+
   record_last_known_well: async ({ description }: { description: string }): Promise<string> => {
     s().setLastKnownWell(description)
     return 'Noted.'

@@ -69,6 +69,7 @@ interface SessionState {
   acceptConsent: () => void
   beginTests: () => void
   setLastKnownWell: (text: string) => void
+  setPhase: (phase: Phase) => void
   setLocation: (loc: SessionState['location']) => void
   setPermission: (key: PermissionKey, state: PermissionState) => void
   setAgentConnected: (v: boolean) => void
@@ -126,6 +127,7 @@ export const useSession = create<SessionState>((set, get) => ({
   acceptConsent: () => set({ phase: 'intro' }),
   beginTests: () => set({ phase: testSequence()[0], route: 'home' }),
   setLastKnownWell: (lastKnownWell) => set({ lastKnownWell }),
+  setPhase: (phase) => set({ phase, route: 'home' }),
   setLocation: (location) => set({ location }),
   setPermission: (key, state) => set((s) => ({ permissions: { ...s.permissions, [key]: state } })),
   setAgentConnected: (agentConnected) => set({ agentConnected }),

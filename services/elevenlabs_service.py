@@ -1,19 +1,41 @@
+# OWNER: Speech dev (STT) / Agent dev (signed URL). Spec: docs/spec/03-speech.md, 04-voice-agent.md
+# TODO: transcribe(wav_bytes) -> {text, words:[{text,start,end}]} via ElevenLabs Scribe (ELEVENLABS_STT_MODEL),
+#       get_signed_url() for the conversational agent (ELEVENLABS_AGENT_ID).
+# Check the current ElevenLabs SDK docs for exact method names and response fields.
+"""Small server-side wrappers for ElevenLabs APIs."""
+
 import os
-import requests
-from fastapi import HTTPException
 
-def get_signed_url() -> str:
-    api_key = os.getenv("ELEVENLABS_API_KEY")
-    agent_id = os.getenv("ELEVENLABS_AGENT_ID")
+import httpx
 
-    if not api_key or not agent_id:
-        raise Exception("ElevenLabs credentials not configured")
 
-    url = f"https://api.elevenlabs.io/v1/convai/conversation/get_signed_url?agent_id={agent_id}"
-    headers = {"xi-api-key": api_key}
+class ElevenLabsConfigurationError(RuntimeError):
+	"""Raised when the agent cannot be configured safely."""
 
-    response = requests.get(url, headers=headers)
-    if response.status_code != 200:
-        raise Exception(f"Failed to get signed URL: {response.text}")
 
-    return response.json().get("signed_url")
+class ElevenLabsAPIError(RuntimeError):
+	"""Raised when ElevenLabs rejects a request."""
+
+
+async def get_signed_url() -> str:
+	api_key = os.getenv("ELEVENLABS_API_KEY", "").strip()
+	agent_id = os.getenv("ELEVENLABS_AGENT_ID", "").strip()
+	if not api_key or not agent_id:
+		raise ElevenLabsConfigurationError("ElevenLabs agent is not configured")
+
+	try:
+		async with httpx.AsyncClient(timeout=10.0) as client:
+			response = await client.get(
+				"https://api.elevenlabs.io/v1/convai/conversation/get-signed-url",
+				params={"agent_id": agent_id},
+				headers={"xi-api-key": api_key},
+			)
+	except httpx.HTTPError as exc:
+		raise ElevenLabsAPIError("Could not reach ElevenLabs") from exc
+
+	if response.status_code >= 400:
+		raise ElevenLabsAPIError("ElevenLabs rejected the signed URL request")
+	signed_url = response.json().get("signed_url")
+	if not isinstance(signed_url, str) or not signed_url:
+		raise ElevenLabsAPIError("ElevenLabs returned no signed URL")
+	return signed_url
