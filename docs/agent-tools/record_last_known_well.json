@@ -1,0 +1,28 @@
+{
+  "type": "client",
+  "name": "record_last_known_well",
+  "description": "Save when the user's symptoms started or when they were last known to be well.",
+  "expects_response": true,
+  "response_timeout_secs": 10,
+  "parameters": [
+    {
+      "id": "description",
+      "name": "description",
+      "type": "string",
+      "description": "When symptoms started or when the user was last known to be well.",
+      "required": true,
+      "dynamic_variable": "",
+      "constant_value": ""
+    }
+  ],
+  "dynamic_variables": {
+    "dynamic_variable_placeholders": {}
+  },
+  "assignments": [],
+  "interruption_mode": "allow",
+  "pre_tool_speech": "auto",
+  "tool_call_sound": null,
+  "tool_call_sound_behavior": "auto",
+  "execution_mode": "immediate",
+  "response_mocks": []
+}

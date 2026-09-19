@@ -189,6 +189,19 @@ describe('createSpeechRunner', () => {
     expect(h.record).toHaveBeenCalledTimes(2)
   })
 
+  it('agent-started request waits until the website button starts and completes recording', async () => {
+    const h = harness()
+    const runner = createSpeechRunner(h.deps)
+    const pending = runner.waitForUserResult()
+
+    await Promise.resolve()
+    expect(h.record).not.toHaveBeenCalled()
+
+    const run = runner.runSpeech()
+    await Promise.all([pending, run])
+    expect(h.record).toHaveBeenCalledTimes(1)
+  })
+
   it('cancel during recording: aborts, resolves Cancelled., nothing stored', async () => {
     const h = harness()
     let seen: AbortSignal | undefined
@@ -259,18 +272,16 @@ describe('default wiring (real stores)', () => {
     expect(useSpeechProgress.getState()).toMatchObject({ running: false, stage: 'idle', hint: r.flags[0] })
   })
 
-  it('speech is the LAST test: a good result with the others done moves on to the verdict', async () => {
+  it('a good result advances speech -> arms', async () => {
+    // face and eyes are already done, so arms is the next pending test whatever order / eyes flag is configured
+    // (the UI order is Eyes -> Face -> Arms -> Speech with FEATURES.eyesTest on).
     useSession.setState({
       phase: 'speech',
-      results: {
-        face: { ...okResult, test: 'face' },
-        eyes: { ...okResult, test: 'eyes' },
-        arms: { ...okResult, test: 'arms' },
-      },
+      results: { face: { ...okResult, test: 'face' }, eyes: { ...okResult, test: 'eyes' } },
     })
     const h = harness()
     const runner = createSpeechRunner({ record: h.record, analyze: h.analyze, onRecorded: h.onRecorded })
     await runner.runSpeech()
-    expect(useSession.getState().phase).toBe('clear')
+    expect(useSession.getState().phase).toBe('arms')
   })
 })

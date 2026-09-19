@@ -22,10 +22,10 @@ the application flow still need live integration verification.
 ## Client tools (implemented in `clientTools.ts`; all async, return a short string the agent can read)
 | Tool | Params | Behaviour |
 |---|---|---|
-| `start_face_test` | — | Waits for the face framing gate ("move closer/back" hints), then runs; store → `face` phase; resolves when done: `"Face test complete. Result recorded."` (no verdict wording) or `"Retry needed: smile not detected."` |
-| `start_arm_test` | — | Waits (up to 12 s) until the **arm framing gate** passes (patient stepped back, both hands visible), then 3-2-1 and 10 s measurement. If it times out, returns the runner's short retry reason. |
-| `start_speech_test` | `phrase?` | Runs the shared speech recorder/analyzer and resolves with completion or retry text. Conversation-mic muting remains to be verified live. |
-| `start_eye_test` | — | Runs the shipped eye-following check (`FEATURES.eyesTest`) and returns completion or retry text. |
+| `start_face_test` | — | Runs only while the website is on `face`; waits for the face framing gate, then returns completion or retry text. |
+| `start_arm_test` | — | Runs only while the website is on `arms`; waits (up to 12 s) for both hands to be visible, then measures the hold and returns completion or retry text. |
+| `start_speech_test` | — | Runs only while the website is on `speech`; waits for the user's **Start recording** click, then returns completion or retry text. It never starts the microphone by itself. |
+| `start_eye_test` | — | Runs only while the website is on `eyes` and `FEATURES.eyesTest` is enabled. |
 | `record_last_known_well` | `description: string` | Saves free text for the alert |
 | `get_session_status` | — | Returns phase + which tests are done (no scores) |
 | `call_emergency` | `reason: string` | **User-requested help.** Starts the 10 s countdown immediately (see 05) |
@@ -36,12 +36,12 @@ The app pushes context to the agent with `sendContextualUpdate` (e.g. `"Risk hig
 ## Conversation flow (agent-facing)
 1. Greeting + consent reminder → "Are you ready? Let's do a quick check. I'll guide you."
 2. Ask **when symptoms started / last time normal** → `record_last_known_well`.
-3. Face (patient close): "Please sit or stand about an arm's length from the screen and look at the camera. Relax… now give me a big smile and hold it." → `start_face_test`.
-4. Speech (still close): "Repeat after me: 'You can't teach an old dog new tricks.'" → `start_speech_test`.
-5. Arms (patient steps back): "Now please step back about six feet, until I can see both of your hands. I'll tell you when you're in the right spot." → `start_arm_test` (tool result says when they're in position). Then: "Hold both arms straight out to your sides, palms up, for ten seconds."
-(If the eyes stretch is on it goes between face and speech; the patient is still close.)
-6. App computes risk. If triggered: agent says *"I'm seeing signs that need urgent attention. I'm contacting emergency services in ten seconds. Say cancel to stop."* If not: *"These checks look okay, but if you feel unwell or symptoms change, tell me and I'll call for help."*
-7. **Any time**: user says "call 911 / call for help / I need an ambulance" (or confusion/"help me") → `call_emergency`. Never ask twice.
+3. Eyes (when enabled, patient close): "Keep your head still and follow the dot with your eyes only." → `start_eye_test`.
+4. Face (patient close): "Please look at the camera, relax, then smile as wide as you can." → `start_face_test`.
+5. Arms (patient steps back): "Now please step back about six feet, until I can see both of your hands." → `start_arm_test` (tool result says when they're in position). Then: "Hold both arms straight out to your sides, palms up, for ten seconds."
+6. Speech (patient returns close): "Now come back close to the screen and repeat after me: 'You can't teach an old dog new tricks.'" → `start_speech_test`. The tool waits for the user's Start recording click.
+7. App computes risk. If triggered: agent says *"I'm seeing signs that need urgent attention. I'm contacting emergency services in ten seconds. Say cancel to stop."* If not: *"These checks look okay, but if you feel unwell or symptoms change, tell me and I'll call for help."*
+8. **Any time**: user says "call 911 / call for help / I need an ambulance" (or confusion/"help me") → `call_emergency`. Never ask twice.
 
 ## System prompt essentials (paste into agent config, keep in `docs/agent-prompt.md` if edited)
 - Persona: calm, warm, brief (1–2 short sentences), plain words, no medical jargon.

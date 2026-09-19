@@ -1,3 +1,8 @@
+# Browser start rule
+
+The browser speech recorder starts only from the user's explicit **Start recording** button click. The ElevenLabs
+`start_speech_test` client tool waits for the result of that button-started run; it never opens the microphone or
+starts recording by itself. This prevents the agent's voice from becoming the speech-test sample.
 # 03 — Speech (slurred speech detection)
 
 Owner: Speech dev. Files: `frontend/src/lib/speech/recorder.ts`, `models/audio.py`, `models/config.py`, `services/elevenlabs_service.py` (STT), `backend/routers/speech.py`.

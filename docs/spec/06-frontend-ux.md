@@ -32,6 +32,8 @@ Routing is `store.route` plus `store.phase` — no router library. `App.tsx` pic
   page itself is never scroll-locked.
 - **Test screens** (`TestScreen` + `SpeechTest` / `EyeTest` / `FaceTest` / `ArmsTest`): progress dots, one big
   instruction, the stage, the assistant transcript strip, the mute warning, and the skip hatch.
+- The speech screen starts recording only from the user's **Start recording** button. The voice agent waits for that
+  result and cannot start the microphone through its client tool.
 - **Info** (`InfoPage`): process (BE-FAST), why, stats (digits roll up from zero via `ui/SlotNumber` when scrolled into view), Q&A + hotlines, team (names + Johns Hopkins University). The header logo resets the session and returns home. Reached from the header menu too.
 - **Header menu** (`chrome/SiteHeader` + `ui/DrilldownMenu` + `chrome/menuTree.ts`): a drilldown list. Collapsed it shows
   ONE row, "Learn more" ("Sections" on the info page); opening it reveals the sections, and "The process" (Speech, Eyes,

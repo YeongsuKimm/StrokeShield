@@ -1,0 +1,18 @@
+{
+  "type": "client",
+  "name": "start_speech_test",
+  "description": "Start the speech check shown on the website. Wait until the user finishes speaking and the result is returned before continuing.",
+  "expects_response": true,
+  "response_timeout_secs": 90,
+  "parameters": [],
+  "dynamic_variables": {
+    "dynamic_variable_placeholders": {}
+  },
+  "assignments": [],
+  "interruption_mode": "allow",
+  "pre_tool_speech": "auto",
+  "tool_call_sound": null,
+  "tool_call_sound_behavior": "auto",
+  "execution_mode": "immediate",
+  "response_mocks": []
+}
