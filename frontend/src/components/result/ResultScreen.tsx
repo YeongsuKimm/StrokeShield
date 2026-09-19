@@ -1,7 +1,10 @@
+import { useRef, type RefObject } from 'react'
+import { useFocusHeading } from '../../lib/a11y/useA11y'
 import { resultBand, type ResultBand } from '../../lib/config'
 import { useSession } from '../../lib/session/store'
 import { lazyChunk } from '../../lib/resilience/lazyChunk'
 import { LazyBoundary } from '../LazyBoundary'
+import { AlertStatus } from './AlertStatus'
 import { ClearDataButton } from '../pages/ClearDataButton'
 import { ProgressDots } from '../test/ProgressDots'
 import { Button } from '../ui/Button'
@@ -15,7 +18,7 @@ const Dashboard = lazyChunk(() => import('../Dashboard').then((m) => ({ default:
 /** Nearby emergency departments, via a plain maps search — no API key, works offline-of-our-backend. */
 const HOSPITAL_SEARCH = 'https://www.google.com/maps/search/emergency+room+near+me'
 
-function Banner({ band, risk }: { band: ResultBand; risk: number }) {
+function Banner({ band, risk, headingRef }: { band: ResultBand; risk: number; headingRef: RefObject<HTMLHeadingElement | null> }) {
   const copy = {
     high: {
       tone: 'bg-danger text-white',
@@ -40,8 +43,16 @@ function Banner({ band, risk }: { band: ResultBand; risk: number }) {
         <Icon name="alert" size={17} />
         <span className="label-micro">Result</span>
       </div>
-      <h1 className="mt-3 text-balance text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">{copy.label}</h1>
-      <p className="mt-4 max-w-[52ch] text-pretty text-lg leading-relaxed text-white/90">{copy.body}</p>
+      {/* Focus lands here when the result appears; aria-describedby makes the advice underneath be read with it. */}
+      <h1
+        ref={headingRef}
+        tabIndex={-1}
+        aria-describedby="result-advice"
+        className="mt-3 text-balance text-4xl font-semibold leading-tight tracking-tight outline-none sm:text-5xl"
+      >
+        {copy.label}
+      </h1>
+      <p id="result-advice" className="mt-4 max-w-[52ch] text-pretty text-lg leading-relaxed text-white/90">{copy.body}</p>
       <p className="tnum mt-6 text-[0.9375rem] text-white/85">Combined check score {Math.round(risk * 100)}% (uncalibrated)</p>
       <Disclaimer className="mt-2 max-w-[60ch] text-[0.9375rem] font-medium text-white/95" />
     </div>
@@ -78,7 +89,7 @@ function ActionCard({
       >
         <Icon name={icon} size={20} />
       </span>
-      <h3 className={`mt-4 text-lg font-semibold tracking-tight ${tone === 'danger' ? 'text-danger' : ''}`}>{title}</h3>
+      <h2 className={`mt-4 text-lg font-semibold tracking-tight ${tone === 'danger' ? 'text-danger' : ''}`}>{title}</h2>
       <p className="mt-1.5 text-[1rem] leading-snug text-ink-2">{body}</p>
       <span
         className={`mt-auto flex items-center gap-1.5 pt-4 text-[0.9375rem] font-medium ${
@@ -86,6 +97,7 @@ function ActionCard({
         }`}
       >
         {action}
+        {href?.startsWith('http') && <span className="sr-only">(opens in a new tab)</span>}
         <Icon name="arrowRight" size={15} className="transition-transform duration-200 group-hover:translate-x-0.5" />
       </span>
     </>
@@ -108,8 +120,6 @@ function ActionCard({
 export function ResultScreen() {
   const risk = useSession((s) => s.risk)
   const phase = useSession((s) => s.phase)
-  const alertStatus = useSession((s) => s.alertStatus)
-  const alertResponse = useSession((s) => s.alertResponse)
   const requestEmergency = useSession((s) => s.requestEmergency)
   const setRoute = useSession((s) => s.setRoute)
   const reset = useSession((s) => s.reset)
@@ -117,52 +127,21 @@ export function ResultScreen() {
   const value = risk?.risk ?? 0
   const band = phase === 'alerted' || phase === 'alerting' ? 'high' : resultBand(value)
 
+  // Focus the verdict when the screen appears, and again whenever the phase moves on while it is showing (the countdown
+  // dialog closing would otherwise leave focus on nothing). Not during the countdown itself: the dialog owns focus then.
+  const headingRef = useRef<HTMLHeadingElement>(null)
+  useFocusHeading(headingRef, phase, phase !== 'countdown')
+
   return (
     <div className="mx-auto w-full max-w-5xl px-4 pb-28 pt-24 sm:px-6 sm:pt-28">
       <div className="mb-8 flex justify-center">
         <ProgressDots />
       </div>
 
-      <Banner band={band} risk={value} />
+      <Banner band={band} risk={value} headingRef={headingRef} />
 
       {/* What actually happened on the alert path. */}
-      {alertStatus !== 'none' && (
-        <div
-          className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-[var(--radius-control)] border border-line bg-surface px-5 py-4"
-          role="status"
-        >
-          <Icon
-            name={alertStatus === 'sent' ? 'check' : alertStatus === 'failed' ? 'alert' : 'clock'}
-            size={18}
-            className={alertStatus === 'sent' ? 'text-ok' : alertStatus === 'failed' ? 'text-danger' : 'text-ink-3'}
-          />
-          <p className="font-medium">
-            {alertStatus === 'sending' && 'Contacting the demo number…'}
-            {alertStatus === 'sent' && 'Alert sent to the demo number.'}
-            {alertStatus === 'failed' && 'The alert did not go through.'}
-          </p>
-          {alertResponse?.dryRun && <span className="label-micro rounded-full bg-sunken px-2.5 py-1 text-ink-2">Dry run · nothing sent</span>}
-          {alertResponse?.error && <span className="text-[0.9375rem] text-danger">{alertResponse.error}</span>}
-        </div>
-      )}
-
-      {/* A failed alert must never be quiet: say so plainly, keep Call 911 the biggest thing on screen, offer a retry. */}
-      {alertStatus === 'failed' && (
-        <div className="mt-4 rounded-[var(--radius-panel)] border-2 border-danger bg-danger-wash p-6" role="alert" data-testid="alert-failed">
-          <p className="text-xl font-semibold text-danger">The text to your emergency contact did NOT go out.</p>
-          <p className="mt-1.5 text-[1rem] text-ink-2">
-            {alertResponse?.error ?? 'Something went wrong.'} If this is an emergency, do not wait: call 911 yourself.
-          </p>
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Button as="a" href="tel:911" tone="danger" size="xl" icon="phone">
-              Call 911 now
-            </Button>
-            <Button tone="quiet" size="xl" icon="refresh" onClick={() => requestEmergency('user_request')}>
-              Try sending the text again
-            </Button>
-          </div>
-        </div>
-      )}
+      <AlertStatus />
 
       {/* Actions. The high band keeps them too: a cancelled countdown still needs a way to get help. */}
       <div className="mt-6 grid gap-4 sm:grid-cols-3">
@@ -201,7 +180,9 @@ export function ResultScreen() {
       <ClearDataButton className="mt-4" />
 
       <section className="mt-14">
-        <MicroLabel className="mb-4">What the checks measured</MicroLabel>
+        <MicroLabel level={2} className="mb-4">
+          What the checks measured
+        </MicroLabel>
         <LazyBoundary what="The details" reset={Dashboard.reset}>
           <Dashboard />
         </LazyBoundary>

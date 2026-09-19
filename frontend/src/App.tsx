@@ -15,12 +15,10 @@ import { EyeTest } from './components/test/EyeTest'
 import { FaceTest } from './components/test/FaceTest'
 import { SpeechTest } from './components/test/SpeechTest'
 import { SpeechRecordPanel } from './components/SpeechRecordPanel'
-import { api } from './lib/api'
+import { sendAlertForSession } from './lib/alertFlow'
 import { consumePendingAnchor } from './lib/anchorTarget'
-import { locationForAlert } from './lib/media/permissions'
 import { isSpeechRecordSearch } from './lib/calibration/recorder'
 import { usePreflightUi } from './lib/preflight/store'
-import { performAlert } from './lib/resilience/alertFlow'
 import { lazyChunk } from './lib/resilience/lazyChunk'
 import { installBrowserLifecycle } from './lib/resilience/lifecycle'
 import { installConnectivityListeners } from './lib/resilience/network'
@@ -28,6 +26,9 @@ import { installPrefetchOnConsent } from './lib/resilience/prefetch'
 import { resumeCheck } from './lib/resilience/resumeCheck'
 import { useSession, isResultPhase } from './lib/session/store'
 import { FACE_MODEL, POSE_MODEL, WASM_BASE } from './lib/vision/useMediaPipe'
+import { pageTitle } from './lib/a11y/pageTitle'
+import { markAppReady } from './lib/a11y/useA11y'
+import { testSequence } from './lib/config'
 
 // Loaded on demand (each its own chunk): the checks themselves never need them, so they must not delay first paint.
 // The voice guide (with the ElevenLabs SDK, the heaviest dependency), the info document and the preflight panel.
@@ -35,30 +36,37 @@ const AgentDock = lazyChunk(() => import('./components/AgentControl'))
 const InfoPage = lazyChunk(() => import('./components/pages/InfoPage').then((m) => ({ default: m.InfoPage })))
 const PreflightPanel = lazyChunk(() => import('./components/PreflightPanel'))
 
-/** Sends the alert once the countdown expires. The backend decides the destination number — never this client. */
+/** Resilience plumbing (docs/spec/06 "Resilience"): online/offline tracking, tab-hidden and page-leave handling with
+ *  the screen wake lock, and warming the vision models once the visitor has consented. */
+function useResilience() {
+  useEffect(() => {
+    const offs = [
+      installConnectivityListeners(),
+      installBrowserLifecycle(resumeCheck),
+      installPrefetchOnConsent({
+        urls: [FACE_MODEL, POSE_MODEL, `${WASM_BASE}/vision_wasm_internal.js`, `${WASM_BASE}/vision_wasm_internal.wasm`],
+      }),
+    ]
+    // Warm the small lazy chunks when the browser is idle, so opening the info page later works even if wifi drops.
+    const idle = (globalThis as { requestIdleCallback?: (cb: () => void) => number }).requestIdleCallback
+    const id = idle ? idle(() => void import('./components/pages/InfoPage').catch(() => undefined)) : undefined
+    return () => {
+      offs.forEach((off) => off())
+      if (id !== undefined) (globalThis as { cancelIdleCallback?: (n: number) => void }).cancelIdleCallback?.(id)
+    }
+  }, [])
+}
+
+/**
+ * Sends the alert when the store enters alerting+sending: countdown expiry, or the one retry after a failure
+ * (`retryAlert`). The backend decides the destination number, never this client (lib/alertFlow.ts).
+ */
 function useAlertOnExpiry() {
   const phase = useSession((s) => s.phase)
+  const alertStatus = useSession((s) => s.alertStatus)
   useEffect(() => {
-    if (phase !== 'alerting') return
-    const st = useSession.getState()
-    const symptoms = Object.values(st.results).flatMap((r) => r?.flags ?? [])
-    // Location never blocks the alert: at most ALERT_LOCATION_CAP_MS for a refresh (only if already granted, never a
-    // prompt), else the fix cached at the consent step, else none ("Location unavailable" in the text).
-    // Without the consent tick nothing location-related is read at all. performAlert never throws: a failure (backend
-    // down, timeout, offline) becomes a plain "did not go through" and the result screen keeps Call 911 prominent.
-    void performAlert(
-      {
-        consented: st.consented,
-        reason: st.alertReason,
-        risk: st.risk ?? undefined,
-        patientName: st.patientName,
-        lastKnownWell: st.lastKnownWell,
-        cachedLocation: st.location,
-        symptoms,
-      },
-      { locate: locationForAlert, send: api.sendAlert },
-    ).then((out) => useSession.getState().setAlertResult(out.status, out.response))
-  }, [phase])
+    if (phase === 'alerting' && alertStatus === 'sending') void sendAlertForSession()
+  }, [phase, alertStatus])
 }
 
 /** Shift+D turns on the demo panel mid-session, as well as ?demo=1 (docs/spec/06). */
@@ -77,27 +85,6 @@ function useDemoHotkey() {
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
   }, [setDemoEnabled])
-}
-
-/** Resilience plumbing (docs/spec/06 "Resilience"): global error logging, online/offline tracking, tab-hidden and page-
- *  leave handling with the screen wake lock, and warming the vision models once the visitor has consented. */
-function useResilience() {
-  useEffect(() => {
-    const offs = [
-      installConnectivityListeners(),
-      installBrowserLifecycle(resumeCheck),
-      installPrefetchOnConsent({
-        urls: [FACE_MODEL, POSE_MODEL, `${WASM_BASE}/vision_wasm_internal.js`, `${WASM_BASE}/vision_wasm_internal.wasm`],
-      }),
-    ]
-    // Warm the small lazy chunks when the browser is idle, so opening the info page later works even if wifi drops.
-    const idle = (globalThis as { requestIdleCallback?: (cb: () => void) => number }).requestIdleCallback
-    const id = idle ? idle(() => void import('./components/pages/InfoPage').catch(() => undefined)) : undefined
-    return () => {
-      offs.forEach((off) => off())
-      if (id !== undefined) (globalThis as { cancelIdleCallback?: (n: number) => void }).cancelIdleCallback?.(id)
-    }
-  }, [])
 }
 
 /** `route` is a PROP, not read from the store: the page that is fading out must stay what it was, or it would
@@ -133,6 +120,11 @@ function AppContent() {
   const demoEnabled = useSession((s) => s.demoEnabled)
   const preflightOpen = usePreflightUi((s) => s.open)
   const setPreflightOpen = usePreflightUi((s) => s.setOpen)
+  // A unique <title> for every screen (WCAG 2.4.2); focus moves to each screen's heading (lib/a11y/useA11y.ts).
+  useEffect(() => {
+    document.title = pageTitle(route, phase, testSequence())
+  }, [route, phase])
+  useEffect(markAppReady, [])
   useAlertOnExpiry()
   useDemoHotkey()
   useResilience()
@@ -146,6 +138,9 @@ function AppContent() {
 
   return (
     <div className="min-h-[100dvh]">
+      {/* While the countdown modal is up, EVERYTHING behind it is inert (not focusable, not read), so Tab cannot leave
+          the dialog for the page. The modal has its own Cancel and call-911 controls. */}
+      <div inert={phase === 'countdown'}>
       {/* Tailwind's own sr-only utility outranks the base-layer "visible on focus" rule, so the reveal is explicit. */}
       <a
         href="#main"
@@ -153,9 +148,11 @@ function AppContent() {
       >
         Skip to the main content
       </a>
+      {/* Second in tab order on every screen, right after the skip link: help is the first thing a keyboard user reaches.
+          It is fixed-position, so its place in the DOM does not change where it is drawn. */}
+      <EmergencyButton />
       <SiteHeader />
-      {/* While the countdown modal is up, nothing behind it should take focus (it is aria-modal). */}
-      <main id="main" className="overflow-x-clip" inert={phase === 'countdown'}>
+      <main id="main" tabIndex={-1} className="overflow-x-clip outline-none">
         <AnimatePresence
           mode="wait"
           initial={false}
@@ -194,11 +191,8 @@ function AppContent() {
           Demo preflight
         </button>
       </footer>
-      <EmergencyButton />
       <ConnectivityBanner />
       <ResumeNotice />
-
-      {phase === 'countdown' && <CountdownModal />}
       {demoEnabled && <DemoPanel />}
       <RecordPanel />
       {isSpeechRecordSearch(globalThis.location?.search ?? '') && <SpeechRecordPanel />}
@@ -206,6 +200,9 @@ function AppContent() {
       <LazyBoundary what="The voice guide" reset={AgentDock.reset} fallback={null} failed={null}>
         <AgentDock />
       </LazyBoundary>
+      </div>
+
+      {phase === 'countdown' && <CountdownModal />}
       {preflightOpen && (
         <LazyBoundary what="The preflight panel" reset={PreflightPanel.reset} fallback={<ChunkLoading label="Loading the preflight…" />}>
           <PreflightPanel onClose={() => setPreflightOpen(false)} />

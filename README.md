@@ -26,7 +26,9 @@ cd frontend && pnpm install && pnpm dev                 # http://localhost:5173
 pnpm test && pnpm typecheck && pnpm lint
 ```
 Open `http://localhost:5173/?demo=1` for the demo panel (simulate healthy / stroke results without a webcam).
-`DRY_RUN=true` (default) means the alert endpoint logs instead of calling/texting.
+`DRY_RUN=true` (default) means the alert endpoint only logs; it never sends. Live alerts are one text to `DEMO_PHONE_NUMBER` by email-to-SMS (Gmail SMTP to the carrier gateway; best-effort, Verizon only), setup in [docs/SMS-SETUP.md](docs/SMS-SETUP.md). Twilio is a legacy option.
+
+**Judging and demo prep:** [docs/JUDGING.md](docs/JUDGING.md) (scorecard, weak points, pitch, demo script with fallbacks, Q&A, demo-day checklist). Nothing here is validated; thresholds are uncalibrated.
 
 ## Layout
-`frontend/` React + TS + MediaPipe · `backend/` FastAPI · `models/` speech + vision analysis · `services/` Twilio / ElevenLabs · `tests/` pytest · `docs/spec/` specs
+`frontend/` React + TS + MediaPipe · `backend/` FastAPI · `models/` speech + vision analysis · `services/` email-to-SMS / Twilio (legacy) / ElevenLabs · `tests/` pytest · `docs/spec/` specs

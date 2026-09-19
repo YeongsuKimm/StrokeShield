@@ -29,6 +29,7 @@ import {
 } from './capture'
 import { checkArmFraming, checkFaceFraming, type Framing } from './framing'
 import type { PoseFrame } from './landmarks'
+import { ONE_PERSON_HINT, SWITCHED_PERSON_HINT } from './subject'
 import { getVisionEngine, type FrameSource, type VisionSnapshot } from './useMediaPipe'
 
 // ---- ADAPTERS ------------------------------------------------------------------------------------------------------
@@ -120,6 +121,7 @@ export function createTestRunner(overrides: Partial<RunnerDeps> = {}): TestRunne
     const failure = (reason: string) => retryResult(test, reason, startedAt, 0)
     const release = source.acquire()
     let unsub = () => {}
+    let unsubSummary = () => {}
     let heartbeat: ReturnType<typeof setInterval> | undefined
     try {
       // Face and eyes only need the face landmarker, arms only the pose landmarker (saves CPU/GPU).
@@ -162,19 +164,36 @@ export function createTestRunner(overrides: Partial<RunnerDeps> = {}): TestRunne
         let lastPublish = 0
         let lastKey = ''
         let lastFrameAt = deps.now()
+        let lastPhase: CaptureProgress['phase'] = 'waiting'
+        let runEpoch: number | undefined // which person this run is measuring (see subject.ts)
+        let lastPublishedPhase = ''
 
         const step = (snap: VisionSnapshot | null) => {
           const now = snap ? snap.t : deps.now()
           if (snap) lastFrameAt = now
           const yawLimit = test === 'eyes' ? deps.eyesYawLimitDeg : deps.faceYawLimitDeg
-          const { framing, frame, captureOk } = snap ? inputFor(test, snap, yawLimit) : { framing: NO_CAMERA, frame: null, captureOk: undefined }
-          const p = controller.tick(now, { framing, frame, captureOk })
+          let input: { framing: Framing; frame: FaceCaptureFrame | PoseFrame | null; captureOk?: boolean } = snap
+            ? inputFor(test, snap, yawLimit)
+            : { framing: NO_CAMERA, frame: null, captureOk: undefined }
+          if (snap?.subject) {
+            // The person being measured is fixed when the capture begins. If the tracker hands the view to someone else
+            // mid-run, those frames are treated as lost (never mixed into the analysis).
+            if (lastPhase === 'intro' || lastPhase === 'waiting' || runEpoch === undefined) runEpoch = snap.subject.epoch
+            else if (snap.subject.epoch !== runEpoch) input = { framing: { ok: false, hint: SWITCHED_PERSON_HINT }, frame: null, captureOk: false }
+          }
+          const p = controller.tick(now, input)
+          lastPhase = p.phase
           // Counted as shown only once it has actually run its course (a cancelled early mount must not use it up).
           if (introMs > 0 && p.phase !== 'intro') introDone.add(test)
           const key = `${p.phase}|${p.framingOk}|${p.hint}|${p.secondsLeft}`
-          if (key !== lastKey || now - lastPublish >= PUBLISH_MS) {
+          // <= 5 Hz into React whatever the frame rate: a phase change or the end publishes at once, everything else
+          // (a hint flickering at the framing threshold, the countdown) waits for the next 200 ms slot.
+          const phaseKey = `${p.phase}|${controller.finished}`
+          const urgent = phaseKey !== lastPublishedPhase
+          if ((key !== lastKey && (urgent || now - lastPublish >= PUBLISH_MS)) || now - lastPublish >= PUBLISH_MS) {
             lastKey = key
             lastPublish = now
+            lastPublishedPhase = phaseKey
             deps.publish(test, p)
             deps.setHint(p.hint || undefined)
           }
@@ -182,6 +201,13 @@ export function createTestRunner(overrides: Partial<RunnerDeps> = {}): TestRunne
         }
 
         unsub = source.subscribeFrames((s) => step(s))
+        // The camera died or the detector gave up mid-run (unplugged, permission revoked, inference failing): end the run
+        // NOW with the reason, instead of waiting out the timeouts on a frozen picture.
+        unsubSummary = source.subscribeSummary(() => {
+          if (source.summary.status === 'error' && !controller.finished) {
+            resolve(failure(`I lost the camera. ${source.summary.error?.message ?? ''}`.trim()))
+          }
+        })
         heartbeat = setInterval(() => {
           if (deps.now() - lastFrameAt > STALE_FRAME_MS) step(null)
         }, HEARTBEAT_MS)
@@ -193,6 +219,7 @@ export function createTestRunner(overrides: Partial<RunnerDeps> = {}): TestRunne
       })
     } finally {
       unsub()
+      unsubSummary()
       clearInterval(heartbeat)
       source.setDetectors({ face: true, pose: true })
       release()
@@ -265,17 +292,29 @@ export function createTestRunner(overrides: Partial<RunnerDeps> = {}): TestRunne
 
 const NO_CAMERA: Framing = { ok: false, hint: "I can't get the camera image." }
 
+/**
+ * Two people about the same size in view: we cannot know whom to test, so the run waits (with a hint) rather than guess.
+ * A smaller bystander is ignored by the tracker and only adds a gentle reminder.
+ */
+function onePerson(framing: Framing, snap: VisionSnapshot): Framing {
+  const sub = snap.subject
+  if (!sub) return framing
+  if (sub.ambiguous) return { ok: false, hint: ONE_PERSON_HINT }
+  if (framing.ok && sub.bystanders > 0) return { ok: true, hint: 'Good. Hold still. Only one person in view, please.' }
+  return framing
+}
+
 function inputFor(
   test: RunnableTest,
   snap: VisionSnapshot,
   yawLimitDeg: number,
 ): { framing: Framing; frame: FaceCaptureFrame | PoseFrame | null; captureOk?: boolean } {
-  if (test === 'arms') return { framing: checkArmFraming(snap.pose?.landmarks ?? null), frame: snap.pose }
+  if (test === 'arms') return { framing: onePerson(checkArmFraming(snap.pose?.landmarks ?? null), snap), frame: snap.pose }
   // Face and eyes share the close-up face gate; only the yaw limit differs (eyes need a stiller head).
   const face = snap.face
   // brightness (0..255) and aspect (video w/h) ride along on every face frame, as analyzeFace expects.
   const frame: FaceCaptureFrame | null = face ? { ...face, brightness: snap.brightness, aspect: snap.aspect } : null
-  const base = checkFaceFraming(face?.landmarks ?? null)
+  const base = onePerson(checkFaceFraming(face?.landmarks ?? null), snap)
   const framing = withYawGate(base, face?.yawDeg, yawLimitDeg)
   // Eyes: the yaw gate only guards the START (and shows a live "look straight" hint); inside the window a turned head
   // does not fail the run, the analyzer rejects those frames and names the cause.

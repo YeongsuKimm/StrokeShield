@@ -1,0 +1,23 @@
+# Keep secrets, recordings and the frontend out of the backend image.
+.env
+.env.*
+!.env.example
+.git
+.github
+.githooks
+.claude
+.cursor
+.venv
+venv
+__pycache__
+*.pyc
+.pytest_cache
+.ruff_cache
+frontend
+recordings
+docs
+tests
+scripts
+requirements-ml.txt
+*.md
+Dockerfile

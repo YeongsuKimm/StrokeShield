@@ -58,6 +58,7 @@ const ACTIONS: { name: string; w: number; run: (r: Rng) => void }[] = [
   { name: 'cancelCountdown', w: 4, run: () => s().cancelCountdown() },
   { name: 'confirmCountdown', w: 4, run: () => s().confirmCountdown() },
   { name: 'setAlertResult', w: 5, run: (r) => s().setAlertResult(r.pick(['sent', 'failed', 'sending', 'none'] as const), { ok: r.chance(0.5), dryRun: r.chance(0.5) }) },
+  { name: 'retryAlert', w: 4, run: () => void s().retryAlert() },
   { name: 'reset', w: 3, run: () => s().reset() },
   { name: 'clearAll', w: 1, run: () => s().clearAll() },
   { name: 'setRoute', w: 5, run: (r) => s().setRoute(r.pick(['home', 'info'] as const)) },

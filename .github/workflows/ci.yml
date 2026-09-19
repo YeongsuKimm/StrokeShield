@@ -18,6 +18,13 @@ jobs:
       - run: ruff check .
       - run: pytest -q
 
+  docker:
+    # The Railway image must keep building (torch-free, root Dockerfile).
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t strokeshield-backend .
+
   frontend:
     runs-on: ubuntu-latest
     defaults:

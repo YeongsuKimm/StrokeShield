@@ -55,6 +55,8 @@ export function DemoPanel() {
       {open && (
         <div className="space-y-3 p-4">
           {testSequence().map((t) => (
+            // The label does have text ({t} below); the rule cannot see through the expression.
+            // oxlint-disable-next-line jsx-a11y/label-has-associated-control
             <label key={t} className="block">
               <span className="flex items-baseline justify-between text-[0.9375rem]">
                 <span className="capitalize">{t}</span>

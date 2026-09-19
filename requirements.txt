@@ -3,16 +3,11 @@ uvicorn[standard]
 python-multipart
 python-dotenv
 pydantic>=2
-elevenlabs
 twilio
-anthropic
 numpy
 scipy
-librosa
 praat-parselmouth
 soundfile
 rapidfuzz
-mediapipe
-opencv-python
 pytest
 httpx

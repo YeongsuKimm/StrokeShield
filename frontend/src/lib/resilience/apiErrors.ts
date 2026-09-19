@@ -14,11 +14,14 @@ export type ApiErrorKind =
 export class ApiError extends Error {
   readonly kind: ApiErrorKind
   readonly status?: number
-  constructor(kind: ApiErrorKind, message: string, status?: number) {
+  /** Seconds from the Retry-After header (HTTP 429), so callers can show the wait. */
+  readonly retryAfterS?: number
+  constructor(kind: ApiErrorKind, message: string, status?: number, retryAfterS?: number) {
     super(message)
     this.name = 'ApiError'
     this.kind = kind
     this.status = status
+    this.retryAfterS = retryAfterS
   }
 }
 

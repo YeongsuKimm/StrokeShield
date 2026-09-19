@@ -89,6 +89,7 @@ Rule: **no destination number in `AlertRequest`.** Backend reads `DEMO_PHONE_NUM
 | Method & path | Request | Response | Owner |
 |---|---|---|---|
 | `GET /api/health` | — | `{ok:true, dryRun, demoMode}` | Backend |
+| `GET /api/preflight` | — | `{alertChannel, dryRun, smtpConfigured, gatewayValid, agentConfigured, phonemeReady, secondOpinionEnabled}` — booleans + the channel name only (never a secret, address or the phone number). NOT a contract type: `backend/preflight.py`, no `schemas.py`/`contracts.ts` mirror. The same checks are logged as `preflight:` warnings at startup. | Backend |
 | `GET /api/agent/signed-url` | — | `{signedUrl}` | Backend/Agent |
 | `POST /api/speech/analyze` | multipart: `audio` (wav), `target_phrase` | `TestResult` (+`transcript`, `metrics`) | Speech |
 | `POST /api/vision/second-opinion` | `{images:[{kind, jpegBase64}]}` | `VisionOpinion[]` | Vision |
@@ -113,5 +114,5 @@ Heavy packages (torch, transformers) go in a separate `requirements-ml.txt` (exi
 
 ## Deployment
 - Frontend → Vercel (`frontend/` root, build `pnpm build`, env `VITE_API_BASE_URL`).
-- Backend → Railway (Dockerfile, Python 3.11). Include `ffmpeg` only if we fall back to webm uploads (default is WAV from the browser, so not needed). Set `ALLOWED_ORIGINS` to the Vercel URL.
+- Backend → Railway (root `Dockerfile`, python:3.11-slim, torch-free, non-root, `--proxy-headers --no-access-log`; steps + env var table in `docs/DEPLOY.md`). Include `ffmpeg` only if we fall back to webm uploads (default is WAV from the browser, so not needed). Set `ALLOWED_ORIGINS` to the Vercel URL.
 - Fallback for demo day: run both locally; camera/mic work on `localhost` without HTTPS. Twilio sends an outbound SMS directly, so no inbound webhook or tunnel is needed.

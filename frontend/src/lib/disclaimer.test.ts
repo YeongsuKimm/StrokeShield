@@ -43,7 +43,14 @@ describe('the shared disclaimer is used on the key screens', () => {
   })
 
   it('the consent panel leads with the long disclaimer, before the checkbox', () => {
-    expect(CONSENT_POINTS[0].text).toBe(DISCLAIMER_LONG)
+    // Short on purpose (teammate copy pass), but it must keep every required idea.
+    const t = CONSENT_POINTS[0].text
+    expect(t).toMatch(/only a guide/i)
+    expect(t).toMatch(/BE-FAST/)
+    expect(t).toMatch(/not clinically accurate/i)
+    expect(t).toMatch(/cannot diagnose or rule out a stroke/i)
+    expect(t).toMatch(/911/)
+    expect(DISCLAIMER_LONG).toMatch(/clinically accurate/i) // the full text still lives on the home page
   })
 
   it('the Disclaimer component reads only from the shared constants', () => {

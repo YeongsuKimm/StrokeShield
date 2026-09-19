@@ -52,7 +52,8 @@ async function attempt<T>(path: string, init: RequestInit | undefined, o: Reques
     if (!res.ok) {
       const body: unknown = await res.json().catch(() => undefined)
       const kind = kindForStatus(res.status)
-      throw new ApiError(kind, friendlyMessage(kind, o.what, backendMessage(body)), res.status)
+      const retryAfter = Number(res.headers?.get?.('Retry-After'))
+      throw new ApiError(kind, friendlyMessage(kind, o.what, backendMessage(body)), res.status, Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : undefined)
     }
     try {
       return (await res.json()) as T

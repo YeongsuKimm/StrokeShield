@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend import settings
+from backend import preflight, settings
 from backend.routers import agent, alert, speech, vision
 from backend.schemas import HealthResponse
 from backend.security import (
@@ -21,6 +21,12 @@ install_log_privacy()
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    # Configuration preflight: loud, secret-free warnings so a bad .env shows in the first log lines, not at alert time.
+    try:
+        for line in preflight.warnings():
+            log.warning("preflight: %s", line)
+    except Exception as exc:  # the preflight itself must never stop the server
+        log.warning("preflight skipped (%s)", type(exc).__name__)
     # Optional heavy speech model (PyTorch wav2vec2, ~5-7 s to load): load it once at startup so the first patient's
     # request doesn't spend its 10 s budget on it. Off by default (PHONEME_SCORING=false) and never blocks startup on error.
     try:
@@ -53,6 +59,12 @@ app.add_middleware(
 @app.get("/api/health", response_model=HealthResponse, response_model_by_alias=True)
 async def health() -> HealthResponse:
     return HealthResponse(ok=True, dry_run=settings.dry_run(), demo_mode=settings.demo_mode())
+
+
+@app.get("/api/preflight")
+async def preflight_status() -> dict[str, bool | str]:
+    """Config readiness for the demo checklist. Booleans and one enum only; never a secret or the phone number."""
+    return preflight.snapshot()
 
 
 for r in (agent.router, alert.router, speech.router, vision.router):

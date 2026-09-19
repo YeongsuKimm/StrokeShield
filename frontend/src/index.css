@@ -8,7 +8,7 @@
 /* ---------------------------------------------------------------------------------------------------------------
    StrokeShield design tokens.
    Light "clinical" chrome + a near-black camera stage. No gradients anywhere: flat fills, one hairline, one shadow.
-   Every pairing below is >= 4.5:1 against its own background (checked by hand; see docs/spec/06-frontend-ux.md).
+   Every pairing below is >= 4.5:1 against its own background (enforced by src/lib/a11y/contrast.test.ts, which reads this file).
    Red is RESERVED for emergency (countdown, alert, call button) so it never competes with ordinary UI.
 --------------------------------------------------------------------------------------------------------------- */
 @theme {
@@ -29,12 +29,13 @@
   --color-surface: #ffffff;
   --color-sunken: #f3f3ef; /* inset wells, unfilled tracks */
   --color-line: #e3e3dc; /* hairline */
-  --color-line-strong: #c9c9c0;
+  --color-line-strong: #c9c9c0; /* decorative dividers only (1.6:1): never the sole edge of a control */
+  --color-control-edge: #7a848f; /* borders of buttons and checkboxes: >= 3:1 on white, paper and sunken (WCAG 1.4.11) */
 
   /* Ink */
   --color-ink: #12161b; /* off-black, never #000 — 15.8:1 on paper */
   --color-ink-2: #4a5561; /*  7.5:1 on paper */
-  --color-ink-3: #6b7683; /*  4.6:1 on paper, large/secondary only */
+  --color-ink-3: #5e6975; /*  5.4:1 on paper, 5.0:1 on sunken: safe for small text */
 
   /* One accent. Deep clinical blue, 6.7:1 against white. */
   --color-accent: #0b5cab;
@@ -49,6 +50,7 @@
   --color-caution-wash: #fdf3e0;
   --color-ok: #1b6b48;
   --color-ok-wash: #e9f4ee;
+  --color-ok-stage: #34b47c; /* the "ok" green ON THE DARK STAGE (>= 3:1 there; --color-ok is too dark for it) */
 
   /* Camera stage: its own dark material, so the video reads as a viewfinder rather than a photo on a page. */
   --color-stage: #0e1216;
@@ -178,6 +180,24 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* People who ask their OS for more contrast get darker muted text and visible hairlines. */
+@media (prefers-contrast: more) {
+  :root {
+    --color-ink-3: #3f4954;
+    --color-line: #8a949e;
+    --color-line-strong: #6a747e;
+  }
+}
+
+/* Windows High Contrast / forced colours: the palette is replaced by the system's, so anything drawn only with a
+   background or a box-shadow (rings, progress dots, meters) must fall back to system colours and real borders. */
+@media (forced-colors: active) {
+  :focus-visible {
+    outline: 3px solid Highlight;
+    outline-offset: 3px;
   }
 }
 

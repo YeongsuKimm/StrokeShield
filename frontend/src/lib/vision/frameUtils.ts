@@ -69,22 +69,46 @@ export function buildFaceFrame(
     facialTransformationMatrixes?: readonly { data: ArrayLike<number> }[]
   },
   t: number,
+  index = 0, // which detected face: landmarks, blendshapes and the matrix are all read at THIS index, never mixed across faces
 ): FaceFrame | null {
-  const lm = result.faceLandmarks[0]
+  const lm = result.faceLandmarks[index]
   if (!lm || lm.length === 0) return null
   return {
     landmarks: toLandmarks(lm, false),
-    blendshapes: blendshapesToMap(result.faceBlendshapes?.[0]?.categories),
-    yawDeg: yawDegFromMatrix(result.facialTransformationMatrixes?.[0]?.data),
+    blendshapes: blendshapesToMap(result.faceBlendshapes?.[index]?.categories),
+    yawDeg: yawDegFromMatrix(result.facialTransformationMatrixes?.[index]?.data),
     t,
   }
 }
 
 /** One pose-landmarker result -> PoseFrame, or null when no person was detected. */
-export function buildPoseFrame(result: { landmarks: readonly (readonly RawLandmark[])[] }, t: number): PoseFrame | null {
-  const lm = result.landmarks[0]
+export function buildPoseFrame(result: { landmarks: readonly (readonly RawLandmark[])[] }, t: number, index = 0): PoseFrame | null {
+  const lm = result.landmarks[index]
   if (!lm || lm.length === 0) return null
   return { landmarks: toLandmarks(lm, true), t }
+}
+
+/**
+ * Source rectangle (video pixels) for measuring the SUBJECT'S face brightness: the face box grown by `grow`, clamped to the
+ * frame. Whole-frame luminance hides backlight (bright window, dark face) and a bright wall behind a dark-lit face.
+ * Returns null when the box is unusable (then the caller measures the whole frame).
+ */
+export function faceRegion(
+  box: { cx: number; cy: number; size: number } | null,
+  videoW: number,
+  videoH: number,
+  grow = 1.25,
+): { sx: number; sy: number; sw: number; sh: number } | null {
+  if (!box || !(videoW > 0) || !(videoH > 0) || !(box.size > 0.02)) return null
+  const halfW = (box.size * grow * videoW) / 2
+  const halfH = halfW * 1.25 // a face is taller than wide (mesh width vs forehead-to-chin)
+  const cx = box.cx * videoW
+  const cy = box.cy * videoH
+  const sx = Math.max(0, cx - halfW)
+  const sy = Math.max(0, cy - halfH)
+  const sw = Math.min(videoW, cx + halfW) - sx
+  const sh = Math.min(videoH, cy + halfH) - sy
+  return sw >= 4 && sh >= 4 ? { sx, sy, sw, sh } : null
 }
 
 /** detectForVideo needs strictly increasing timestamps. */

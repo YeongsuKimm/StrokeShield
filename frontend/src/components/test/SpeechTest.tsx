@@ -68,8 +68,9 @@ export function SpeechTest() {
           <Button
             size="lg"
             icon={hint && !running ? 'refresh' : 'mic'}
-            onClick={() => void runSpeech()}
-            disabled={running}
+            // aria-disabled (not disabled) while recording: the button keeps keyboard focus instead of dropping it.
+            onClick={() => !running && void runSpeech()}
+            aria-disabled={running}
           >
             {stage === 'listening' ? 'Recording…' : stage === 'analyzing' ? 'Analysing…' : hint ? 'Try again' : 'Start recording'}
           </Button>
