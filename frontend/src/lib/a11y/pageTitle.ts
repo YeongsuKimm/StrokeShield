@@ -1,6 +1,6 @@
 // Unique, meaningful <title> per route and phase (WCAG 2.4.2). Pure: App.tsx just assigns the result to document.title.
 
-export const BASE_TITLE = 'StrokeShield: BE-FAST check guide (not a medical device)'
+export const BASE_TITLE = 'StrokeShield, a guided BE-FAST check (not a medical device)'
 const SUFFIX = 'StrokeShield'
 
 const TEST_LABEL: Record<string, string> = { eyes: 'Eyes', face: 'Face', arms: 'Arms', speech: 'Speech' }

@@ -60,6 +60,7 @@
 
   --radius-panel: 1.25rem;
   --radius-control: 0.625rem;
+  --radius-sheet: 0.5rem; /* hairline data tables (gap-px grids): tighter than the panels around them */
 
   /* One shadow, tinted to the paper hue rather than neutral black. */
   --shadow-panel: 0 1px 2px rgba(18, 22, 27, 0.04), 0 12px 32px -16px rgba(18, 22, 27, 0.18);
@@ -71,6 +72,39 @@
 @layer base {
   html {
     -webkit-text-size-adjust: 100%;
+    scrollbar-gutter: stable; /* home (short) to info (long) must not shift sideways */
+  }
+
+  /* Line breaking: balance short blocks, avoid single-word last lines in paragraphs. Unsupported browsers ignore it. */
+  h1,
+  h2,
+  h3,
+  blockquote,
+  figcaption {
+    text-wrap: balance;
+  }
+
+  p,
+  li,
+  dd,
+  dt {
+    text-wrap: pretty;
+  }
+
+  /* One blue for selection with ink text on top (>= 10:1); a lighter blue on the dark stage. */
+  ::selection {
+    background: color-mix(in srgb, var(--color-accent) 24%, white);
+    color: var(--color-ink);
+  }
+
+  .on-stage ::selection {
+    background: #8fc2f5;
+    color: var(--color-stage);
+  }
+
+  input,
+  textarea {
+    caret-color: var(--color-accent);
   }
 
   body {
@@ -114,8 +148,8 @@
   .label-micro {
     font-family: var(--font-sans);
     font-size: 0.8125rem;
-    font-weight: 700;
-    letter-spacing: 0.09em;
+    font-weight: 600;
+    letter-spacing: 0.07em;
     text-transform: uppercase;
   }
 
@@ -136,24 +170,20 @@
     animation-delay: calc(var(--i, 0) * 70ms);
   }
 
-  /* One-off spring-in for things that must be noticed the moment they appear (the skip offer). */
+  /* One-off entrance for things that must be noticed the moment they appear (the skip offer): a short settle, no overshoot. */
   @keyframes ss-pop {
-    0% {
+    from {
       opacity: 0;
-      transform: translateY(16px) scale(0.94);
+      transform: translateY(8px);
     }
-    60% {
-      opacity: 1;
-      transform: translateY(-3px) scale(1.02);
-    }
-    100% {
+    to {
       opacity: 1;
       transform: none;
     }
   }
 
   .pop {
-    animation: ss-pop 480ms var(--ease-out) both;
+    animation: ss-pop 260ms var(--ease-out) both;
   }
 
   @keyframes ss-breathe {
@@ -214,6 +244,12 @@ blockquote,
   font-variant-numeric: lining-nums;
 }
 
+/* Must come AFTER the unlayered serif rule above, which would otherwise win over the layered .tnum and turn
+   tabular numerals off on serif figures (combined risk %, the slot-number reels). */
+.tnum {
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
 
 /* Cursor at 2x the default size. Custom cursors are SVG data URIs (browsers cap them at 128 px, so 2x is safe):
    an arrow for everything, a pointing hand over anything clickable, an I-beam in text fields. The hotspot is the
@@ -238,4 +274,38 @@ textarea {
 }
 button:disabled {
   cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='40' viewBox='0 0 26 40'%3E%3Cpath d='M3 3 V30 L9.5 24 L14.5 35.5 L19.5 33.3 L14.5 22 H23.5 Z' fill='white' stroke='black' stroke-width='2.4' stroke-linejoin='round'/%3E%3C/svg%3E") 3 3, default;
+}
+
+/* Printing the result: drop the fixed 911 button, guide control, header and buttons; the disclaimer footer stays. */
+@media print {
+  html {
+    cursor: auto;
+  }
+
+  body {
+    background: #fff;
+  }
+
+  * {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  header,
+  .fixed,
+  button,
+  [role="region"][aria-label="Skip this check"] {
+    display: none !important;
+  }
+
+  article,
+  section,
+  .rounded-\[var\(--radius-panel\)\] {
+    break-inside: avoid;
+  }
+
+  a[href^="tel:"]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.85em;
+  }
 }
