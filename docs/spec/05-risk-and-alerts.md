@@ -36,6 +36,11 @@ Rules:
 ### SMS
 `StrokeShield ALERT: possible stroke. Symptoms: {symptoms}. Last known well: {lkw}. Location: https://maps.google.com/?q={lat},{lng} (±{acc} m). Risk {risk:.0%}. Demo message.`
 
+### Failure and demo-mode UX (frontend `AlertStatus.tsx`, `lib/alertFailure.ts`)
+- A failed alert (network/timeout, HTTP 429, 5xx, or `ok:false`) is shown with its category (network / rate limited / server / not configured / refused / delivery) and plain wording that never claims a text was sent. **Call 911 now** is the first button; one **Try sending again** button re-sends without a new countdown (`store.retryAlert()`: one-shot, only from a failed alert, so a double click cannot send twice).
+- The server's "an alert was sent in the last 2 minutes" refusal is shown as such ("your contact most likely already has it") and the retry button is disabled for 120 s; an HTTP 429 uses its `Retry-After`.
+- A `dryRun:true` success is shown as **"Demo mode: nothing was sent"** (no green check), and the voice guide is told the same.
+
 ## Location
 Request `navigator.geolocation` at the **consent step** (not at alert time, so the prompt doesn't block the emergency). Cache the last fix; include accuracy. If denied, the message says "location unavailable".
 

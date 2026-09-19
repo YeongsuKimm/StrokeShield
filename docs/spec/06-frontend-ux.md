@@ -38,7 +38,7 @@ Routing is `store.route` plus `store.phase` — no router library. `App.tsx` pic
 - `reset()` (logo, "Run the check again", info-page "Start the test", demo reset) clears the session but keeps
   browser facts: `permissions` and `agentConnected`. Alert actions are phase-guarded: `cancelCountdown` /
   `confirmCountdown` only act during `countdown`, `setAlertResult` only during `alerting` (a response arriving after a
-  reset is dropped), and `requestEmergency` is ignored while an alert is in flight (no double SMS).
+  reset is dropped), and `requestEmergency` is ignored while an alert is in flight (no double SMS). After a FAILED alert `retryAlert()` (one-shot) re-sends without a countdown; the send itself lives in `lib/alertFlow.ts`, failure wording in `lib/alertFailure.ts` (spec 05).
 - The speech screen starts recording only from the user's **Start recording** button. The voice agent waits for that
   result and cannot start the microphone through its client tool.
 - **Info** (`InfoPage`): process (BE-FAST), why, stats (digits roll up from zero via `ui/SlotNumber` when scrolled into view), Q&A + hotlines, team (names + Johns Hopkins University). The header logo resets the session and returns home. Reached from the header menu too.

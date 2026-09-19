@@ -54,6 +54,9 @@ cannot cause the agent to discuss a previous test. The agent must re-check the l
 - If the user says cancel/stop during a countdown: call `cancel_emergency`.
 - If asked something off-topic, answer briefly and return to the flow.
 
+## Regression probe
+`python scripts/agent_probe.py` (needs `.env` keys) opens short text-only conversations with the LIVE agent and asserts: face briefing has no smile mention and says serious/neutral, smile cue says smile, accuracy answer (not clinically accurate, cannot diagnose), no false reassurance on a "nothing flagged" result, emergency phrase -> `call_emergency`, aspirin -> no, and no phone number except 911 / 1-888-4-STROKE. `--tools` checks that `docs/agent-tools/*.json`, `clientTools.ts` and the live agent's client tools agree. Read-only on the agent; assertion helpers are unit-tested offline (`tests/test_agent_probe.py`). The app also tells the agent when the alert text failed or was only a demo (`useAgent.ts`).
+
 ## Pitfalls to handle
 - **Echo/overlap**: while the speech recorder runs (from the moment Start recording is pressed, even if the agent is mid-sentence or has not called the tool yet) `lib/agent/speechAudioGate.ts` sets agent playback volume to 0 and mutes the conversation mic, then restores both when the run ends or is cancelled. If the recording was unusable and no `start_speech_test` call is waiting, the agent is told to report it and ask for another try; otherwise the tool result / next-phase brief makes it speak again. Use headphones for the demo if the room is noisy.
 - **Interruption**: user can interrupt the agent; make tools idempotent (calling `start_face_test` twice restarts it).
