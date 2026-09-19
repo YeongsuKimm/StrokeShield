@@ -1,6 +1,7 @@
 import { useRef, type CSSProperties } from 'react'
 import { useFocusHeading } from '../../lib/a11y/useA11y'
 import { testSequence } from '../../lib/config'
+import { homeStepsHint } from '../../lib/copy/features'
 import { useSession } from '../../lib/session/store'
 import { useScrollHandoff } from '../../lib/useScrollHandoff'
 import { Button } from '../ui/Button'
@@ -56,7 +57,7 @@ export function HomePage() {
             flag something, it can text a demo phone we set up ahead of time, with your location if you allow it.
           </p>
 
-          <div className="mt-8 flex flex-wrap items-center gap-3">
+          <div className="mt-8 flex flex-wrap items-center gap-3 [@media(max-height:800px)]:mt-6">
             <Button size="xl" icon="arrowRight" onClick={start} disabled={!consented} aria-describedby={consented ? undefined : 'start-hint'}>
               Start the check
             </Button>
@@ -65,9 +66,11 @@ export function HomePage() {
             </Button>
           </div>
 
-          {!consented && <p id="start-hint" className="mt-3 text-[0.9375rem] text-ink-3">Read and tick the consent box first.</p>}
+          {/* One quiet line, no card and no icons: what happens next, in about a dozen words. */}
+          <p className="mt-3 text-pretty text-[0.9375rem] leading-snug text-ink-3">{homeStepsHint(CHECK_COUNT_WORD[steps.length] ?? String(steps.length))}</p>
+          {!consented && <p id="start-hint" className="mt-1 text-[0.9375rem] text-ink-3">Read and tick the consent box first.</p>}
 
-          <ol className="mt-10 flex flex-wrap items-center gap-x-2 gap-y-3 border-t border-line pt-6">
+          <ol className="mt-10 flex flex-wrap items-center gap-x-2 gap-y-3 border-t border-line pt-6 [@media(max-height:800px)]:mt-7 [@media(max-height:800px)]:pt-5">
             {steps.map((t, i) => (
               <li key={t} className="flex items-center gap-2">
                 <span aria-hidden className="font-serif tnum text-[1.0625rem] text-ink-3">
