@@ -40,6 +40,16 @@ Output: a `TestResult` for `speech` plus `transcript`.
 `severity = Σ weight_i · component_i`. Add flags such as `"transcript mismatch (CER 0.42)"`, `"very slow articulation"`, `"long pauses"`, `"flat pitch"`.
 `confidence` = f(SNR, duration, transcript returned, voiced_fraction). If ASR fails, fall back to acoustic-only score with confidence × 0.6.
 
+## Stretch: phoneme-level scoring (`PHONEME_SCORING=true`)
+Why: modern STT auto-corrects mumbling, so transcript CER can look perfect on slurred speech. A phoneme recognizer sees what was actually articulated.
+- Model: a pretrained wav2vec2 phoneme-CTC model (`models/config.py: PHONEME_MODEL`; verify the model id, license and size on Hugging Face before use). PyTorch + `transformers`, CPU, warm-loaded at server start. Optional deps live in `requirements-ml.txt` (torch CPU wheel), imported lazily.
+- Fixed phrase ⇒ **hardcode the target phoneme sequence** (per phrase in config) so no espeak dependency is needed at runtime.
+- Metrics: `per` (phoneme error rate from greedy CTC decode vs target, edit distance), `gop_mean` / `gop_min` (mean and worst per-phoneme log-posterior from CTC forced alignment of the target), `n_bad_phones` (< threshold), plus which phonemes failed for the flags.
+- Scoring: add an `articulation` component (`ramp(per; 0.15→0.5)`, `ramp(gop_mean)`) and renormalize weights. If the flag is off or torch is missing, the pipeline silently runs without it and adds a flag `"phoneme scoring off"`.
+- Budget: < 3 s on a laptop CPU for a 5 s clip; the whole endpoint still returns within 10 s. Validate on the same normal-vs-slurred fixtures as the calibration step.
+- Hosting: demo laptop (backup Railway image stays torch-free).
+- Not doing: training a dysarthria classifier (UA-Speech/TORGO are licensed and not stroke-specific).
+
 ## Calibration (do this at hour ~20)
 - Record **5+ normal** clips from teammates (different voices/accents) and **5+ simulated slurred** clips (slow, mushy consonants, pausing — a teammate acting). Save to `tests/fixtures/audio/{normal,slurred}/`.
 - Script `python -m models.calibrate` prints feature tables; adjust ramps so normal < 0.3 and slurred > 0.6. Record final values in `models/config.py`.

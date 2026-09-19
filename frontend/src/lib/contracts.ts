@@ -1,7 +1,7 @@
 // Mirror of docs/spec/01-architecture.md and backend/schemas.py.
 // Change all three in the same PR and tell the team.
 
-export type TestName = 'face' | 'arms' | 'speech'
+export type TestName = 'face' | 'arms' | 'speech' | 'eyes' // 'eyes' is a stretch (BE-FAST), gated by FEATURES.eyesTest
 export type Side = 'left' | 'right' | 'both' | 'none'
 
 export interface TestResult {

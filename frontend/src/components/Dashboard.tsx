@@ -1,14 +1,15 @@
+import { FEATURES } from '../lib/config'
 import { useSession } from '../lib/session/store'
 import type { TestName } from '../lib/contracts'
 
-const TESTS: TestName[] = ['face', 'arms', 'speech']
+const testsToShow = (): TestName[] => (FEATURES.eyesTest ? ['face', 'arms', 'speech', 'eyes'] : ['face', 'arms', 'speech'])
 
 export function Dashboard() {
   const { results, risk } = useSession()
   return (
     <section className="space-y-3">
       <h2 className="text-lg font-semibold">Risk dashboard</h2>
-      {TESTS.map((t) => {
+      {testsToShow().map((t) => {
         const r = results[t]
         return (
           <div key={t} className="rounded-lg border border-slate-800 bg-slate-900 p-3">

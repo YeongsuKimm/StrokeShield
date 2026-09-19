@@ -8,7 +8,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
-TestName = Literal["face", "arms", "speech"]
+TestName = Literal["face", "arms", "speech", "eyes"]  # "eyes" is a stretch (BE-FAST)
 Side = Literal["left", "right", "both", "none"]
 
 

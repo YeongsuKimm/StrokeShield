@@ -58,6 +58,7 @@ export default function App() {
               {s.alertResponse?.error ? ` — ${s.alertResponse.error}` : ''}
             </p>
           )}
+          {s.hint && <p className="rounded bg-amber-900/40 p-2 text-amber-200">{s.hint}</p>}
           <p className="text-xs text-slate-500">Camera view, overlay and captions go here (see docs/spec/06-frontend-ux.md).</p>
         </section>
         <Dashboard />

@@ -4,7 +4,8 @@ Owner: Frontend dev. Files: `frontend/src/**` (except `lib/vision`, `lib/speech`
 
 ## Session state machine (Zustand store, single source of truth)
 ```
-idle → consent → intro → lastKnownWell → face → arms → speech → scoring
+idle → consent → intro → lastKnownWell → face → [eyes, only if FEATURES.eyesTest] → speech → arms → scoring
+(order comes from `testSequence()` in `config.ts`; progression is "first test without a usable result", so it tolerates retries and out-of-order completion)
 scoring → clear                       (risk < threshold)
 scoring → countdown → alerting → alerted   (risk ≥ threshold)
 any state → countdown  (user_request via agent tool or button)
@@ -22,7 +23,8 @@ Transitions are functions on the store (`startFace()`, `completeTest(result)`, �
 - Persistent footer: manual "Call 911" (`tel:`) and "I'm OK — cancel".
 
 ## UX rules
-- Every test shows: instruction text, progress ring, and a quality hint ("move back a little", "more light").
+- Every test shows: instruction text, progress ring, and a live **positioning hint** from the framing gate (`store.hint`): "move a little closer", "move back a little", and before arms "step back until I can see both hands". A framing indicator (green outline / red outline) around the camera view helps.
+- The camera view should show a "stand here" guide for arms (a silhouette or a body-width guide) so the far position is obvious.
 - Low-confidence result → automatic "let's try that again" (max 1 retry), never a silent pass.
 - Large tap targets, high contrast, accessible captions (patient may be impaired).
 - No blocking spinners > 3 s without status text.

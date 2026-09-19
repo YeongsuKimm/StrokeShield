@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { testSequence } from '../config'
 import { computeRisk } from '../risk'
 import type { AlertResponse, RiskBreakdown, TestName, TestResult, VisionOpinion } from '../contracts'
 
@@ -10,6 +11,7 @@ export type Phase =
   | 'face'
   | 'arms'
   | 'speech'
+  | 'eyes' // only when FEATURES.eyesTest
   | 'scoring'
   | 'clear'
   | 'countdown'
@@ -20,7 +22,9 @@ export type Phase =
 export type AlertStatus = 'none' | 'sending' | 'sent' | 'failed'
 export type AlertReason = 'risk_threshold' | 'user_request'
 
-const NEXT_TEST: Record<TestName, Phase> = { face: 'arms', arms: 'speech', speech: 'scoring' }
+// First test in the configured order (config.ts testSequence) without a usable result, else 'scoring'.
+const pendingPhase = (results: Partial<Record<TestName, TestResult>>): Phase =>
+  testSequence().find((t) => !results[t] || results[t]?.needsRetry) ?? 'scoring'
 
 interface SessionState {
   phase: Phase
@@ -35,6 +39,8 @@ interface SessionState {
   alertStatus: AlertStatus
   alertResponse?: AlertResponse
   demoEnabled: boolean
+  /** Live positioning caption, e.g. "Step back until I can see both hands." */
+  hint?: string
 
   start: () => void
   acceptConsent: () => void
@@ -51,6 +57,7 @@ interface SessionState {
   confirmCountdown: () => void
   setAlertResult: (status: AlertStatus, res?: AlertResponse) => void
   setDemoEnabled: (v: boolean) => void
+  setHint: (hint?: string) => void
   reset: () => void
 }
 
@@ -69,7 +76,7 @@ export const useSession = create<SessionState>((set, get) => ({
 
   start: () => set({ phase: 'consent' }),
   acceptConsent: () => set({ phase: 'intro' }),
-  beginTests: () => set({ phase: 'face' }),
+  beginTests: () => set({ phase: testSequence()[0] }),
   setLastKnownWell: (lastKnownWell) => set({ lastKnownWell }),
   setLocation: (location) => set({ location }),
   setAgentConnected: (agentConnected) => set({ agentConnected }),
@@ -82,7 +89,7 @@ export const useSession = create<SessionState>((set, get) => ({
       set({ results, risk })
       return
     }
-    const next = NEXT_TEST[result.test]
+    const next = pendingPhase(results)
     if (next !== 'scoring') {
       set({ results, risk, phase: next })
     } else if (risk.triggered) {
@@ -98,5 +105,6 @@ export const useSession = create<SessionState>((set, get) => ({
   setAlertResult: (alertStatus, alertResponse) =>
     set({ alertStatus, alertResponse, phase: alertStatus === 'sent' ? 'alerted' : get().phase }),
   setDemoEnabled: (demoEnabled) => set({ demoEnabled }),
+  setHint: (hint) => set({ hint }),
   reset: () => set({ ...initial }),
 }))

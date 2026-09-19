@@ -10,7 +10,7 @@ contribution_i = maxWeight_i × severity_i × confidence_i
 risk = 1 − Π (1 − contribution_i)          # over completed, non-retry tests (+ vision opinion)
 triggered = risk ≥ RISK_THRESHOLD           # default 0.5
 ```
-Initial (**uncalibrated**) max weights: `face 0.6`, `arms 0.6`, `speech 0.5`, `vision 0.25` (only if `finding=asymmetric`, severity = its confidence).
+Initial (**uncalibrated**) max weights: `face 0.6`, `arms 0.6`, `speech 0.5`, `eyes 0.3` (stretch), `vision 0.25` (only if `finding=asymmetric`, severity = its confidence).
 Examples: one test at severity 0.9/confidence 1 → 0.54 (trigger). Two tests at 0.5 → ~0.5 (trigger). One test 0.4 → 0.24 (no).
 
 Rules:

@@ -15,9 +15,10 @@ Calm guide. It **speaks instructions, answers questions, asks last-known-well, a
 ## Client tools (implemented in `clientTools.ts`; all async, return a short string the agent can read)
 | Tool | Params | Behaviour |
 |---|---|---|
-| `start_face_test` | — | Store → `face` phase; resolves when done: `"Face test complete. Result recorded."` (no verdict wording) or `"Retry needed: smile not detected."` |
-| `start_arm_test` | — | Same for arms |
+| `start_face_test` | — | Waits for the face framing gate ("move closer/back" hints), then runs; store → `face` phase; resolves when done: `"Face test complete. Result recorded."` (no verdict wording) or `"Retry needed: smile not detected."` |
+| `start_arm_test` | — | Waits (up to 25 s) until the **arm framing gate** passes (patient stepped back, both hands visible), then 3-2-1 and 10 s measurement. If it times out: `"Retry needed: I couldn't see both hands."`. Progress hints are pushed with `sendContextualUpdate` |
 | `start_speech_test` | `phrase?` | Mutes agent mic, records, uploads, resolves with `"Speech recorded."` / retry text |
+| `start_eye_test` | — | **Stretch** (only when `FEATURES.eyesTest`): "Keep your head still and follow the dot with your eyes." Register in the dashboard only when the feature ships |
 | `record_last_known_well` | `description: string` | Saves free text for the alert |
 | `get_session_status` | — | Returns phase + which tests are done (no scores) |
 | `call_emergency` | `reason: string` | **User-requested help.** Starts the 10 s countdown immediately (see 05) |
@@ -28,15 +29,17 @@ The app pushes context to the agent with `sendContextualUpdate` (e.g. `"Risk hig
 ## Conversation flow (agent-facing)
 1. Greeting + consent reminder → "Are you ready? Let's do a quick check. I'll guide you."
 2. Ask **when symptoms started / last time normal** → `record_last_known_well`.
-3. Face: "Look at the camera, relax… now give me a big smile and hold it." → `start_face_test`.
-4. Arms: "Hold both arms straight out to your sides, palms up, for ten seconds." → `start_arm_test`.
-5. Speech: "Repeat after me: 'You can't teach an old dog new tricks.'" → `start_speech_test`.
+3. Face (patient close): "Please sit or stand about an arm's length from the screen and look at the camera. Relax… now give me a big smile and hold it." → `start_face_test`.
+4. Speech (still close): "Repeat after me: 'You can't teach an old dog new tricks.'" → `start_speech_test`.
+5. Arms (patient steps back): "Now please step back about six feet, until I can see both of your hands. I'll tell you when you're in the right spot." → `start_arm_test` (tool result says when they're in position). Then: "Hold both arms straight out to your sides, palms up, for ten seconds."
+(If the eyes stretch is on it goes between face and speech; the patient is still close.)
 6. App computes risk. If triggered: agent says *"I'm seeing signs that need urgent attention. I'm contacting emergency services in ten seconds. Say cancel to stop."* If not: *"These checks look okay, but if you feel unwell or symptoms change, tell me and I'll call for help."*
 7. **Any time**: user says "call 911 / call for help / I need an ambulance" (or confusion/"help me") → `call_emergency`. Never ask twice.
 
 ## System prompt essentials (paste into agent config, keep in `docs/agent-prompt.md` if edited)
 - Persona: calm, warm, brief (1–2 short sentences), plain words, no medical jargon.
 - Never diagnose, never say the person is or isn't having a stroke. Say "I'm seeing signs" / "these checks look okay".
+- The order is face, speech, then arms (the patient steps back only once). Relay positioning hints from tool results/context updates in short plain words ("a little closer", "step back").
 - Follow the flow above in order; call the tool right after giving the instruction; **do not speak while a test tool is running** (wait for the tool result).
 - If the user sounds confused, distressed, or asks for help/ambulance/911 at any point: call `call_emergency` immediately.
 - If the user says cancel/stop during a countdown: call `cancel_emergency`.

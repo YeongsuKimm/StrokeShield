@@ -20,6 +20,8 @@ smile → raise arms → repeat a sentence → verdict. If risk is high (or they
 - Demo/simulation mode (force results without acting symptomatic).
 
 **Stretch (only after MVP is demo-stable)**
+- **Eyes test (BE-FAST)**: gaze-following test using iris landmarks; adds a fourth `eyes` result (`FEATURES.eyesTest`, spec 02).
+- **Phoneme-level speech scoring**: wav2vec2 phoneme recognizer + Goodness-of-Pronunciation, behind `PHONEME_SCORING` (spec 03).
 - Claude vision second-opinion signal folded into the face/arm scores.
 - Passive continuous monitoring.
 - Caregiver contacts; multilingual agent.
@@ -37,6 +39,9 @@ smile → raise arms → repeat a sentence → verdict. If risk is high (or they
 | Session | Guided FAST session | Predictable demo |
 | Telephony | Twilio voice call + SMS, demo number only | Reliable |
 | Hosting | Frontend Vercel; backend **Railway** (Dockerfile/nixpacks, no free-tier cold starts); local as demo fallback | HTTPS for camera/mic; Render free tier sleeps, Fly needs more setup |
+| Trained models | No custom-trained classifiers (no suitable stroke data in 36-48h). TensorFlow adds nothing: MediaPipe is already TFLite. Pretrained wav2vec2 (PyTorch) only as a speech stretch | Explainable heuristics beat an unvalidated model; pretrained phoneme scoring needs no patient data |
+| Eyes / phonemes | Both are post-MVP stretches, flag-gated, off by default | Ship FAST first; keep the demo path safe |
+| Heavy-model hosting | Run backend on the demo laptop; Railway is the backup (feature flags off, no torch) | No image-size/memory limits; localhost needs no HTTPS |
 | Agent tooling | Claude Code + Codex/Gemini → `AGENTS.md` canonical | Shared spec |
 
 ## Assumptions (change if wrong)

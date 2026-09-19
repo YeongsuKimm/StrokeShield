@@ -17,5 +17,8 @@ RAMPS = {
     "hnr_db": (18.0, 8.0),  # LOW is bad
 }
 
+# Stretch: wav2vec2 phoneme scoring (docs/spec/03-speech.md). Off unless PHONEME_SCORING=true AND torch is installed.
+PHONEME_MODEL = "facebook/wav2vec2-xlsr-53-espeak-cv-ft"  # verify current model id / license before use
+
 MIN_DURATION_S = 1.5
 MIN_SNR_DB = 10.0
