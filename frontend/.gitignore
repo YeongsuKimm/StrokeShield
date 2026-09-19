@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# MediaPipe wasm runtime is copied from node_modules by scripts/copy-mediapipe-wasm.mjs (never committed)
+public/mediapipe-wasm
