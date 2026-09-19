@@ -84,7 +84,7 @@ describe('FACE capture', () => {
     const c = createFaceCapture<Fr>(() => okResult('face'))
     drive(c, frame, () => OK, FRAMING_LIMITS.holdOkMs + 100)
     let p = c.tick(FRAMING_LIMITS.holdOkMs + 150, { framing: OK, frame: frame(0) })
-    expect(p.caption).toBe('Relax your face')
+    expect(p.caption).toBe('Serious face, lips closed')
     expect(p.secondsLeft).toBe(Math.ceil(T.faceNeutralMs / 1000))
     p = c.tick(FRAMING_LIMITS.holdOkMs + 150 + T.faceNeutralMs + 50, { framing: OK, frame: frame(0) })
     expect(p.phase).toBe('smile')

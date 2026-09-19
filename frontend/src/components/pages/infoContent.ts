@@ -53,7 +53,7 @@ export const PROCESS_STEPS: ProcessStep[] = [
   {
     letter: 'F',
     name: 'Face',
-    instruction: 'Relax, then smile as wide as you can and hold it.',
+    instruction: 'Hold a serious, neutral face, then smile as wide as you can and hold it.',
     looksFor: 'One corner of the mouth lifting less than the other.',
     measured: 'Mouth-corner lift per side, corrected for head roll and normalised to the distance between the eyes.',
   },

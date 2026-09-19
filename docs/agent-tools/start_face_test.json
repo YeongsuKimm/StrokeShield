@@ -1,7 +1,7 @@
 {
   "type": "client",
   "name": "start_face_test",
-  "description": "Start the face check. The user looks at the camera, relaxes, then smiles widely. Wait for the result.",
+  "description": "Start the face check. The user looks at the camera with a serious, neutral face and closed lips (no smile); the website later tells you when to ask for a smile. Do not ask for the smile before that message. Wait for the result.",
   "expects_response": true,
   "response_timeout_secs": 90,
   "parameters": [],
