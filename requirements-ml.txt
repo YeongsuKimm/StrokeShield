@@ -1,0 +1,15 @@
+# OPTIONAL, laptop-only: wav2vec2 phoneme scoring (models/phoneme.py, PHONEME_SCORING=true).
+# NOT part of requirements.txt / the Railway image: the backend runs fine without these (phoneme scoring
+# just returns None and the pipeline adds the flag "phoneme scoring off").
+#
+# Install (needs the PyTorch CPU wheel index; the default PyPI torch on Linux is the ~2.5 GB CUDA build):
+#   pip install -r requirements-ml.txt          # the extra index below is honoured by pip
+#   python -m models.phoneme --download         # caches the 378 MB model in ~/.cache/huggingface, smoke test
+# Footprint: ~1.0 GB of packages + 378 MB model. numpy/scipy come from requirements.txt.
+# Pins are what was tested (Python 3.11, Linux x86_64); torchaudio is NOT needed (alignment is hand-written).
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.14.0
+transformers==5.17.0
+huggingface_hub==1.32.0
+safetensors==0.8.0
+tokenizers==0.23.2
