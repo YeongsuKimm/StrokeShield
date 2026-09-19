@@ -91,7 +91,9 @@ result screen says and offers.
   the patient.
 - Low-confidence or invalid vision capture → keep the reason visible for 2 s, then automatically retry once. If the
   second attempt also fails, leave a visible **Try again** button under the camera; never leave an idle camera screen
-  with Skip as the only action. The framing timeout is 12 s so the automatic retry begins before the 15 s skip hatch.
+  with Skip as the only action. The pause is explicit UI state, so **Try again** stays hidden until the automatic retry
+  has finished; for a pre-smile, the heading switches to **Relax your face** during that pause. The framing timeout is
+  12 s so the automatic retry begins before the 15 s skip hatch.
 - Large tap targets, high contrast, accessible captions (patient may be impaired). Visible focus rings everywhere,
   including on the dark stage.
 - No blocking spinners > 3 s without status text.
