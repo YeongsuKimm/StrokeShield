@@ -1,0 +1,58 @@
+# 00 — Overview, Scope & Decisions
+
+## One-liner
+StrokeShield walks a possible stroke patient through the **FAST** test using their webcam and mic, guided by a voice assistant,
+and automatically calls for help when the combined risk score crosses a threshold.
+
+## Users & scenario
+Someone alone (or a bystander) suspects a stroke. They open the site, consent to camera/mic/location, and the assistant guides them:
+smile → raise arms → repeat a sentence → verdict. If risk is high (or they ask), the system counts down 10 s and calls + texts for help.
+
+## Scope (36–48 h, live demo)
+**MVP (must ship)**
+- Guided FAST session: Face → Arms → Speech → verdict.
+- In-browser MediaPipe face + pose analysis with live overlay.
+- Speech analysis with advanced heuristics (Python DSP + ElevenLabs Scribe transcript).
+- ElevenLabs Agent with client tools; user can say "call 911 / call for help" at any time.
+- Weighted risk score with threshold; 10 s cancelable countdown; Twilio voice call + SMS to `DEMO_PHONE_NUMBER`.
+- Location (browser geolocation) → Google Maps link in SMS and spoken on the call.
+- Live risk dashboard showing per-test metrics and score breakdown.
+- Demo/simulation mode (force results without acting symptomatic).
+
+**Stretch (only after MVP is demo-stable)**
+- Claude vision second-opinion signal folded into the face/arm scores.
+- Passive continuous monitoring.
+- Caregiver contacts; multilingual agent.
+
+**Out of scope:** real 911 dialing, accounts/auth, persistence of video/audio, clinical validity claims.
+
+## Decisions log
+| Decision | Choice | Why |
+|---|---|---|
+| Stack | Vite+React+TS frontend, FastAPI backend | Matches existing scaffold; Python gives us librosa/Parselmouth for speech DSP |
+| Vision | Hybrid: in-browser MediaPipe (real time) + Claude vision second opinion on still frames | Real-time + no video upload for the core path; second opinion adds robustness |
+| Speech | Fixed-phrase repetition; ElevenLabs Scribe transcript + acoustic/temporal heuristics | Most explainable, best accuracy achievable without training data |
+| Voice agent | ElevenLabs conversational agent + client tools; app state machine is source of truth | Natural conversation and interruptions, deterministic flow |
+| Trigger | Weighted risk score (noisy-OR) with threshold, plus explicit user request | Explainable dashboard, tunable |
+| Session | Guided FAST session | Predictable demo |
+| Telephony | Twilio voice call + SMS, demo number only | Reliable |
+| Hosting | Frontend Vercel; backend **Railway** (Dockerfile/nixpacks, no free-tier cold starts); local as demo fallback | HTTPS for camera/mic; Render free tier sleeps, Fly needs more setup |
+| Agent tooling | Claude Code + Codex/Gemini → `AGENTS.md` canonical | Shared spec |
+
+## Assumptions (change if wrong)
+- One patient, one webcam, decent lighting, upper body visible from ~1–1.5 m.
+- English only. Desktop Chrome for the demo.
+- Time "T" in FAST = last-known-well time, asked by the agent and included in the alert.
+- Team has accounts/keys for Twilio, ElevenLabs, Anthropic before hour 4.
+
+## Open items (owner: whoever answers first, record answer here)
+- [x] Twilio: **trial account, $15.50 credit** (plenty for demo: calls ≈ $0.01–0.02/min, SMS < $0.01). Trial calls prepend a "trial account" message and need a keypress; destination must be verified. `DEMO_PHONE_NUMBER` = the patient/demo-runner's phone (kept in local `.env`, not committed).
+- [ ] **Verify `DEMO_PHONE_NUMBER` in the Twilio console** (Phone Numbers → Verified Caller IDs) and confirm the trial number can text it. Test a call + SMS by hour 4.
+- [x] Backend host: **Railway** (fallback: run locally).
+- [ ] Anthropic + ElevenLabs credit/plan limits (agent minutes, Scribe usage).
+- [x] Live-demo patient: the project lead. [ ] Fallback teammate if lighting/camera fails: TBD.
+
+## Safety & ethics (state these in the pitch and UI)
+- Not a medical device; does not replace calling emergency services. UI always shows a manual "Call 911" `tel:` button.
+- Video is processed in the browser and never stored. Only optional still frames (with consent) go to the vision second opinion; audio clip goes to the backend for analysis and is not persisted.
+- Demo only calls the team's number. False positives/negatives are expected; thresholds are uncalibrated heuristics.
