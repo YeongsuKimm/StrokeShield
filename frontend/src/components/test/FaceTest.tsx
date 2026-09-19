@@ -32,7 +32,7 @@ export function FaceTest() {
   return (
     <TestScreen
       test="face"
-      title={retryPending || relaxing ? 'Relax your face' : smiling ? 'Now smile big. Hold it.' : 'Smile as wide as you can'}
+      title={retryPending || relaxing ? 'Relax your face' : smiling ? 'Now smile big. Hold it.' : 'Look at the camera'}
       lede={
         retryPending
           ? 'Let your mouth rest completely. I will restart the check in a moment.'

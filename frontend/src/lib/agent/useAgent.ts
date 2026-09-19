@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react'
 import { api } from '../api'
 import { useSession } from '../session/store'
 import { clientTools, isSpeechToolPending, registerAgentContextualUpdate } from './clientTools'
+import { bindAgentToFaceCapture, FACE_BRIEFING } from './faceCues'
 import { bindAgentToSpeechRecording } from './speechAudioGate'
 
 type AgentMessage = { message?: string; source?: string }
@@ -81,9 +82,7 @@ export function useAgent() {
 				return
 			}
 			if (phase === 'face') {
-				sendUserMessage(
-					'The website is now on the face step. Immediately instruct the user to look at the camera and smile, then call start_face_test. Do not discuss the previous step.',
-				)
+				sendUserMessage(FACE_BRIEFING)
 				return
 			}
 			if (phase === 'arms') {
@@ -118,6 +117,16 @@ export function useAgent() {
 			unsubscribe()
 		}
 	}, [sendContextualUpdate, sendUserMessage, status])
+
+	// The smile is only requested once the app reports the resting-face capture is complete.
+	useEffect(
+		() =>
+			bindAgentToFaceCapture({
+				sendUserMessage: (message) => latest.current.sendUserMessage(message),
+				isConnected: () => latest.current.status === 'connected',
+			}),
+		[],
+	)
 
 	const start = async () => {
 		const { signedUrl } = await api.signedUrl()
