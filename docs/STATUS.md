@@ -16,7 +16,7 @@ Status values: `not started` · `in progress` · `blocked` · `done (untested li
 |---|---|---|---|
 | Foundation (repo, contracts, state machine, risk fn, API skeleton) | — | done | Vite+React+TS frontend, FastAPI backend, shared contracts, tests green |
 | Alerts (Twilio call + SMS, demo-number guard, dry-run) | majesticcoder14 | done (untested live) | Only run against a fake Twilio client. Next: verify number in Twilio, real call+SMS with `DRY_RUN=false`; Dockerfile + Railway |
-| Frontend / camera view / captions | open | in progress | Dashboard, countdown, demo panel, hint caption exist. Next: camera view + overlay, stand-here guide |
+| Frontend / camera view / captions | leo | in progress | Dashboard, countdown, demo panel, hint caption exist. Next: camera view + overlay, stand-here guide |
 | Voice agent (ElevenLabs) | open | not started | Client tool stubs exist. Next: create the agent in the dashboard, `useAgent.ts`, signed URL endpoint |
 | Vision: framing gates | open | done | `checkFaceFraming` / `checkArmFraming` + tests. Next: wire to live landmarks |
 | Vision: face + arm metrics | open | not started | `analyzeFace` / `analyzeArms` are stubs returning `needsRetry`. Next: implement per spec 02 |
@@ -37,6 +37,7 @@ Status values: `not started` · `in progress` · `blocked` · `done (untested li
 - All thresholds/weights are uncalibrated (see spec files). Calibrate on teammate fixtures around hour ~20.
 
 ## Recent changes (newest first)
+- 2026-09-18 — frontend — leo claimed the Frontend / camera view / captions row.
 - 2026-09-18 — team — added `docs/GETTING-STARTED.md` (step-by-step teammate onboarding); owners are fluid (claim rows in this table).
 - 2026-09-18 — tooling — added `docs/STATUS.md`, `scripts/check-docs.sh`, `.githooks/pre-push`, CI workflow. Run `bash scripts/setup-hooks.sh` once per clone.
 - 2026-09-18 — vision/frontend — patient positioning: test order is now Face → (Eyes) → Speech → Arms; `framing.ts` gates tell the patient to move closer / step back; store has `hint`; progression = first test without a usable result.
