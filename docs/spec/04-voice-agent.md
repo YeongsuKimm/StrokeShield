@@ -16,7 +16,7 @@ Calm guide. It **speaks instructions, answers questions, asks last-known-well, a
 The backend signed-URL endpoint, frontend `useAgent` hook, transcript-ready session state, and client tools are
 implemented but have not been verified with live ElevenLabs credentials. The speech tool delegates to the shared
 `speechRunner`, so it uses the same recording, quality checks, backend analysis, result storage, and cancellation as
-the on-screen speech check. Muting the ElevenLabs conversation mic around speech capture and mounting `useAgent` in
+the on-screen speech check. If the website moves on while a tool is waiting (skip, emergency, info page), the run is cancelled and the tool returns a neutral "the website moved on" message instead of "Retry needed", and the agent's mic is unmuted. On reconnect the current phase is re-briefed. Muting the ElevenLabs conversation mic around speech capture and mounting `useAgent` in
 the application flow still need live integration verification.
 
 ## Client tools (implemented in `clientTools.ts`; all async, return a short string the agent can read)

@@ -34,8 +34,15 @@ const phaseFor = (test: 'speech' | 'eyes' | 'face' | 'arms') => {
   return undefined
 }
 
+// A cancelled run means the website moved on (skip, emergency, restart): it is not a failed attempt, so do not ask the
+// patient to retry it. The contextual update re-states the authoritative phase.
+const CANCELLED_FLAG = 'Cancelled.'
 const summarize = (result: { needsRetry?: boolean; flags: string[] }, complete: string) =>
-  result.needsRetry ? `Retry needed: ${result.flags[0] ?? 'I could not get a clear recording.'}` : complete
+  result.flags[0] === CANCELLED_FLAG
+    ? 'That check was stopped because the website moved on. Follow the current website phase instead.'
+    : result.needsRetry
+      ? `Retry needed: ${result.flags[0] ?? 'I could not get a clear recording.'}`
+      : complete
 
 export const clientTools = {
   start_face_test: async (): Promise<string> => {

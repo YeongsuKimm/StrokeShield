@@ -5,7 +5,7 @@ import { useSession } from '../session/store'
 import { MicError, RecordingCancelled } from './micErrors'
 import type { RecordSpeechOptions, SpeechRecording } from './recorder'
 import { useSpeechProgress } from './speechProgressStore'
-import { createSpeechRunner, SPEECH_HINTS, type SpeechRunnerDeps } from './speechRunner'
+import { cancelSpeechOnPhaseExit, createSpeechRunner, SPEECH_HINTS, type SpeechRunnerDeps } from './speechRunner'
 
 const recording = (over: Partial<SpeechRecording['qc']> = {}): SpeechRecording => ({
   wav: new Blob(['x'], { type: 'audio/wav' }),
@@ -283,5 +283,81 @@ describe('default wiring (real stores)', () => {
     const runner = createSpeechRunner({ record: h.record, analyze: h.analyze, onRecorded: h.onRecorded })
     await runner.runSpeech()
     expect(useSession.getState().phase).toBe('arms')
+  })
+
+  it('cancel() releases an agent request that is still waiting for the button (no hung tool, no muted agent)', async () => {
+    const h = harness()
+    const runner = createSpeechRunner(h.deps)
+    const pending = runner.waitForUserResult()
+    runner.cancel()
+    const r = await pending
+    expectRetry(r, 'Cancelled.')
+    expect(h.completed).toEqual([])
+    expect(h.record).not.toHaveBeenCalled()
+  })
+})
+
+describe('cancelSpeechOnPhaseExit', () => {
+  const recordingUntilAborted = (h: Harness) =>
+    h.record.mockImplementation(
+      (o) =>
+        new Promise<SpeechRecording>((_res, rej) => {
+          o.signal?.addEventListener('abort', () => rej(new RecordingCancelled()))
+        }),
+    )
+
+  it('skipping / leaving the speech step mid-recording cancels it, so a late result cannot move the flow', async () => {
+    useSession.getState().reset()
+    useSession.setState({ phase: 'speech' })
+    const h = harness()
+    recordingUntilAborted(h)
+    const runner = createSpeechRunner(h.deps)
+    const stop = cancelSpeechOnPhaseExit(runner, () => {})
+    const p = runner.runSpeech()
+    useSession.setState({ phase: 'clear' }) // patient pressed Skip / Call 911 / the logo
+    expectRetry(await p, 'Cancelled.')
+    expect(h.completed).toEqual([])
+    stop()
+  })
+
+  it('leaving speech clears a stale retry hint so the next session does not open on it', () => {
+    useSession.getState().reset()
+    useSession.setState({ phase: 'speech' })
+    const clear = vi.fn()
+    const stop = cancelSpeechOnPhaseExit(createSpeechRunner(harness().deps), clear)
+    useSession.setState({ phase: 'scoring' })
+    expect(clear).toHaveBeenCalledTimes(1)
+    stop()
+  })
+
+  it('opening the info page mid-recording (phase unchanged) also cancels it', async () => {
+    useSession.getState().reset()
+    useSession.setState({ phase: 'speech', route: 'home' })
+    const h = harness()
+    recordingUntilAborted(h)
+    const runner = createSpeechRunner(h.deps)
+    const stop = cancelSpeechOnPhaseExit(runner, () => {})
+    const p = runner.runSpeech()
+    useSession.setState({ route: 'info' })
+    expectRetry(await p, 'Cancelled.')
+    expect(h.completed).toEqual([])
+    stop()
+    useSession.setState({ route: 'home', phase: 'idle' })
+  })
+
+  it('other phase changes (and the isolated ?record=speech page, which stays idle) never cancel', () => {
+    useSession.getState().reset()
+    const h = harness()
+    recordingUntilAborted(h)
+    const runner = createSpeechRunner(h.deps)
+    const clear = vi.fn()
+    const stop = cancelSpeechOnPhaseExit(runner, clear)
+    void runner.runSpeech()
+    useSession.setState({ phase: 'consent' })
+    useSession.setState({ phase: 'face' })
+    expect(runner.running).toBe(true)
+    expect(clear).not.toHaveBeenCalled()
+    runner.cancel()
+    stop()
   })
 })

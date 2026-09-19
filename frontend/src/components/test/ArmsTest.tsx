@@ -1,7 +1,6 @@
 import { useEffect } from 'react'
-import { useSession } from '../../lib/session/store'
 import { useCaptureProgress } from '../../lib/vision/progressStore'
-import { runVisionWithOneRetry } from '../../lib/vision/retry'
+import { isVisionScreenActive, runVisionWithOneRetry } from '../../lib/vision/retry'
 import { testRunner } from '../../lib/vision/useTestRunner'
 import { CameraView } from '../CameraView'
 import { Icon } from '../ui/Icon'
@@ -16,9 +15,9 @@ export function ArmsTest() {
   const running = useCaptureProgress((s) => s.running)
 
   useEffect(() => {
-    void runVisionWithOneRetry(testRunner.runArms, () => useSession.getState().phase === 'arms')
+    void runVisionWithOneRetry(testRunner.runArms, () => isVisionScreenActive('arms'))
     return () => {
-      if (useSession.getState().phase !== 'arms') testRunner.cancel()
+      if (!isVisionScreenActive('arms')) testRunner.cancel()
     }
   }, [])
 
