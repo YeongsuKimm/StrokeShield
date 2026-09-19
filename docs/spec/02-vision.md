@@ -31,7 +31,7 @@ Before each test, run a **framing gate** (`frontend/src/lib/vision/framing.ts`, 
 - `checkFaceFraming(faceLandmarks)` — face width within 18–60 % of the frame and not touching an edge. Hints: "Move a little closer to the screen." / "Move back a little." / "Center your face in the view."
 - `checkArmFraming(poseLandmarks)` — both shoulders, elbows **and wrists** visible (≥ 0.5) and inside the frame; shoulder width ≥ 9 % of frame width (not too far). Hints: "Step back until I can see both hands and both shoulders." / "Move a little closer."
 - Thresholds are in `FRAMING_LIMITS` (uncalibrated; tune in the actual demo room).
-- The test starts only after framing has been OK for `holdOkMs` (1.5 s) continuously. If it never gets OK within `waitTimeoutMs` (12 s), the tool returns a retry result ("couldn't see both hands") rather than scoring garbage. The UI leaves that reason visible for 2 s and automatically starts one fresh attempt; after a second failed attempt it offers a visible **Try again** button.
+- The test starts only after framing has been OK for `holdOkMs` (1.5 s) continuously. If it never gets OK within `waitTimeoutMs` (12 s), the tool returns a retry result ("couldn't see both hands") rather than scoring garbage. The UI leaves that reason visible for 2 s and automatically starts one fresh attempt; the retry is tracked as pending so the manual button cannot flash or start a competing run. After a second failed attempt it offers a visible **Try again** button.
 - The current hint goes into the store (`setHint`) as an on-screen caption, and the agent tool result / `sendContextualUpdate` lets the assistant say it aloud.
 - Once framing is OK for the arms test: caption "Get ready… 3, 2, 1, raise your arms," then the 10 s measurement.
 
@@ -63,7 +63,7 @@ Confidence = min of: face-detected frame ratio, yaw within ±15° (from transfor
 
 As built (`vision/face.ts`, `analyzeFace(neutral, smile)`, extra frame fields `brightness`, `aspect`; changes from the text above):
 - **Smile gate:** the *stronger side's* smile blendshape must reach 0.3 (plus a mean floor of 0.15). A mean-only gate would wrongly reject a severe droop where one side barely moves. `smile_strength` is still reported as the mean.
-- **Neutral capture must not be smiling** (> 0.35 → retry): a pre-smile destroys the lift measurement.
+- **Neutral capture must not be smiling** (> 0.35 → retry): a pre-smile destroys the lift measurement. During the 2 s retry pause, the screen explicitly says **Relax your face** before restarting.
 - **Roll correction needs the real frame aspect** (see conventions).
 - **Blendshape left/right** (`mouthSmileLeft` = patient's left?) is ~50/50 unresolved; it only drives the "blendshape and landmark disagree" flag. Severity and `side` come from landmarks (Face Mesh 61/159/145 = patient's RIGHT, 263/291/386/374 = patient's LEFT — assumed, from the mesh's subject-perspective annotation).
 - Minimum frames: ≥ 5 detected neutral, ≥ 8 detected smile (~15 fps: neutral 1.5 s, smile 3 s). Pass `landmarks: []` frames for missed detections.

@@ -286,7 +286,7 @@ export function analyzeFace(neutral: FaceCaptureFrame[], smile: FaceCaptureFrame
   // --- retry conditions (never a confident guess) ---
   const retry: string[] = []
   if (smilePeak < C.minSmilePeak || smileStrength < C.minSmileMean) retry.push('smile not detected')
-  if (neutralSmile > C.maxNeutralSmile) retry.push('already smiling during the relaxed capture')
+  if (neutralSmile > C.maxNeutralSmile) retry.push('already smiling; relax your face completely before we try again')
   if (yawScore < MIN_CONFIDENCE) retry.push('head turned away from the camera')
   if (widthScore < MIN_CONFIDENCE) retry.push('face too small in frame')
   if (brightScore < MIN_CONFIDENCE) retry.push('lighting too dark or too bright')

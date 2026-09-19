@@ -15,6 +15,7 @@ import { VisionRetryButton } from './VisionRetryButton'
 export function FaceTest() {
   const progress = useCaptureProgress((s) => s.progress)
   const running = useCaptureProgress((s) => s.running)
+  const retryPending = useCaptureProgress((s) => s.retryPending === 'face')
 
   useEffect(() => {
     void runVisionWithOneRetry(testRunner.runFace, () => useSession.getState().phase === 'face')
@@ -29,8 +30,12 @@ export function FaceTest() {
   return (
     <TestScreen
       test="face"
-      title={smiling ? 'Smile — hold it' : 'Smile as wide as you can'}
-      lede="Fit your face inside the outline. I will count you in, then ask you to relax first and smile after."
+      title={retryPending ? 'Relax your face' : smiling ? 'Smile — hold it' : 'Smile as wide as you can'}
+      lede={
+        retryPending
+          ? 'Let your mouth rest completely. I will restart the check in a moment.'
+          : 'Fit your face inside the outline. I will count you in, then ask you to relax first and smile after.'
+      }
       footer={<VisionRetryButton test="face" run={testRunner.runFace} />}
     >
       <CameraView guide={<HeadGuide tone={progress?.framingOk ? 'ok' : 'waiting'} />} />
