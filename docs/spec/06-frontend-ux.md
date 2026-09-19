@@ -107,6 +107,9 @@ Enabled with `?demo=1` or `Shift+D`. Shows a floating **Demo Panel**:
 - Overrides go through the normal `completeTest` path so scoring, dashboard, agent context, and alert code all run for real.
 - Keep the demo panel out of the default UI unless enabled.
 
+## Never a dead screen (vision checks)
+Every vision check screen must always show something to see or press: a run in progress, an automatic retry about to start, an accepted result, or a **Try again** button. The button appears after a failed attempt and, as a safety net, whenever the check has gone idle with no result for ~0.8 s (e.g. another test cancelled it). The logic is the pure `visionActionState` in `lib/vision/retry.ts`; `vision/retryJourney.test.ts` simulates the whole patient journey against it. The runner (`useTestRunner.start`) must never leave its slot occupied after a crash.
+
 ## Performance & reliability
 - MediaPipe models load when the page mounts (as built; the camera permission prompt therefore appears immediately). Models are committed in `frontend/public/models/`; wasm is copied from `node_modules` on `pnpm install`, so nothing depends on a CDN on demo day.
 - Cap detection to ~20 fps; avoid React state per frame (use refs/canvas for overlay).

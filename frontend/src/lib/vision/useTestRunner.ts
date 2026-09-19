@@ -187,14 +187,30 @@ export function createTestRunner(overrides: Partial<RunnerDeps> = {}): TestRunne
       cancel: cancelFn,
       promise: (async () => {
         await previous?.promise.catch(() => undefined) // let the previous run release the camera first
-        const result = await execute(test, cancelled, controllerRef)
-        // A cancelled run resolves with a 'Cancelled.' retry result and is NOT stored.
-        const wasCancelled = controllerRef.c ? controllerRef.c.cancelled : result.flags[0] === 'Cancelled.'
-        if (!wasCancelled) deps.completeTest(result)
-        deps.setHint(wasCancelled ? undefined : result.needsRetry ? result.flags[0] : undefined)
-        if (current?.token === token) {
-          current = null
-          deps.publish(null, null)
+        let result: TestResult
+        try {
+          try {
+            result = await execute(test, cancelled, controllerRef)
+          } catch (e) {
+            // Never leave the runner wedged: an unexpected camera/engine error becomes an ordinary retry result, so the
+            // screen shows "Try again" and the next attempt starts clean (this used to freeze the retry button for good).
+            console.warn('[runner] capture crashed', e)
+            result = retryResult(test, "Something went wrong with the camera. Let's try again.", Date.now(), 0)
+          }
+          // A cancelled run resolves with a 'Cancelled.' retry result and is NOT stored.
+          const wasCancelled = controllerRef.c ? controllerRef.c.cancelled : result.flags[0] === 'Cancelled.'
+          try {
+            if (!wasCancelled) deps.completeTest(result)
+            deps.setHint(wasCancelled ? undefined : result.needsRetry ? result.flags[0] : undefined)
+          } catch (e) {
+            console.warn('[runner] storing the result failed', e)
+          }
+        } finally {
+          // ALWAYS release the slot and the progress state, whatever happened above.
+          if (current?.token === token) {
+            current = null
+            deps.publish(null, null)
+          }
         }
         return result
       })(),

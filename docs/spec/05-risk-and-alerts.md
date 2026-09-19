@@ -40,6 +40,8 @@ Rules:
 Request `navigator.geolocation` at the **consent step** (not at alert time, so the prompt doesn't block the emergency). Cache the last fix; include accuracy. If denied, the message says "location unavailable".
 
 ## Twilio gotchas
+Setup runbook and a read-only readiness check: [../SMS-SETUP.md](../SMS-SETUP.md) (`python scripts/sms_check.py`).
+
 - Trial accounts: the destination may need to be a **verified** number. Confirm it in the Twilio console before the live test.
 - SMS to US numbers from an unregistered local number can be filtered; prefer a toll-free/verified sender and test early.
 - `twilio` calls are blocking — run in a threadpool or use `run_in_threadpool` so the FastAPI loop isn't stalled.

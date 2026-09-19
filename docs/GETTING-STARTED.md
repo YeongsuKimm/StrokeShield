@@ -87,6 +87,9 @@ The tests' thresholds are guesses until tuned on real people. Record ~20 short r
 ## Validation (whoever tunes; everyone recording)
 Use ONE consistent id per person when recording (it decides the tune/validate split) and fill in the conditions. The proof protocol is [VALIDATION.md](VALIDATION.md).
 
+## SMS alerts
+Setup and troubleshooting: [SMS-SETUP.md](SMS-SETUP.md); check your setup any time with `python scripts/sms_check.py` (read-only).
+
 ## 10. Optional: phoneme scoring (PyTorch), laptop only
 Not needed for normal work. If you want to test/tune the advanced speech scoring: `pip install -r requirements-ml.txt` (~1 GB, CPU PyTorch), `python -m models.phoneme --download` (378 MB, once), set `PHONEME_SCORING=true` in `.env`. Without it everything still works (acoustic-only speech scoring).
 
