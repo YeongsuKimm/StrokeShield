@@ -55,7 +55,7 @@ cannot cause the agent to discuss a previous test. The agent must re-check the l
 - If asked something off-topic, answer briefly and return to the flow.
 
 ## Pitfalls to handle
-- **Echo/overlap**: mute the conversation mic (SDK mute) and don't play agent audio during the speech recording. Use headphones for the demo if the room is noisy.
+- **Echo/overlap**: while the speech recorder runs (from the moment Start recording is pressed, even if the agent is mid-sentence or has not called the tool yet) `lib/agent/speechAudioGate.ts` sets agent playback volume to 0 and mutes the conversation mic, then restores both when the run ends or is cancelled. If the recording was unusable and no `start_speech_test` call is waiting, the agent is told to report it and ask for another try; otherwise the tool result / next-phase brief makes it speak again. Use headphones for the demo if the room is noisy.
 - **Interruption**: user can interrupt the agent; make tools idempotent (calling `start_face_test` twice restarts it).
 - **Latency**: keep instructions short; app shows on-screen captions of what the agent said as a backup.
 - **Failure**: if the WebSocket drops, the UI continues the flow with on-screen prompts + browser `speechSynthesis` fallback and a big manual "Call for help" button.

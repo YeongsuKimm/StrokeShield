@@ -3,7 +3,8 @@ import { useConversation } from '@elevenlabs/react'
 import { useEffect, useRef } from 'react'
 import { api } from '../api'
 import { useSession } from '../session/store'
-import { clientTools, registerAgentContextualUpdate, registerAgentMicControl } from './clientTools'
+import { clientTools, isSpeechToolPending, registerAgentContextualUpdate } from './clientTools'
+import { bindAgentToSpeechRecording } from './speechAudioGate'
 
 type AgentMessage = { message?: string; source?: string }
 
@@ -23,7 +24,28 @@ export function useAgent() {
 		onError: (error) => console.debug('[agent] conversation error', error),
 	})
 
-	useEffect(() => registerAgentMicControl(conversation.setMuted), [conversation.setMuted])
+	// Silence the agent (and mute the patient's mic towards it) for as long as the speech recorder runs, then bring it
+	// back; if the recording was unusable and no tool call is waiting to say so, the agent tells the patient.
+	const latest = useRef(conversation)
+	useEffect(() => {
+		latest.current = conversation
+	})
+	useEffect(
+		() =>
+			bindAgentToSpeechRecording({
+				setVolume: (volume) => latest.current.setVolume({ volume }),
+				setMuted: (muted) => latest.current.setMuted(muted),
+				isMuted: () => latest.current.isMuted,
+				toolPending: isSpeechToolPending,
+				onRetryNeeded: (hint) => {
+					if (latest.current.status !== 'connected') return
+					latest.current.sendUserMessage(
+						`The speech recording could not be used (${hint}). Tell the user briefly and kindly, then ask them to press Start recording and say the sentence again.`,
+					)
+				},
+			}),
+		[],
+	)
 
 	// Read the members once so the effect depends on exactly what it uses (same values the closure saw before).
 	const { status, sendContextualUpdate, sendUserMessage } = conversation
