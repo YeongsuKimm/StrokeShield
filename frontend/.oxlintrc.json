@@ -1,8 +1,12 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
+  "plugins": ["react", "typescript", "oxc", "jsx-a11y"],
   "rules": {
     "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
+    "react/only-export-components": ["warn", { "allowConstantExport": true }],
+    // jsx-a11y is on for accessibility (docs/spec/06 "Accessibility"). This one rule is off: it asks for <output>,
+    // <meter>, <section> and <img> instead of role="status" / "meter" / "region" / "img". The roles are valid ARIA, are
+    // better supported than the elements for live regions, and swapping tags would change styling for no user benefit.
+    "jsx-a11y/prefer-tag-over-role": "off"
   }
 }

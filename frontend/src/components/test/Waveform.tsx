@@ -78,8 +78,7 @@ export function Waveform({ active, height = 132 }: { active: boolean; height?: n
       ref={ref}
       style={{ height }}
       className="w-full"
-      role="img"
-      aria-label={active ? 'Live microphone level while recording' : 'Microphone level'}
+      aria-hidden
     />
   )
 }

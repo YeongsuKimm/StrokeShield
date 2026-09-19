@@ -109,6 +109,34 @@ result screen says and offers.
 - No blocking spinners > 3 s without status text.
 - The mute warning only fires for a microphone we actually hold (`evaluateMic`), never as a guess.
 
+## Accessibility (target WCAG 2.2 AA)
+Audience: people who may be having a stroke, older adults, screen-reader, keyboard and low-vision users. Verified by code
+reading, unit tests and lint only; a real screen reader and browser pass is still needed (see STATUS).
+- **Keyboard:** whole flow is operable without a mouse. Tab order is skip link, **Call 911**, header, page. While the
+  countdown dialog is open everything else is `inert`, focus starts on **Cancel the text** (Enter/Space cancels), Escape also
+  cancels, and its own **call 911** link is next. Consent prompt of the voice guide closes on Escape and returns focus.
+- **Focus + titles:** each screen's heading (`h1`, `tabIndex=-1`) takes focus when the screen appears (not on the first
+  page load), via `useFocusHeading`; the result screen re-focuses when the phase moves on (`lib/a11y/useA11y.ts`).
+  `document.title` is unique per route/phase (`lib/a11y/pageTitle.ts`).
+- **Live regions (never spam):** test heading + lede are one polite region (instruction changes). The camera stage has ONE
+  sr-only polite region fed through `createAnnouncer` (max one change per 3 s): intro / get-ready caption, framing hint,
+  and capture seconds only on 5 s marks (`captureAnnouncement`). The 3-2-1 digits, ring, guides, canvas, video and eye dot are
+  `aria-hidden`; the guides keep a text alternative. The emergency countdown speaks at the start, every 5 s and at 3, 2, 1
+  (`countdownAnnouncement`). Retry/permission errors use `role="alert"`. The transcript is a keyboard-scrollable `role="log"`;
+  everything the voice agent says is also on screen there.
+- **Structure:** `lang="en"`, header/nav/main/footer landmarks, one `h1` per screen (the info page has an sr-only one),
+  progress is an `ol` with state in words (done / you are here / skipped / still to do) and different shapes, not colour only.
+- **Contrast:** every token pair is checked by `lib/a11y/contrast.test.ts`, which reads `index.css`. Muted ink `--color-ink-3`
+  was darkened to 5.0:1 on the sunken well; `--color-control-edge` (>= 3:1) borders quiet buttons and the consent checkbox;
+  `--color-ok-stage` is the green used on the dark camera stage. `prefers-contrast: more` darkens muted text and hairlines;
+  `forced-colors` gets a system focus ring and border/fill fallbacks for dots and meters.
+- **Motion:** CSS animations/transitions are cut by `prefers-reduced-motion`; framer-motion and the slot numbers also check it.
+- **Targets and reflow:** primary actions are >= 44 px (Allow buttons, voice guide buttons, brand); nothing uses fixed px
+  heights for text (all rem). Header brand shrinks on 320 px phones.
+- **Lint:** oxlint runs the `jsx-a11y` plugin (`.oxlintrc.json`); `prefer-tag-over-role` is off on purpose.
+- **Not changed on purpose:** the emergency countdown is the only timed step; everything else has no time limit. Scroll-to-info
+  hand-off (wheel) is a shortcut only; the "How it works" button is always there.
+
 ## Demo / simulation mode
 Enabled with `?demo=1` or `Shift+D`. Shows a floating **Demo Panel**:
 - Sliders to override each test's severity/confidence; "Simulate stroke" (face 0.8 + arms 0.7 + speech 0.7) and "Simulate healthy" presets.

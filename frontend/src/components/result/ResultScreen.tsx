@@ -1,3 +1,5 @@
+import { useRef, type RefObject } from 'react'
+import { useFocusHeading } from '../../lib/a11y/useA11y'
 import { resultBand, type ResultBand } from '../../lib/config'
 import { useSession } from '../../lib/session/store'
 import { Dashboard } from '../Dashboard'
@@ -11,7 +13,7 @@ import { MicroLabel } from '../ui/Primitives'
 /** Nearby emergency departments, via a plain maps search — no API key, works offline-of-our-backend. */
 const HOSPITAL_SEARCH = 'https://www.google.com/maps/search/emergency+room+near+me'
 
-function Banner({ band, risk }: { band: ResultBand; risk: number }) {
+function Banner({ band, risk, headingRef }: { band: ResultBand; risk: number; headingRef: RefObject<HTMLHeadingElement | null> }) {
   const copy = {
     high: {
       tone: 'bg-danger text-white',
@@ -36,8 +38,16 @@ function Banner({ band, risk }: { band: ResultBand; risk: number }) {
         <Icon name="alert" size={17} />
         <span className="label-micro">Result</span>
       </div>
-      <h1 className="mt-3 text-balance text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">{copy.label}</h1>
-      <p className="mt-4 max-w-[52ch] text-pretty text-lg leading-relaxed text-white/90">{copy.body}</p>
+      {/* Focus lands here when the result appears; aria-describedby makes the advice underneath be read with it. */}
+      <h1
+        ref={headingRef}
+        tabIndex={-1}
+        aria-describedby="result-advice"
+        className="mt-3 text-balance text-4xl font-semibold leading-tight tracking-tight outline-none sm:text-5xl"
+      >
+        {copy.label}
+      </h1>
+      <p id="result-advice" className="mt-4 max-w-[52ch] text-pretty text-lg leading-relaxed text-white/90">{copy.body}</p>
       <p className="tnum mt-6 text-[0.9375rem] text-white/85">Combined check score {Math.round(risk * 100)}% (uncalibrated)</p>
       <Disclaimer className="mt-2 max-w-[60ch] text-[0.9375rem] font-medium text-white/95" />
     </div>
@@ -74,7 +84,7 @@ function ActionCard({
       >
         <Icon name={icon} size={20} />
       </span>
-      <h3 className={`mt-4 text-lg font-semibold tracking-tight ${tone === 'danger' ? 'text-danger' : ''}`}>{title}</h3>
+      <h2 className={`mt-4 text-lg font-semibold tracking-tight ${tone === 'danger' ? 'text-danger' : ''}`}>{title}</h2>
       <p className="mt-1.5 text-[1rem] leading-snug text-ink-2">{body}</p>
       <span
         className={`mt-auto flex items-center gap-1.5 pt-4 text-[0.9375rem] font-medium ${
@@ -82,6 +92,7 @@ function ActionCard({
         }`}
       >
         {action}
+        {href?.startsWith('http') && <span className="sr-only">(opens in a new tab)</span>}
         <Icon name="arrowRight" size={15} className="transition-transform duration-200 group-hover:translate-x-0.5" />
       </span>
     </>
@@ -113,13 +124,18 @@ export function ResultScreen() {
   const value = risk?.risk ?? 0
   const band = phase === 'alerted' || phase === 'alerting' ? 'high' : resultBand(value)
 
+  // Focus the verdict when the screen appears, and again whenever the phase moves on while it is showing (the countdown
+  // dialog closing would otherwise leave focus on nothing). Not during the countdown itself: the dialog owns focus then.
+  const headingRef = useRef<HTMLHeadingElement>(null)
+  useFocusHeading(headingRef, phase, phase !== 'countdown')
+
   return (
     <div className="mx-auto w-full max-w-5xl px-4 pb-28 pt-24 sm:px-6 sm:pt-28">
       <div className="mb-8 flex justify-center">
         <ProgressDots />
       </div>
 
-      <Banner band={band} risk={value} />
+      <Banner band={band} risk={value} headingRef={headingRef} />
 
       {/* What actually happened on the alert path. */}
       {alertStatus !== 'none' && (
@@ -179,7 +195,9 @@ export function ResultScreen() {
       <ClearDataButton className="mt-4" />
 
       <section className="mt-14">
-        <MicroLabel className="mb-4">What the checks measured</MicroLabel>
+        <MicroLabel level={2} className="mb-4">
+          What the checks measured
+        </MicroLabel>
         <Dashboard />
       </section>
     </div>

@@ -10,7 +10,7 @@ const TONES: Record<ButtonTone, string> = {
   accent: 'bg-accent text-white border-transparent hover:bg-accent-press active:bg-accent-press',
   danger: 'bg-danger text-white border-transparent hover:bg-danger-press active:bg-danger-press',
   neutral: 'bg-ink text-white border-transparent hover:bg-ink/90',
-  quiet: 'bg-surface text-ink border-line-strong hover:bg-sunken',
+  quiet: 'bg-surface text-ink border-control-edge hover:bg-sunken',
   // On the dark camera stage: a light outline that stays legible over video.
   stage: 'bg-white/10 text-stage-ink border-white/25 backdrop-blur-sm hover:bg-white/20',
 }
@@ -25,7 +25,7 @@ const SIZES: Record<ButtonSize, string> = {
 const base =
   'inline-flex items-center justify-center rounded-[var(--radius-control)] border font-medium ' +
   'transition-[background-color,transform,box-shadow] duration-150 ease-out ' +
-  'active:translate-y-px disabled:pointer-events-none disabled:opacity-45 select-none'
+  'active:translate-y-px disabled:pointer-events-none disabled:opacity-45 aria-disabled:opacity-45 select-none'
 
 interface Common {
   tone?: ButtonTone

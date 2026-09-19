@@ -1,4 +1,5 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useFocusHeading } from '../../lib/a11y/useA11y'
 import { SKIP_OFFER_MS } from '../../lib/config'
 import { useMic } from '../../lib/media/micLevel'
 import { useSession } from '../../lib/session/store'
@@ -67,6 +68,8 @@ interface Props {
 export function TestScreen({ test, title, lede, children, rail, footer }: Props) {
   const skipTest = useSession((s) => s.skipTest)
   const offered = useSkipOffer(test)
+  const headingRef = useRef<HTMLHeadingElement>(null)
+  useFocusHeading(headingRef)
 
   return (
     <div
@@ -78,8 +81,12 @@ export function TestScreen({ test, title, lede, children, rail, footer }: Props)
     >
       <div className="mb-8 flex flex-col items-center gap-6">
         <ProgressDots />
-        <div className="text-center">
-          <h1 className="text-balance text-3xl font-semibold tracking-tight sm:text-4xl">{title}</h1>
+        {/* Polite live region: when the instruction changes mid-check (relax -> smile, retry reasons) it is read out once.
+            The heading itself takes focus when the screen first appears, which announces the first instruction. */}
+        <div className="text-center" aria-live="polite" aria-atomic="true">
+          <h1 ref={headingRef} tabIndex={-1} className="text-balance text-3xl font-semibold tracking-tight outline-none sm:text-4xl">
+            {title}
+          </h1>
           {lede && <p className="mx-auto mt-2 max-w-[48ch] text-pretty text-lg text-ink-2">{lede}</p>}
         </div>
       </div>
