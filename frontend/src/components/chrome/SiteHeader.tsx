@@ -64,13 +64,17 @@ export function SiteHeader() {
         route,
         goToSection: (id) => {
           setRoute('info')
+          // Only when a page swap is coming: on the info page there is no exit to consume the request, and a stale
+          // one would make the NEXT swap skip its scroll-to-top.
+          if (route !== 'info') setPendingAnchor(id)
           // The info page mounts after the old page finishes fading out, so poll briefly for the target.
-          setPendingAnchor(id)
           let tries = 0
           const seek = () => {
             const el = document.getElementById(id)
             if (el) {
-              el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+              // JS smooth scrolling ignores the CSS reduced-motion override in index.css, so honour it here.
+              const still = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+              el.scrollIntoView({ behavior: still ? 'auto' : 'smooth', block: 'start' })
             } else if (tries++ < 90) requestAnimationFrame(seek)
           }
           requestAnimationFrame(seek)

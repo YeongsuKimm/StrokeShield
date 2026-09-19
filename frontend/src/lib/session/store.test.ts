@@ -126,4 +126,57 @@ describe('session state machine', () => {
     expect(s().skipped).toEqual([])
     expect(s().transcript).toEqual([])
   })
+
+  it('keeps browser permissions across a reset (they are not session state)', () => {
+    s().setPermission('camera', 'granted')
+    s().reset()
+    expect(s().permissions.camera).toBe('granted')
+    expect(s().permissions.microphone).toBe('unknown')
+    s().setAgentConnected(true)
+    s().reset()
+    expect(s().agentConnected).toBe(true)
+    s().setAgentConnected(false)
+  })
+
+  describe('alert guards', () => {
+    it('ignores cancel and confirm outside the countdown (late agent tool / timer)', () => {
+      s().beginTests()
+      s().cancelCountdown()
+      expect(s().phase).toBe('face')
+      s().confirmCountdown()
+      expect(s().phase).toBe('face')
+      expect(s().alertStatus).toBe('none')
+    })
+
+    it('does not restart a countdown while an alert is already going out', () => {
+      s().requestEmergency()
+      s().confirmCountdown()
+      expect(s().phase).toBe('alerting')
+      s().requestEmergency()
+      expect(s().phase).toBe('alerting')
+      expect(s().alertStatus).toBe('sending')
+    })
+
+    it('marks the alert sent, or stays on the failure so the patient can retry', () => {
+      s().requestEmergency()
+      s().confirmCountdown()
+      s().setAlertResult('failed', { ok: false, dryRun: false, error: 'boom' })
+      expect(s().phase).toBe('alerting')
+      expect(s().alertStatus).toBe('failed')
+      s().requestEmergency()
+      s().confirmCountdown()
+      expect(s().alertResponse).toBeUndefined()
+      s().setAlertResult('sent', { ok: true, dryRun: false })
+      expect(s().phase).toBe('alerted')
+    })
+
+    it('drops an alert response that arrives after the session was reset', () => {
+      s().requestEmergency()
+      s().confirmCountdown()
+      s().reset()
+      s().setAlertResult('sent', { ok: true, dryRun: false })
+      expect(s().phase).toBe('idle')
+      expect(s().alertStatus).toBe('none')
+    })
+  })
 })

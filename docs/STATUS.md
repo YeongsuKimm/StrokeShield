@@ -45,6 +45,7 @@ Status values: `not started` · `in progress` · `blocked` · `done (untested li
 - All thresholds/weights are uncalibrated (see spec files). Calibrate on teammate fixtures around hour ~20.
 
 ## Recent changes (newest first)
+- 2026-09-19 — frontend/ui — UX audit: home copy said the app "calls for help" (SMS only); demo badge "live calls armed" -> "live texts armed"; alert actions phase-guarded and `reset()` keeps permissions/agent connection (store tests); voice-guide pill no longer overlaps the header on phones; skip link visible on focus; countdown makes `<main>` inert; transcript strip no longer scrolls the page; info-page "Start the test" starts a fresh session; demo hotkey ignores Ctrl/Cmd+Shift+D; permission listeners no longer leak; menu jumps honour reduced motion.
 - 2026-09-19 — voice-agent — made tool completion messages test-neutral and strengthened authoritative phase invalidation so late arms/face/eyes results cannot drive speech-step guidance.
 - 2026-09-19 — voice-agent/ui — restored the visible top-center Start guide control and replaced the oversized custom cursor with standard browser cursors.
 - 2026-09-19 — voice-agent/config — synced the latest main branch with Eyes → Face → Arms → Speech, guarded agent tools, and button-only speech recording.

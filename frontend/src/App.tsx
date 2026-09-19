@@ -26,8 +26,10 @@ function AgentControl() {
   const connecting = status === 'connecting'
 
   return (
-    <div className="fixed left-1/2 top-5 z-40 flex -translate-x-1/2 items-center gap-3 rounded-full border border-line bg-surface px-4 py-2 shadow-[var(--shadow-lift)] sm:top-7">
-      <span className="text-[0.875rem] text-ink-2" role="status">
+    // Top-centre from `sm` up. On a phone the header already fills the top edge (brand + menu), so the control
+    // sits bottom-right instead (opposite the Call 911 button), with the status text kept for screen readers only.
+    <div className="fixed bottom-5 right-5 z-40 flex items-center gap-3 rounded-full border border-line bg-surface p-1.5 shadow-[var(--shadow-lift)] sm:bottom-auto sm:left-1/2 sm:right-auto sm:top-7 sm:-translate-x-1/2 sm:px-4 sm:py-2">
+      <span className="sr-only text-[0.875rem] text-ink-2 sm:not-sr-only" role="status">
         {connected ? 'Guide is listening' : connecting ? 'Connecting…' : 'Voice guide'}
       </span>
       <button
@@ -68,7 +70,11 @@ function useDemoHotkey() {
   const setDemoEnabled = useSession((s) => s.setDemoEnabled)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.shiftKey && (e.key === 'D' || e.key === 'd') && !/^(INPUT|TEXTAREA)$/.test((e.target as HTMLElement)?.tagName)) {
+      // Plain Shift+D only: Ctrl/Cmd+Shift+D is the browser's own "bookmark all tabs", and typing a capital D in
+      // a field must not toggle the panel.
+      const t = e.target as HTMLElement | null
+      const typing = !!t && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable)
+      if (e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey && (e.key === 'D' || e.key === 'd') && !typing) {
         setDemoEnabled(!useSession.getState().demoEnabled)
       }
     }
@@ -115,11 +121,16 @@ function AppContent() {
 
   return (
     <div className="min-h-[100dvh]">
-      <a href="#main" className="sr-only">
+      {/* Tailwind's own sr-only utility outranks the base-layer "visible on focus" rule, so the reveal is explicit. */}
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-ink focus:px-4 focus:py-2 focus:text-white"
+      >
         Skip to the main content
       </a>
       <SiteHeader />
-      <main id="main" className="overflow-x-clip">
+      {/* While the countdown modal is up, nothing behind it should take focus (it is aria-modal). */}
+      <main id="main" className="overflow-x-clip" inert={phase === 'countdown'}>
         <AnimatePresence
           mode="wait"
           initial={false}

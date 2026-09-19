@@ -1,4 +1,6 @@
 import { useSession } from '../../lib/session/store'
+import { speechRunner } from '../../lib/speech/speechRunner'
+import { testRunner } from '../../lib/vision/useTestRunner'
 import { SlotNumber } from '../ui/SlotNumber'
 import { useScrollHandoff } from '../../lib/useScrollHandoff'
 import { Button } from '../ui/Button'
@@ -11,14 +13,24 @@ const section = (id: string) => INFO_SECTIONS.find((s) => s.id === id)!
 /** The long scrollable document behind the home screen: what the checks are, why they matter, who to call. */
 export function InfoPage() {
   const setRoute = useSession((s) => s.setRoute)
-  const start = useSession((s) => s.beginTests)
+  const beginTests = useSession((s) => s.beginTests)
+  // "Start the test" here means a NEW check. Without the reset, results, skips and any alert status from an earlier
+  // run in this tab (reached via "Stroke resources" on the result screen) would carry into the new one.
+  const start = () => {
+    testRunner.cancel()
+    speechRunner.cancel()
+    useSession.getState().reset()
+    beginTests()
+  }
   // Scrolling up past the top goes back to the check, the mirror of the home page's hand-off. The explicit
   // "Back to the check" button below stays, so this gesture is a shortcut and never the only way back.
   const pull = useScrollHandoff(true, 'up', () => setRoute('home'))
 
   return (
-    <div style={{ transform: `translateY(${pull * 28}px)`, opacity: 1 - pull * 0.25, transition: pull === 0 ? 'transform 300ms ease-out, opacity 300ms ease-out' : 'none' }} className="mx-auto w-full max-w-5xl px-4 pb-32 pt-24 sm:px-6 sm:pt-28">
-      {/* Progress of the scroll-up hand-off: a bar across the top edge, plus a label once it is clearly under way. */}
+    <>
+      {/* Progress of the scroll-up hand-off: a bar across the top edge, plus a label once it is clearly under way.
+          A sibling of the transformed page below, NOT a child: a transformed ancestor would turn `fixed` into
+          "fixed to the page", and the bar would scroll away with the document instead of staying at the window's edge. */}
       <div className="pointer-events-none fixed inset-x-0 top-0 z-40" aria-hidden>
         <div className="h-1.5 bg-accent transition-[width] duration-100 ease-out" style={{ width: `${pull * 100}%` }} />
         {pull > 0.08 && (
@@ -27,6 +39,7 @@ export function InfoPage() {
           </p>
         )}
       </div>
+    <div style={{ transform: `translateY(${pull * 28}px)`, opacity: 1 - pull * 0.25, transition: pull === 0 ? 'transform 300ms ease-out, opacity 300ms ease-out' : 'none' }} className="mx-auto w-full max-w-5xl px-4 pb-32 pt-24 sm:px-6 sm:pt-28">
 
       <Button tone="quiet" icon="arrowDown" className="mb-12 [&>svg]:rotate-180" onClick={() => setRoute('home')}>
         Back to the check
@@ -183,5 +196,6 @@ export function InfoPage() {
         </Button>
       </div>
     </div>
+    </>
   )
 }

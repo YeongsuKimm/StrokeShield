@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { api } from '../lib/api'
 import { testSequence } from '../lib/config'
 import { useSession } from '../lib/session/store'
+import { speechRunner } from '../lib/speech/speechRunner'
+import { testRunner } from '../lib/vision/useTestRunner'
 import type { HealthResponse, TestName, TestResult } from '../lib/contracts'
 import { Button } from './ui/Button'
 import { Icon } from './ui/Icon'
@@ -38,7 +40,15 @@ export function DemoPanel() {
     api.health().then(setHealth).catch(() => setHealth(null))
   }, [])
 
+  // Stop any live camera / microphone check first, like the logo does, so a real run cannot finish underneath the
+  // simulated one and overwrite it.
+  const stopRunners = () => {
+    testRunner.cancel()
+    speechRunner.cancel()
+  }
+
   const run = (v: Record<TestName, number>) => {
+    stopRunners()
     s.reset()
     s.beginTests()
     for (const t of testSequence()) useSession.getState().completeTest(fake(t, v[t], v[t] > 0.5 ? [FLAGS[t]] : []))
@@ -56,7 +66,7 @@ export function DemoPanel() {
               !health ? 'bg-sunken text-ink-3' : armed ? 'bg-danger text-white' : 'bg-ok-wash text-ok'
             }`}
           >
-            {!health ? 'backend offline' : armed ? 'live calls armed' : 'dry run'}
+            {!health ? 'backend offline' : armed ? 'live texts armed' : 'dry run'}
           </span>
           <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} aria-label="Toggle demo panel">
             <Icon name="chevronDown" size={16} className={`text-ink-3 transition-transform ${open ? '' : 'rotate-180'}`} />
@@ -99,7 +109,16 @@ export function DemoPanel() {
             </Button>
           </div>
 
-          <Button size="sm" tone="quiet" block icon="refresh" onClick={s.reset}>
+          <Button
+            size="sm"
+            tone="quiet"
+            block
+            icon="refresh"
+            onClick={() => {
+              stopRunners()
+              s.reset()
+            }}
+          >
             Reset session
           </Button>
         </div>

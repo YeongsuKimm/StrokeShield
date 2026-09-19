@@ -32,8 +32,13 @@ Routing is `store.route` plus `store.phase` — no router library. `App.tsx` pic
   page itself is never scroll-locked.
 - **Test screens** (`TestScreen` + `SpeechTest` / `EyeTest` / `FaceTest` / `ArmsTest`): progress dots, one big
   instruction, the stage, the assistant transcript strip, the mute warning, and the skip hatch.
-- The persistent ElevenLabs voice-guide control stays at the top center of the viewport so it remains available
-  without overlapping the bottom-right skip control.
+- The persistent ElevenLabs voice-guide control stays at the top center of the viewport (from `sm` up) so it remains
+  available without overlapping the bottom-right skip control. On phones the header fills the top edge, so it drops to
+  the bottom-right (button only; status text is screen-reader only), opposite the Call 911 button.
+- `reset()` (logo, "Run the check again", info-page "Start the test", demo reset) clears the session but keeps
+  browser facts: `permissions` and `agentConnected`. Alert actions are phase-guarded: `cancelCountdown` /
+  `confirmCountdown` only act during `countdown`, `setAlertResult` only during `alerting` (a response arriving after a
+  reset is dropped), and `requestEmergency` is ignored while an alert is in flight (no double SMS).
 - The speech screen starts recording only from the user's **Start recording** button. The voice agent waits for that
   result and cannot start the microphone through its client tool.
 - **Info** (`InfoPage`): process (BE-FAST), why, stats (digits roll up from zero via `ui/SlotNumber` when scrolled into view), Q&A + hotlines, team (names + Johns Hopkins University). The header logo resets the session and returns home. Reached from the header menu too.
@@ -50,7 +55,8 @@ Routing is `store.route` plus `store.phase` — no router library. `App.tsx` pic
   alert status with dry-run badge, and the risk dashboard underneath.
 - **Risk dashboard** (`Dashboard`): per-test card (severity bar, confidence, max weight, flags, raw metrics in an
   expandable table), combined risk gauge with threshold marker, and the per-test noisy-OR arithmetic. Judge-facing.
-- **Countdown modal**: ring, reason line, big "Cancel — I am OK" (autofocused, Escape also cancels), and a direct
+- **Countdown modal**: ring, reason line, big "Cancel — I am OK" (autofocused, Escape also cancels; `<main>` is `inert`
+  behind it; the voice-cancel hint shows only while the agent is connected), and a direct
   `tel:911` link. Copy says "emergency contact", never "911", because the backend only ever texts `DEMO_PHONE_NUMBER`.
 - Persistent floating "Call 911" (`tel:`) on every screen, every phase.
 

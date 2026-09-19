@@ -167,12 +167,32 @@ export const useSession = create<SessionState>((set, get) => ({
     }
   },
 
-  requestEmergency: (reason = 'user_request') => set({ phase: 'countdown', alertReason: reason, route: 'home' }),
-  cancelCountdown: () => set({ phase: 'cancelled', alertReason: undefined }),
-  confirmCountdown: () => set({ phase: 'alerting', alertStatus: 'sending' }),
-  setAlertResult: (alertStatus, alertResponse) =>
-    set({ alertStatus, alertResponse, phase: alertStatus === 'sent' ? 'alerted' : get().phase }),
+  // The alert actions are guarded by phase: agent tools, timers and in-flight requests can all arrive late (after
+  // Cancel, after "start over"), and a late call must never drag the patient into a screen they already left.
+  // An alert still in flight is never restarted, so it cannot text the contact twice; after a FAILED one the patient
+  // can ask again.
+  requestEmergency: (reason = 'user_request') => {
+    if (get().phase === 'alerting' && get().alertStatus === 'sending') return
+    set({ phase: 'countdown', alertReason: reason, route: 'home' })
+  },
+  cancelCountdown: () => {
+    if (get().phase !== 'countdown') return
+    set({ phase: 'cancelled', alertReason: undefined })
+  },
+  confirmCountdown: () => {
+    if (get().phase !== 'countdown') return
+    set({ phase: 'alerting', alertStatus: 'sending', alertResponse: undefined }) // drop a previous attempt's error
+  },
+  setAlertResult: (alertStatus, alertResponse) => {
+    // A response that lands after the session was reset must not paint "Alert sent" onto the next session.
+    if (get().phase !== 'alerting') return
+    set({ alertStatus, alertResponse, phase: alertStatus === 'sent' ? 'alerted' : 'alerting' })
+  },
   setDemoEnabled: (demoEnabled) => set({ demoEnabled }),
   setHint: (hint) => set({ hint }),
-  reset: () => set({ ...initial, permissions: { ...initial.permissions } }),
+  // Permissions and the voice connection are facts about the browser / a live socket, not about this session: keep
+  // them. Clearing them made the consent card claim "Not asked yet" for a camera the patient already allowed (it
+  // only re-queries the browser when it mounts) and the transcript strip say "not connected" mid-conversation
+  // (the agent only reports connect/disconnect events, never again).
+  reset: () => set({ ...initial, permissions: { ...get().permissions }, agentConnected: get().agentConnected }),
 }))
