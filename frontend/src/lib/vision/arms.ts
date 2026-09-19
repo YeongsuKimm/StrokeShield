@@ -162,13 +162,34 @@ export function analyzeArms(frames: PoseFrame[], opts: ArmsOptions = {}): TestRe
     const [sL, , wL, sR, , wR] = pts
     const sw = Math.abs(sL.x - sR.x)
     if (sw < FRAMING_LIMITS.shoulderWidthMin) return
+    // Measure everything in the SHOULDER-LINE frame (pixel space, rotated so the shoulders are horizontal): a camera that
+    // is rolled, or a patient leaning a little, tilts both arms equally and must not read as one arm held lower. With
+    // level shoulders this is identical to the plain image-space angle. cos/sin are sign-normalised to (-90, 90] degrees so
+    // a frame where the model labels the sides the other way round cannot flip the vertical axis.
+    let sdx = (sL.x - sR.x) * aspect
+    let sdy = sL.y - sR.y
+    const sLen = Math.hypot(sdx, sdy)
+    if (!(sLen > 0)) return
+    if (sdx < 0) {
+      sdx = -sdx
+      sdy = -sdy
+    }
+    const cs = sdx / sLen
+    const sn = sdy / sLen
+    // Wrist relative to its own shoulder: x along the shoulder line (abs => "out to the side"), y perpendicular (+ = down).
+    const rel = (s: Landmark, w: Landmark): { x: number; y: number } => {
+      const vx = (w.x - s.x) * aspect
+      const vy = w.y - s.y
+      return { x: vx * cs + vy * sn, y: -vx * sn + vy * cs }
+    }
+    const theta = (v: { x: number; y: number }): number => (Math.atan2(-v.y, Math.abs(v.x)) * 180) / Math.PI
+    const vL = rel(sL, wL)
+    const vR = rel(sR, wR)
     usable++
     shoulderW.push(sw)
-    const theta = (s: Landmark, w: Landmark): number =>
-      (Math.atan2(s.y - w.y, Math.abs(w.x - s.x) * aspect) * 180) / Math.PI
-    rawL[i] = theta(sL, wL)
-    rawR[i] = theta(sR, wR)
-    yDiff[i] = (wL.y - wR.y) / (sw * aspect) // dy in height units / dx in height units
+    rawL[i] = theta(vL)
+    rawR[i] = theta(vR)
+    yDiff[i] = (vL.y - vR.y) / sLen // + = left wrist lower, in shoulder widths
   })
 
   const visRatio = usable / n

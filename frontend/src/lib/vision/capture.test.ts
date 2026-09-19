@@ -74,12 +74,25 @@ describe('FACE capture', () => {
     expect(p1.phase).toBe('waiting')
     const p2 = c.tick(FRAMING_LIMITS.holdOkMs - 1, { framing: OK, frame: frame(1) })
     expect(p2.phase).toBe('waiting')
-    // a blip resets the hold
+    // a SUSTAINED bad stretch resets the hold
+    const g = T.holdBreakGraceMs
     c.tick(FRAMING_LIMITS.holdOkMs, { framing: BAD, frame: frame(2) })
-    const p3 = c.tick(FRAMING_LIMITS.holdOkMs + 100, { framing: OK, frame: frame(3) })
+    c.tick(FRAMING_LIMITS.holdOkMs + g + 50, { framing: BAD, frame: frame(2) })
+    const t3 = FRAMING_LIMITS.holdOkMs + g + 100
+    const p3 = c.tick(t3, { framing: OK, frame: frame(3) })
     expect(p3.phase).toBe('waiting')
-    const p4 = c.tick(FRAMING_LIMITS.holdOkMs + 100 + FRAMING_LIMITS.holdOkMs, { framing: OK, frame: frame(4) })
+    const p4 = c.tick(t3 + FRAMING_LIMITS.holdOkMs, { framing: OK, frame: frame(4) })
     expect(p4.phase).toBe('neutral')
+  })
+
+  it('a single missed detection (< holdBreakGraceMs) does not restart the hold, so a flickering gate cannot starve the start', () => {
+    const c = createFaceCapture<Fr>(() => okResult('face'))
+    let phase = 'waiting'
+    // 15 fps, framing bad for one frame out of every 6, for well over the hold time
+    for (let i = 0; i < 60 && phase === 'waiting'; i++) {
+      phase = c.tick(i * 67, { framing: i % 6 === 5 ? BAD : OK, frame: frame(i) }).phase
+    }
+    expect(phase).toBe('neutral')
   })
 
   it('captions and countdown per phase', () => {

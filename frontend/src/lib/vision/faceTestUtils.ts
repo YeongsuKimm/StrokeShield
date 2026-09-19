@@ -5,6 +5,7 @@ import type { Landmark } from './landmarks'
 import type { FaceCaptureFrame } from './face'
 
 export const ASPECT = 16 / 9
+const DEFAULT_ASPECT = ASPECT
 
 // Face-space layout in IOD units: origin at eye midpoint, u to image-right, v DOWN.
 const BASE: Record<number, [number, number]> = {
@@ -43,6 +44,16 @@ export interface FaceSpec {
   nSmile?: number
   seed?: number
   noise?: number // IOD units
+  // --- robustness scenarios (conditions.test.ts) ---
+  aspect?: number // video width / height (default 16:9); landmarks are re-normalized per axis
+  restL?: number // constant vertical offset (IOD units, + = lower) of the patient's LEFT mouth corner, present in neutral AND smile
+  restR?: number
+  vScale?: number // vertical compression of the whole face (camera pitched up/down at a steep angle), default 1
+  talk?: number // IOD units of random mouth-corner motion + smile-blendshape flicker while the neutral capture is "talking"
+  blinkFrac?: number // fraction of frames in which BOTH eyes are shut (aperture collapses, blink blendshapes set)
+  fps?: number // default 15
+  jitterMs?: number // uniform +-jitterMs timing jitter per frame (frames stay ordered)
+  gaps?: [number, number][] // [fromMs, toMs) windows (relative to the capture start) in which frames are dropped
 }
 
 function rng(seed: number): () => number {
@@ -57,8 +68,9 @@ function rng(seed: number): () => number {
 }
 
 /** Build one 478-point frame. `smileProgress` 0 = neutral, 1 = full smile. */
-function makeFrame(spec: FaceSpec, smileProgress: number, t: number, rand: () => number): FaceCaptureFrame {
+function makeFrame(spec: FaceSpec, smileProgress: number, t: number, rand: () => number, talking = false): FaceCaptureFrame {
   const p = smileProgress
+  const ASPECT = spec.aspect ?? DEFAULT_ASPECT
   const faceWidth = spec.faceWidth ?? 0.35
   // face width (1.8 IOD) as fraction of frame width -> IOD in image-height units
   const iodH = (faceWidth / 1.8) * ASPECT
@@ -75,8 +87,9 @@ function makeFrame(spec: FaceSpec, smileProgress: number, t: number, rand: () =>
     let u = u0
     let v = v0
     // lids: squint moves the upper lid down and the lower lid up
-    if (idx === 291) v -= spec.liftL * p
-    if (idx === 61) v -= spec.liftR * p
+    if (idx === 291) v -= spec.liftL * p - (spec.restL ?? 0)
+    if (idx === 61) v -= spec.liftR * p - (spec.restR ?? 0)
+    if (talking && (idx === 291 || idx === 61)) v += (rand() - 0.5) * 2 * (spec.talk ?? 0)
     if (idx === 386) v += 0.06 * (spec.squintL ?? 0) * p
     if (idx === 374) v -= 0.06 * (spec.squintL ?? 0) * p
     if (idx === 159) v += 0.06 * (spec.squintR ?? 0) * p
@@ -85,14 +98,26 @@ function makeFrame(spec: FaceSpec, smileProgress: number, t: number, rand: () =>
     v += (rand() - 0.5) * 2 * noise
     // face space -> height-unit image space, then rotate by roll about the frame-space face center.
     const X = u * iodH
-    const Y = v * iodH
+    const Y = v * iodH * (spec.vScale ?? 1)
     const Xr = X * cos - Y * sin
     const Yr = X * sin + Y * cos
     lm[idx] = { x: (cx + Xr) / ASPECT, y: cy + Yr, z: 0 }
   }
+  const blink = rand() < (spec.blinkFrac ?? 0)
+  if (blink) {
+    for (const [top, bot] of [
+      [159, 145],
+      [386, 374],
+    ]) lm[bot] = { ...lm[top], y: lm[top].y + 0.0005 }
+  }
+  const flick = talking ? (rand() - 0.5) * 2 * (spec.talk ?? 0) * 4 : 0 // blendshape flicker while talking
   return {
     landmarks: lm,
-    blendshapes: { mouthSmileLeft: spec.bsL * p, mouthSmileRight: spec.bsR * p },
+    blendshapes: {
+      mouthSmileLeft: Math.max(0, spec.bsL * p + flick),
+      mouthSmileRight: Math.max(0, spec.bsR * p + flick),
+      ...(blink ? { eyeBlinkLeft: 0.9, eyeBlinkRight: 0.9 } : {}),
+    },
     yawDeg: spec.yawDeg ?? 0,
     t,
     brightness: spec.brightness ?? 130,
@@ -103,15 +128,24 @@ function makeFrame(spec: FaceSpec, smileProgress: number, t: number, rand: () =>
 /** Neutral capture (1.5 s @ ~15 fps) and smile capture (3 s @ ~15 fps, ramping up over the first 1 s then holding). */
 export function makeCapture(spec: FaceSpec): { neutral: FaceCaptureFrame[]; smile: FaceCaptureFrame[] } {
   const rand = rng(spec.seed ?? 1)
-  const nN = spec.nNeutral ?? 22
-  const nS = spec.nSmile ?? 45
-  const dt = 1000 / 15
+  const fps = spec.fps ?? 15
+  const dt = 1000 / fps
+  const nN = spec.nNeutral ?? Math.round(1.5 * fps)
+  const nS = spec.nSmile ?? Math.round(3 * fps)
   const t0 = 1_700_000_000_000
-  const neutral = Array.from({ length: nN }, (_, i) => makeFrame(spec, 0, t0 + i * dt, rand))
-  const smile = Array.from({ length: nS }, (_, i) => {
-    const p = Math.min(1, i / 15)
-    return makeFrame(spec, p, t0 + (nN + i) * dt, rand)
-  })
+  const jit = () => (spec.jitterMs ? (rand() - 0.5) * 2 * spec.jitterMs : 0)
+  const dropped = (i: number) => (spec.gaps ?? []).some(([a, b]) => i * dt >= a && i * dt < b)
+  const smileRamp = Math.max(1, fps) // ramp up over the first second
+  const neutral: FaceCaptureFrame[] = []
+  for (let i = 0; i < nN; i++) {
+    if (dropped(i)) continue
+    neutral.push(makeFrame(spec, 0, t0 + i * dt + jit(), rand, true))
+  }
+  const smile: FaceCaptureFrame[] = []
+  for (let i = 0; i < nS; i++) {
+    if (dropped(nN + i)) continue
+    smile.push(makeFrame(spec, Math.min(1, i / smileRamp), t0 + (nN + i) * dt + jit(), rand))
+  }
   return { neutral, smile }
 }
 
