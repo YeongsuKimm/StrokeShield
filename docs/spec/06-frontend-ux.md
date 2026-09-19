@@ -71,6 +71,7 @@ result screen says and offers.
 - **Type floor:** nothing user-facing is below 13 px. Uppercase micro-labels are 13 px bold; secondary text is 14-15 px;
   body is 16 px+ (raised from an 11 px floor).
 - Icons are inline SVG primitives (`ui/Icon.tsx`), one 24px grid at 1.75 stroke. No icon dependency, no emoji.
+- Cursor: 2x default size, as SVG data-URI cursors (arrow / hand / I-beam; under the 128 px browser cap).
 - Motion is CSS-only (transform/opacity), and `prefers-reduced-motion` disables all of it.
 
 ## UX rules
