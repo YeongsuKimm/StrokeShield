@@ -60,3 +60,7 @@ cannot cause the agent to discuss a previous test. The agent must re-check the l
 - **Latency**: keep instructions short; app shows on-screen captions of what the agent said as a backup.
 - **Failure**: if the WebSocket drops, the UI continues the flow with on-screen prompts + browser `speechSynthesis` fallback and a big manual "Call for help" button.
 - **Cost**: end the conversation on completion; don't leave it open.
+
+## Stroke knowledge (only when asked)
+The agent prompt carries a short "Stroke facts" section (`docs/agent-prompt.md`): BE-FAST signs, call 911 even if signs pass, do not drive, time matters (tell the dispatcher when the person was last well), what to do while waiting (no food, drink or aspirin unless the dispatcher says), and the American Stroke Association warmline 1-888-4-STROKE (non-emergency, weekdays). Sources: CDC stroke signs page, NHS stroke symptoms page, AHA/Red Cross first-aid guidance, ASA warmline listing. Rules: answer only when asked, in one or two short sentences, then return to the current step; no diagnosis, no medicine or recovery advice; the only numbers it may say are 911 and the warmline. It lives in the prompt (not a knowledge base) so it adds no retrieval latency. Re-apply it if the agent is recreated.
+
