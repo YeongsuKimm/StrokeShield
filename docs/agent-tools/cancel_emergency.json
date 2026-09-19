@@ -1,0 +1,18 @@
+{
+  "type": "client",
+  "name": "cancel_emergency",
+  "description": "Cancel an active website emergency countdown when the user clearly says cancel or stop.",
+  "expects_response": true,
+  "response_timeout_secs": 10,
+  "parameters": [],
+  "dynamic_variables": {
+    "dynamic_variable_placeholders": {}
+  },
+  "assignments": [],
+  "interruption_mode": "allow",
+  "pre_tool_speech": "auto",
+  "tool_call_sound": null,
+  "tool_call_sound_behavior": "auto",
+  "execution_mode": "immediate",
+  "response_mocks": []
+}

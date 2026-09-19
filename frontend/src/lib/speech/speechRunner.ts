@@ -2,7 +2,7 @@
 //
 // Non-React entry point (what the ElevenLabs client tool calls; do NOT edit lib/agent/* from here):
 //   import { speechRunner } from '../speech/speechRunner'
-//   start_speech_test: async () => summarize(await speechRunner.runSpeech())
+//   start_speech_test: async () => summarize(await speechRunner.waitForUserResult())
 // It returns Promise<TestResult> and ALWAYS resolves (never rejects): mic denied, nothing heard, too quiet/loud, backend
 // offline or slow, and cancel all come back as `needsRetry: true` results with a spoken-style `flags[0]`. Non-cancelled
 // results are also stored via useSession.completeTest. Calling runSpeech twice returns the in-flight promise.
@@ -52,7 +52,10 @@ const defaultDeps = (): SpeechRunnerDeps => ({
 })
 
 export interface SpeechRunner {
+  /** The only method that starts microphone recording; the UI calls it from the button click handler. */
   runSpeech: () => Promise<TestResult>
+  /** Waits for the UI-triggered run without starting recording. */
+  waitForUserResult: () => Promise<TestResult>
   cancel: () => void
   readonly running: boolean
 }
@@ -75,6 +78,7 @@ const looksLikeResult = (r: unknown): r is TestResult =>
 export function createSpeechRunner(overrides: Partial<SpeechRunnerDeps> = {}): SpeechRunner {
   const deps = { ...defaultDeps(), ...overrides }
   let current: { token: symbol; promise: Promise<TestResult>; abort: AbortController } | null = null
+  const userResultWaiters: ((result: TestResult) => void)[] = []
 
   async function execute(abort: AbortController): Promise<{ result: TestResult; cancelled: boolean }> {
     const startedAt = deps.now()
@@ -164,14 +168,21 @@ export function createSpeechRunner(overrides: Partial<SpeechRunnerDeps> = {}): S
           console.debug('[speech] store update failed', e)
         }
         clearIfCurrent(token)
+        for (const resolve of userResultWaiters.splice(0)) resolve(result)
         return result
       })(),
     }
     return current.promise
   }
 
+  function waitForUserResult(): Promise<TestResult> {
+    if (current) return current.promise
+    return new Promise((resolve) => userResultWaiters.push(resolve))
+  }
+
   return {
     runSpeech,
+    waitForUserResult,
     cancel: () => current?.abort.abort(),
     get running() {
       return current !== null
@@ -183,6 +194,7 @@ let shared: SpeechRunner | undefined
 /** The shared runner for non-React callers (ElevenLabs client tools). */
 export const speechRunner: SpeechRunner = {
   runSpeech: () => (shared ??= createSpeechRunner()).runSpeech(),
+  waitForUserResult: () => (shared ??= createSpeechRunner()).waitForUserResult(),
   cancel: () => shared?.cancel(),
   get running() {
     return shared?.running ?? false

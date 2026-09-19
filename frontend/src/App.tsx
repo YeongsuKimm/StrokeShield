@@ -17,6 +17,30 @@ import { api } from './lib/api'
 import { consumePendingAnchor } from './lib/anchorTarget'
 import { isSpeechRecordSearch } from './lib/calibration/recorder'
 import { useSession, isResultPhase } from './lib/session/store'
+import { ConversationProvider } from '@elevenlabs/react'
+import { useAgent } from './lib/agent/useAgent'
+
+function AgentControl() {
+  const { start, end, status } = useAgent()
+  const connected = status === 'connected'
+  const connecting = status === 'connecting'
+
+  return (
+    <div className="fixed left-1/2 top-5 z-40 flex -translate-x-1/2 items-center gap-3 rounded-full border border-line bg-surface px-4 py-2 shadow-[var(--shadow-lift)] sm:top-7">
+      <span className="text-[0.875rem] text-ink-2" role="status">
+        {connected ? 'Guide is listening' : connecting ? 'Connecting…' : 'Voice guide'}
+      </span>
+      <button
+        type="button"
+        onClick={() => void (connected ? end() : start())}
+        disabled={connecting}
+        className="rounded-full bg-ink px-4 py-2 text-[0.875rem] font-semibold text-paper transition-opacity hover:opacity-80 disabled:opacity-50"
+      >
+        {connected ? 'End guide' : 'Start guide'}
+      </button>
+    </div>
+  )
+}
 
 /** Sends the alert once the countdown expires. The backend decides the destination number — never this client. */
 function useAlertOnExpiry() {
@@ -75,7 +99,7 @@ function CurrentScreen({ route }: { route: 'home' | 'info' }) {
   }
 }
 
-export default function App() {
+function AppContent() {
   const phase = useSession((s) => s.phase)
   const route = useSession((s) => s.route)
   const demoEnabled = useSession((s) => s.demoEnabled)
@@ -129,6 +153,15 @@ export default function App() {
       {demoEnabled && <DemoPanel />}
       <RecordPanel />
       {isSpeechRecordSearch(globalThis.location?.search ?? '') && <SpeechRecordPanel />}
+      <AgentControl />
     </div>
+  )
+}
+
+export default function App() {
+  return (
+    <ConversationProvider>
+      <AppContent />
+    </ConversationProvider>
   )
 }

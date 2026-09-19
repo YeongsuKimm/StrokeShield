@@ -44,13 +44,6 @@ export interface ProcessStep {
 
 export const PROCESS_STEPS: ProcessStep[] = [
   {
-    letter: 'S',
-    name: 'Speech',
-    instruction: 'Read one fixed sentence out loud.',
-    looksFor: 'Slurring, unusual pauses, a flattened pitch, words that come out wrong.',
-    measured: 'Transcript accuracy against the target sentence, articulation rate, pause structure, pitch variation and voice quality.',
-  },
-  {
     letter: 'E',
     name: 'Eyes',
     instruction: 'Follow a moving dot without turning your head.',
@@ -70,6 +63,13 @@ export const PROCESS_STEPS: ProcessStep[] = [
     instruction: 'Step back, hold both arms out to the sides, palms up, for ten seconds.',
     looksFor: 'One arm drifting downward while the other stays up.',
     measured: 'Elevation angle per arm over the hold, the drift between them, and wrist height difference.',
+  },
+  {
+    letter: 'S',
+    name: 'Speech',
+    instruction: 'Read one fixed sentence out loud.',
+    looksFor: 'Slurring, unusual pauses, a flattened pitch, words that come out wrong.',
+    measured: 'Transcript accuracy against the target sentence, articulation rate, pause structure, pitch variation and voice quality.',
   },
 ]
 

@@ -25,13 +25,17 @@ Routing is `store.route` plus `store.phase` — no router library. `App.tsx` pic
   hero and "Start the test". Sustained downward input opens the info document and **commits** (no half-scrolled state). The gesture lives in
   `lib/useScrollHandoff.ts` and is shared with the info page, which uses it in the other direction: **scrolling up
   past the top of the info page returns to the check**, alongside the "Back to the check" button (kept, since the
-  gesture is only a shortcut). 150 px of wheel travel (`HANDOFF_BUFFER_PX`), a swipe, or ↓/PageDown/End (↑/PageUp/Home
+  gesture is only a shortcut). 110 px of wheel travel down / 170 px up (`HANDOFF_BUFFER_PX`; the way back asks for more, so a stray upward scroll can't eject the reader), a swipe (90 / 130 px), or ↓/PageDown/End (↑/PageUp/Home
   on info), counted only within 160 px of the relevant page edge. Travel fades slowly (0.97 per 100 ms) so a
   one-notch-a-second mouse wheel still adds up; a lone flick does not fire it; a 700 ms cooldown after each hand-off
   stops trackpad inertia bouncing you straight back. The home direction only listens while `phase === 'idle'`. The
   page itself is never scroll-locked.
 - **Test screens** (`TestScreen` + `SpeechTest` / `EyeTest` / `FaceTest` / `ArmsTest`): progress dots, one big
   instruction, the stage, the assistant transcript strip, the mute warning, and the skip hatch.
+- The persistent ElevenLabs voice-guide control stays at the top center of the viewport so it remains available
+  without overlapping the bottom-right skip control.
+- The speech screen starts recording only from the user's **Start recording** button. The voice agent waits for that
+  result and cannot start the microphone through its client tool.
 - **Info** (`InfoPage`): process (BE-FAST), why, stats (digits roll up from zero via `ui/SlotNumber` when scrolled into view), Q&A + hotlines, team (names + Johns Hopkins University). The header logo resets the session and returns home. Reached from the header menu too.
 - **Header menu** (`chrome/SiteHeader` + `ui/DrilldownMenu` + `chrome/menuTree.ts`): a drilldown list. Collapsed it shows
   ONE row, "Learn more" ("Sections" on the info page); opening it reveals the sections, and "The process" (Speech, Eyes,

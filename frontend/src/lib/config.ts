@@ -10,9 +10,9 @@ export const FEATURES = {
   eyesTest: true, // BE-FAST gaze-following test (docs/spec/02-vision.md). UNVERIFIED on a live camera.
 }
 
-// Test order. Speech/eyes/face are done CLOSE to the screen (best landmarks + mic), then the patient steps
-// BACK once for the arms test (both hands must be in frame). Change here if the order needs to change.
-// Order follows the UX storyboard: read aloud -> follow the dot -> smile -> step back -> hold arms out.
+// Test order. Eyes and face are done CLOSE to the screen, then the patient steps BACK once for arms, and returns
+// CLOSE for speech. Change here if the order needs to change.
+// Order follows the UX storyboard: follow the dot -> smile -> step back -> hold arms out -> read aloud.
 export const testSequence = (): TestName[] =>
   FEATURES.eyesTest ? ['eyes', 'face', 'arms', 'speech'] : ['face', 'arms', 'speech']
 

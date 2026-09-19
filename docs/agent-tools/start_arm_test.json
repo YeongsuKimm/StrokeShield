@@ -1,0 +1,18 @@
+{
+  "type": "client",
+  "name": "start_arm_test",
+  "description": "Start the arm check. The user steps back until both hands are visible, then holds both arms straight out with palms up. Wait for the result.",
+  "expects_response": true,
+  "response_timeout_secs": 90,
+  "parameters": [],
+  "dynamic_variables": {
+    "dynamic_variable_placeholders": {}
+  },
+  "assignments": [],
+  "interruption_mode": "allow",
+  "pre_tool_speech": "auto",
+  "tool_call_sound": null,
+  "tool_call_sound_behavior": "auto",
+  "execution_mode": "immediate",
+  "response_mocks": []
+}

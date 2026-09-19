@@ -1,0 +1,18 @@
+{
+  "type": "client",
+  "name": "get_session_status",
+  "description": "Check the current website phase and which stroke checks are complete. Do not report scores or diagnose.",
+  "expects_response": true,
+  "response_timeout_secs": 10,
+  "parameters": [],
+  "dynamic_variables": {
+    "dynamic_variable_placeholders": {}
+  },
+  "assignments": [],
+  "interruption_mode": "allow",
+  "pre_tool_speech": "auto",
+  "tool_call_sound": null,
+  "tool_call_sound_behavior": "auto",
+  "execution_mode": "immediate",
+  "response_mocks": []
+}
