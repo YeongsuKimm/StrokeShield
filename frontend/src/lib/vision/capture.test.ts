@@ -276,3 +276,29 @@ describe('withYawGate', () => {
     expect(withYawGate(BAD, 40, 15)).toBe(BAD)
   })
 })
+
+describe('intro card (face / eyes)', () => {
+  it('shows only the instruction first: no framing wait, no measuring, then the normal flow', () => {
+    const c = createFaceCapture<Fr>(() => okResult('face'), { introMs: 4000 })
+    const early = c.tick(0, { framing: OK, frame: frame(0) })
+    expect(early.phase).toBe('intro')
+    expect(early.caption).toMatch(/relax your face/i)
+    expect(early.secondsLeft).toBe(4)
+    // framing is perfect the whole time, yet nothing starts until the card has gone
+    expect(c.tick(3900, { framing: OK, frame: frame(1) }).phase).toBe('intro')
+    expect(c.tick(4100, { framing: OK, frame: frame(2) }).phase).toBe('waiting')
+    expect(c.tick(4100 + FRAMING_LIMITS.holdOkMs + 50, { framing: OK, frame: frame(3) }).phase).toBe('neutral')
+  })
+
+  it('does not eat the framing-wait timeout while the card is up', () => {
+    const c = createFaceCapture<Fr>(() => okResult('face'), { introMs: 4000 })
+    c.tick(0, { framing: BAD, frame: null })
+    c.tick(FRAMING_LIMITS.waitTimeoutMs - 500, { framing: BAD, frame: null }) // would have timed out without the intro
+    expect(c.finished).toBe(false)
+  })
+
+  it('no intro when introMs is omitted (retries)', () => {
+    const c = createFaceCapture<Fr>(() => okResult('face'))
+    expect(c.tick(0, { framing: OK, frame: frame(0) }).phase).toBe('waiting')
+  })
+})

@@ -103,7 +103,7 @@ export function CameraView({ guide, overlay, hideGuideWhileCapturing = true }: P
         {overlay}
 
         {/* Positioning hint, top centre. Amber while it is an instruction, green the moment framing is good. */}
-        {hint && (
+        {hint && progress?.phase !== 'intro' && (
           <div className="absolute inset-x-3 top-3 flex justify-center">
             <p
               className="flex max-w-full items-center gap-2.5 rounded-full bg-caution px-5 py-3 text-center text-xl font-bold text-white shadow-[var(--shadow-lift)] sm:text-2xl"
@@ -114,12 +114,26 @@ export function CameraView({ guide, overlay, hideGuideWhileCapturing = true }: P
             </p>
           </div>
         )}
-        {!hint && framingOk && !capturing && (
+        {!hint && framingOk && !capturing && progress?.phase !== 'intro' && (
           <div className="absolute inset-x-3 top-3 flex justify-center">
             <p className="flex items-center gap-2.5 rounded-full bg-ok px-5 py-3 text-xl font-bold text-white shadow-[var(--shadow-lift)] sm:text-2xl">
               <Icon name="check" size={22} />
               Hold it right there
             </p>
+          </div>
+        )}
+
+        {/* Instruction card, dead centre, before anything is measured (face / eyes). It is the ONLY thing asked of the
+            patient during this beat, so it is big and solid; the check starts by itself when it goes away. */}
+        {progress?.phase === 'intro' && progress.caption && (
+          <div className="absolute inset-0 flex items-center justify-center p-4">
+            <div
+              className="pop max-w-[34rem] rounded-[var(--radius-panel)] bg-accent px-7 py-6 text-center text-white shadow-[var(--shadow-lift)]"
+              role="status"
+            >
+              <p className="text-balance text-2xl font-bold leading-snug sm:text-3xl">{progress.caption}</p>
+              <p className="mt-3 text-[1rem] font-medium text-white/85">Starting in {progress.secondsLeft}…</p>
+            </div>
           </div>
         )}
 
@@ -139,7 +153,7 @@ export function CameraView({ guide, overlay, hideGuideWhileCapturing = true }: P
 
         {/* Instruction caption + capture ring, bottom. Suppressed while merely waiting for position: the hint pill
             above and the page heading already say the same thing, and three copies of it is noise. */}
-        {progress?.caption && progress.phase !== 'waiting' && (
+        {progress?.caption && progress.phase !== 'waiting' && progress.phase !== 'intro' && (
           // The action prompt: big, solid and unmissable. Phases where the patient must DO something (smile, hold the
           // arms, follow the dot) get the accent colour; "relax" stays calm.
           <div
