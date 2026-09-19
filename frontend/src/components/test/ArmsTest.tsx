@@ -11,7 +11,7 @@ import { VisionRetryButton } from './VisionRetryButton'
 
 /** The two position-guiding pictures shown beside the camera. */
 const POSES = [
-  { src: '/images/arms-stand.jpg', alt: 'A figure standing tall with arms relaxed at the sides', caption: 'Stand tall, arms relaxed' },
+  { src: '/images/arms-stand.jpg', alt: 'A figure with both arms held out to the sides, elbows bent', caption: 'Arms out to your sides' },
   { src: '/images/arms-raise.jpg', alt: 'The same figure with both arms raised', caption: 'Then raise both arms' },
 ] as const
 
