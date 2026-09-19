@@ -91,7 +91,7 @@ Setup: laptop on `http://localhost:5173/`, backend running, `DRY_RUN=false` (liv
 | Time | Do / say |
 |---|---|
 | 0:00-0:20 | Home screen. Say: "One consent screen before anything is captured." Tick the consent box, allow camera, mic, location. Point at the disclaimer: "not a diagnosis". |
-| 0:20-0:35 | Click **Start guide** (voice) then **Start the test**. Agent greets; say "No, nothing urgent" and "about ten minutes ago" (last known well). |
+| 0:20-0:35 | Click **Start guide** (voice) then **Start the check**. Agent greets; say "No, nothing urgent" and "about ten minutes ago" (last known well). |
 | 0:35-1:05 | **Eyes**: follow the dot. **Face**: serious face, then smile when prompted. Say: "Landmarks are computed in this tab; no video is uploaded." |
 | 1:05-1:30 | **Arms**: step back to the floor mark, arms out for 10 s. **Speech**: step close, click **Start recording**, read "You can't teach an old dog new tricks." Say: "Only this short clip goes to our server, in memory." |
 | 1:30-1:55 | **Result (healthy)**: read the neutral banner aloud: "These checks did not flag anything. That does not mean you are not having a stroke." Open the dashboard: "This is the arithmetic; every number is uncalibrated." |
@@ -163,6 +163,8 @@ Setup: laptop on `http://localhost:5173/`, backend running, `DRY_RUN=false` (liv
 - `docs/spec/07-workflow.md`, `docs/STATUS.md`: Twilio-blocked notes replaced by the current email-to-SMS state.
 
 ### In-app copy and config (code, for the lead to fix; not edited here)
+
+_Update 2026-09-19: the four `frontend/` rows below (ResultScreen banner, ResultScreen action card, infoContent Speech `measured`, infoContent FAQ) are fixed in `docs/HUMAN-POLISH.md` batch A. The `.env.example`, `backend/` and live-agent rows are still open._
 | File | Problem |
 |---|---|
 | `frontend/src/components/result/ResultScreen.tsx` | High-band banner says "Several checks came back abnormal", but a single clear face or arm result (about 0.54) triggers it. Suggest "The checks flagged possible signs". |

@@ -3,7 +3,7 @@
 Purpose: make the site look and read like it was made by a careful person, without touching the main style choices. This is a craft-quality list only. It does not hide or misrepresent how the site was built, and it never asks to weaken a disclaimer or add a medical claim.
 
 - Audited: `frontend/` at commit `6615bff` (line numbers refer to that commit; other agents are editing, so re-grep before applying).
-- Scope of this doc: research + audit + ordered edit list. **No code was changed.**
+- Scope of this doc: research + audit + ordered edit list. **Implemented 2026-09-19** on branch `worktree-agent-acc2289e024935f48` (see "Implementation status" at the end).
 - Effort tags: **S** = a few lines, minutes. **M** = one file or a small helper, under an hour.
 - Risk notes say whether an edit touches layout (L), accessibility contrast or size (A), or the safety and honesty rules in `AGENTS.md` (H).
 
@@ -286,3 +286,31 @@ Different agents own different files today; batches are chosen so that two batch
 **Batch E: content that needs the owner** (team line, DOIs, "Figures checked" date, deletion contact, disclaimer stacking, "emergency contact" wording).
 
 After each batch: `pnpm typecheck && pnpm lint && pnpm test`, update `docs/STATUS.md` and, if wording in a spec changed, `docs/spec/06-frontend-ux.md`.
+
+---
+
+## 6. Implementation status (2026-09-19)
+
+Done, one commit per batch (`ui:` prefix): **A** copy, **B** head and tokens, **C** components, **D** smartQuotes. Frontend only; backend, `.env.example` and contracts untouched.
+
+| Finding | Status |
+|---|---|
+| 1, 2 | Done: brand favicon, title, description, theme-color, color-scheme, og title/description/type, `twitter:card=summary`. **Skipped:** `apple-touch-icon.png` and `og:image` (no raster tool here; og:image needs the deployed absolute URL). |
+| 3, 4, 5 | Done (C1 to C3 and C5 to C7 exactly; disclaimer is a hairline `border-line-strong` box, no red stripe). C4 done too (`capture.ts` caption; no test asserts it). |
+| 6 | Done as specified: `lib/typography.ts` `smartQuotes()` + test, called only at render sites (TestScreen, CameraView, SpeechTest, VisionRetryButton, TranscriptStrip). Source strings, alert symptoms and agent text remain ASCII. |
+| 7 | Done for HomePage and PermissionsCard eyebrows; `label-micro` is 600 / 0.07em. Other eyebrows kept on purpose (data labels, "Result", "The pose"). |
+| 8, 9 | Done: no icon circle on result cards or the 911 button; result grid `1.35fr 1fr 1fr`. |
+| 10 | Done: Pill is sentence case 600, neutral border transparent, severity number `tnum`. |
+| 11, 12, 18, 25, 28, 29, 30, 31 | Done in `index.css`, `index.html`, `public/404.html` (print hides header, fixed controls and buttons, footer disclaimer stays). |
+| 13 | Verified: `failureFromError` never stores the raw thrown text; the `delivery` fallback now quotes a server message only when it is short plain prose (test added). Title reads "The text did not go through". |
+| 14, 15, 16 | Done (C8, C9, C11, C12). |
+| 17 | Done: `text-ink-3` on the five bullets. |
+| 19, 20, 21, 22 | Done: easing tokens, dead blur removed (kept on `Button stage` and the camera overlay), `ProgressDots` transition, skip and clear-data icons. DrilldownMenu left as is. |
+| 24 | Done: `font-bold` to `font-semibold` outside DebugPanel and the recorders. |
+| 26, 32, 35, 36 | Done (`--radius-sheet`, stat grid `3fr 2fr` plus C13, faster reels, "Not run yet", "Counts up to", score working in `<details>`). |
+| 27 | Home step circles replaced by serif numerals; `SectionHead` unchanged. |
+| 23 | **Skipped:** type-size token consolidation changes wraps in about 55 places; needs a visual pass in a real browser. |
+| 33, 34, Batch E, owner decisions 1 and 3 | **Skipped, owner content:** DOIs, "Figures checked" date, team sentence, deletion contact, stacked-disclaimer policy. |
+| Owner decision 2 | Applied everywhere in the frontend as "the demo phone" / "Text the demo contact" (result card, countdown title, page title, home lede, agent-directed messages, alert failure text). |
+
+Follow-ups: the live ElevenLabs agent prompt still says "Start the test" and should get the same one-word edit; none of this was checked in a real browser (headless Chrome could not start in the sandbox), so look at 320, 768 and 1440 px and a print preview of the result screen.
