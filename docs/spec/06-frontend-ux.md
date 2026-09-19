@@ -25,7 +25,7 @@ Routing is `store.route` plus `store.phase` — no router library. `App.tsx` pic
   hero and "Start the test". Sustained downward input opens the info document and **commits** (no half-scrolled state). The gesture lives in
   `lib/useScrollHandoff.ts` and is shared with the info page, which uses it in the other direction: **scrolling up
   past the top of the info page returns to the check**, alongside the "Back to the check" button (kept, since the
-  gesture is only a shortcut). 143 px of wheel travel down / 221 px up (`HANDOFF_BUFFER_PX`; the way back asks for more, so a stray upward scroll can't eject the reader), a swipe (117 / 169 px), or ↓/PageDown/End (↑/PageUp/Home
+  gesture is only a shortcut). 186 px of wheel travel down / 287 px up (`HANDOFF_BUFFER_PX`; the way back asks for more, so a stray upward scroll can't eject the reader), a swipe (152 / 220 px), or ↓/PageDown/End (↑/PageUp/Home
   on info), counted only within 160 px of the relevant page edge. Travel fades slowly (0.97 per 100 ms) so a
   one-notch-a-second mouse wheel still adds up; a lone flick does not fire it; a 700 ms cooldown after each hand-off
   stops trackpad inertia bouncing you straight back. The home direction only listens while `phase === 'idle'`. The

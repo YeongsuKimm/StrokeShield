@@ -78,13 +78,17 @@ export function BodyGuide({ tone = 'waiting' }: { tone?: GuideTone }) {
           strokeLinejoin="round"
           style={{ transition: 'stroke 300ms var(--ease-out)' }}
         >
-          {/* head, neck, shoulders and torso as one silhouette, filling most of the frame height */}
+          {/* Proportions of a real upper body: the head is about a third as wide as the shoulders (roughly 23 vs 60
+              units), the neck is short and narrow, and the torso tapers a little towards the waist. */}
+          <g transform="translate(0 4)">
+          <ellipse strokeDasharray="4 5" cx="50" cy="25" rx="11.5" ry="14" />
           <path
             strokeDasharray="4 5"
-            d="M41 22c0-5 4-9 9-9s9 4 9 9c0 5.6-2.3 8.6-4.3 10.3 1.7 1 2.7 2.3 4 3.2 4.3 2.6 11.2 4 15.5 5.6 5 2 7.6 5.3 8.2 10.6L85 96M15 96l2.6-44.3c.6-5.3 3.2-8.6 8.2-10.6 4.3-1.6 11.2-3 15.5-5.6"
+            d="M45.5 38.5V45C37 46.5 27 48 22.5 52C20 54.2 19.8 58 20.8 63L27 100M54.5 38.5V45C63 46.5 73 48 77.5 52C80 54.2 80.2 58 79.2 63L73 100"
           />
-          {/* the arms the patient will raise, hinted so the pose is obvious before the cue */}
-          <path strokeDasharray="2 4" opacity={0.7} d="M21 54 8 76M79 54l13 22" />
+          {/* the arms the patient will hold out, hinted so the pose is obvious before the cue */}
+          <path strokeDasharray="2 4" opacity={0.7} d="M21 55 7 74M79 55l14 19" />
+          </g>
         </g>
       </svg>
       <Ticks inset={{ x: 6, y: 8 }} color={color} />
