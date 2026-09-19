@@ -4,6 +4,7 @@ import { findScenario, LIGHTING_VALUES, scenariosFor, type Lighting, type Record
 // Calibration recorder UI. Only rendered with `?record=1`. Run a test with the normal buttons; each completed run is
 // saved (and auto-downloaded) with the labels chosen here. See docs/CALIBRATION.md.
 const KINDS: { kind: RecordingKind; title: string }[] = [
+  { kind: 'eyes', title: 'Eyes test scenario' },
   { kind: 'face', title: 'Face test scenario' },
   { kind: 'arms', title: 'Arms test scenario' },
 ]
@@ -94,11 +95,11 @@ export function RecordPanel() {
       </label>
       {!r.subject.trim() && <p className="text-xs text-amber-300">Enter a name/id so recordings can be grouped by person.</p>}
       <div className="max-h-48 space-y-1 overflow-auto">
-        {r.runs.length === 0 && <p className="text-xs text-slate-400">No runs yet. Use Run face test / Run arm test.</p>}
+        {r.runs.length === 0 && <p className="text-xs text-slate-400">No runs yet. Start a vision test.</p>}
         {r.runs.map((run) => (
           <div key={run.id} className="flex items-center justify-between gap-2 rounded bg-slate-800 px-2 py-1 text-xs">
             <span>
-              {run.kind} · {run.scenario.replace(/^(face|arms)-/, '')} · {run.needsRetry ? 'retry' : run.severity.toFixed(2)} · {run.sizeKB} KB
+              {run.kind} · {run.scenario.replace(/^(face|arms|eyes)-/, '')} · {run.needsRetry ? 'retry' : run.severity.toFixed(2)} · {run.sizeKB} KB
             </span>
             <button onClick={() => downloadJson(run.fileName, run.json)} className="rounded bg-slate-700 px-2 py-0.5">
               save

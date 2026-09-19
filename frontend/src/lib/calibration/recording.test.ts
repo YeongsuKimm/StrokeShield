@@ -50,11 +50,13 @@ describe('recording', () => {
   it('has labelled scenarios whose side is consistent with expectation', () => {
     expect(scenariosFor('face').length).toBeGreaterThanOrEqual(3)
     expect(scenariosFor('arms').length).toBeGreaterThanOrEqual(4)
-    for (const s of [...scenariosFor('face'), ...scenariosFor('arms')]) {
+    expect(scenariosFor('eyes').length).toBeGreaterThanOrEqual(3)
+    for (const s of [...scenariosFor('face'), ...scenariosFor('arms'), ...scenariosFor('eyes')]) {
       expect(s.expected === 'deficit' ? s.side !== 'none' : s.side === 'none').toBe(true)
       expect(s.instructions.length).toBeGreaterThan(10)
     }
     expect(findScenario('face-healthy')?.kind).toBe('face')
+    expect(findScenario('eyes-mimic-cannot-look-left')).toMatchObject({ kind: 'eyes', expected: 'deficit', side: 'left' })
     expect(findScenario('nope')).toBeUndefined()
   })
 })

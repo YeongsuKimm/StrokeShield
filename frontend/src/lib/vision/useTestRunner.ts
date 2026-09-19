@@ -37,11 +37,6 @@ export type ArmsAnalyzer = (frames: PoseFrame[], aspectRatio: number) => TestRes
 export type EyesAnalyzer = (frames: FaceCaptureFrame[], aspectRatio: number) => TestResult
 const analyzeFaceAdapter: FaceAnalyzer = (neutral, smile) => analyzeFace(neutral, smile)
 const analyzeArmsAdapter: ArmsAnalyzer = (frames, aspectRatio) => analyzeArms(frames, { aspectRatio })
-// Eyes: the capture window is exactly EYE_PROTOCOL_TOTAL_MS long and <EyeStimulus/> starts with it, so the first
-// collected frame marks the protocol start and labelEyeFrames can derive which way the dot was pointing per frame.
-// The sync error is one camera frame against 1–2 s dot segments.
-const analyzeEyesAdapter: EyesAnalyzer = (frames, aspect) =>
-  analyzeEyes(labelEyeFrames(frames, frames[0]?.t ?? 0), { aspect })
 // --------------------------------------------------------------------------------------------------------------------
 
 const READY_TIMEOUT_MS = 60_000 // camera permission + model load
@@ -76,7 +71,14 @@ const defaultDeps = (): RunnerDeps => ({
     recordRun({ kind: 'arms', frames, aspectRatio }, result)
     return result
   },
-  analyzeEyes: (frames, aspectRatio) => analyzeEyesAdapter(frames, aspectRatio),
+  analyzeEyes: (frames, aspectRatio) => {
+    // The capture window and EyeStimulus start together, so the first frame anchors the target protocol. The sync
+    // error is one camera frame against 1-2 second dot segments. Save these exact labelled analyzer inputs.
+    const labelled = labelEyeFrames(frames, frames[0]?.t ?? 0)
+    const result = analyzeEyes(labelled, { aspect: aspectRatio })
+    recordRun({ kind: 'eyes', frames: labelled, aspect: aspectRatio }, result)
+    return result
+  },
   completeTest: (r) => useSession.getState().completeTest(r),
   setHint: (h) => useSession.getState().setHint(h),
   publish: (running, p) => useCaptureProgress.getState().set(running, p),

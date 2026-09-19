@@ -20,13 +20,14 @@ If the app mixes up left and right, every "side" result is wrong. Do the live ca
 ## Recording (about 10 minutes per person)
 1. `pnpm dev`, open **http://localhost:5173/?record=1** in Chrome. A red "Recording mode" panel appears (top right).
 2. Type your name or an anonymous id (e.g. `sam`). It's remembered.
-3. Pick a **scenario**, read the instruction under it, and press **Run face test** or **Run arm test** (the normal buttons). Each completed run is saved and downloads a `.json` file. If the browser blocks many downloads, uncheck auto-download and use the **save** buttons.
+3. Pick a **scenario**, read the instruction under it, and start the matching eyes, face or arms test. Each completed run is saved and downloads a `.json` file. If the browser blocks many downloads, uncheck auto-download and use the **save** buttons.
 4. **"left" and "right" always mean YOUR OWN left/right.** "Droop on your left" = your left cheek/arm.
 5. Vary the conditions on purpose, and write them in Notes: with/without glasses, brighter/dimmer light, closer/further, different times of day.
 6. Do each scenario at least **twice**:
+   - Eyes: follow normally · mimic unable to look left · mimic unable to look right
    - Face: normal smile · naturally lopsided smile (don't exaggerate) · mimic droop on left · mimic droop on right
    - Arms: hold steady · both sink a little equally · left arm drifts down · right arm drifts down · left arm won't lift · right arm won't lift
-   That's ~20 runs per person. Aim for **at least 8 different people** (different faces, glasses, facial hair, skin tones). Healthy runs from diverse people matter most, because a false alarm on stage is the worst outcome.
+   That's ~26 runs per person. Aim for **at least 8 different people** (different faces, glasses, facial hair, skin tones). Healthy runs from diverse people matter most, because a false alarm on stage is the worst outcome.
 7. Move the downloaded files into **`frontend/recordings/`** (gitignored). They are landmark numbers (no video or images), but they are still data about real people: don't commit or post them. Share via the team drive. To commit a *consented* recording as a permanent regression fixture, put it in `frontend/src/lib/calibration/fixtures/recordings/` and say so in the PR.
 
 ## Replaying and reading the report
@@ -60,5 +61,4 @@ Remember the noisy-OR: speech has max weight 0.5 and acoustic-only confidence to
 Both recording panels ask for **conditions** (glasses, facial hair, lighting, distance, device / mic, noise, native English) and attach device info automatically (browser, cores, fps, delegate, video size / sample rate and the mic's echo-cancellation flags). Fill them in: the validation reports break false alarms and detection down by them. Use ONE consistent id per person; it decides the tune/validate split (VALIDATION.md).
 
 ## Not covered yet
-- **Eyes:** recording schema and replay support `eyes`, but `runEyes` isn't wired, so there are no eyes scenarios yet. Add them to `SCENARIOS` in `lib/calibration/recording.ts` when it is.
 - **End to end:** calibration checks the scoring only. Still do full rehearsals of the demo (spec 07).
