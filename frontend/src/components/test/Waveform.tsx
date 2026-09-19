@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { micMonitor } from '../../lib/media/micLevel'
+import { rmsToBar } from '../../lib/speech/levelMeter'
 import { useSpeechProgress } from '../../lib/speech/speechProgressStore'
 
 /**
@@ -36,11 +37,11 @@ export function Waveform({ active, height = 132 }: { active: boolean; height?: n
     let lastPush = 0
     const draw = (now: number) => {
       raf = requestAnimationFrame(draw)
-      // Roll the local history at ~30 Hz, mixing both sources (recorder RMS is scaled like the monitor's: x6).
+      // Roll the local history at ~30 Hz, mixing both sources (the recorder's raw RMS goes through a dB scale; see levelMeter.ts).
       if (now - lastPush >= 33) {
         lastPush = now
         const fromMonitor = micMonitor.history[micMonitor.history.length - 1] ?? 0
-        const fromRecorder = activeRef.current ? Math.min(1, useSpeechProgress.getState().level * 6) : 0
+        const fromRecorder = activeRef.current ? rmsToBar(useSpeechProgress.getState().level) : 0
         bars.push(Math.max(fromMonitor, fromRecorder))
         bars.shift()
       }

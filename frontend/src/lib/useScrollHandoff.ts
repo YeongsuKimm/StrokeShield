@@ -11,7 +11,7 @@ import { useEffect, useRef, useState } from 'react'
 /** Wheel travel, in the direction of travel and near the page edge, that commits the hand-off. Going BACK to the
  *  check (up) asks for a little more than going on to the info page (down), so a stray upward scroll on the long
  *  info page is less likely to throw the reader out of it. */
-export const HANDOFF_BUFFER_PX = { down: 110, up: 170 } as const
+export const HANDOFF_BUFFER_PX = { down: 143, up: 221 } as const
 /**
  * Accumulated travel fades at this rate per 100 ms. Gentle on purpose: a plain mouse wheel delivers one ~100 px notch
  * at a time, maybe a second apart, and a faster fade would keep that from ever adding up to the buffer (it stalls
@@ -20,7 +20,7 @@ export const HANDOFF_BUFFER_PX = { down: 110, up: 170 } as const
  */
 const DECAY_PER_100MS = 0.97
 /** A swipe of at least this many pixels counts as the same intent on a touch screen. */
-const SWIPE_PX = { down: 90, up: 130 } as const
+const SWIPE_PX = { down: 117, up: 169 } as const
 /**
  * Within this many pixels of the edge counts as "at the edge". A window a few dozen pixels too short for its
  * content would otherwise swallow the first ticks of the gesture scrolling that sliver, which reads as hanging.

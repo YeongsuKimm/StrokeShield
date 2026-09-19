@@ -2,7 +2,7 @@ import type { TestResult } from '../contracts'
 import { useSession } from '../session/store'
 import { useCaptureProgress, type RunnableTest } from './progressStore'
 
-export const VISION_RETRY_DELAY_MS = 2000
+export const VISION_RETRY_DELAY_MS = 4000 // long enough to read the hint and reposition before the automatic second try
 /** A check that is idle with no result for this long is "stuck" (e.g. cancelled by another test) and shows a button. */
 export const VISION_STUCK_GRACE_MS = 800
 

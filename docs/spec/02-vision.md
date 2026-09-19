@@ -38,7 +38,7 @@ Before each test, run a **framing gate** (`frontend/src/lib/vision/framing.ts`, 
 Demo-room checklist: ~2.5 m of clear floor behind the patient's start position, camera at about chest/face height, tape a mark on the floor for the "far" spot, good front lighting. Test the room before the demo; wide-angle webcams help.
 
 ## Face test ("Show me a big smile")
-Protocol (~8 s): (1) "Relax your face" — 1.5 s **neutral** capture. (2) "Now smile as big as you can and hold" — 3 s **smile** capture. Retry once if smile is not detected or the neutral capture starts with a smile; after the automatic retry, the UI offers **Try again** rather than leaving the camera screen idle.
+Protocol (~8 s of capture after framing): (1) "Relax your face" — 3 s **neutral** capture (doubles as the lead-in, so a slow start does not fail the run). (2) "Now smile as big as you can and hold" — 5 s **smile** capture. Framing may be lost for up to 3 s (`framingLossGraceMs`) before the run is retried, and the automatic retry waits 4 s (`VISION_RETRY_DELAY_MS`) so the patient can read the hint and reposition. (Was 1.5 s / 3 s / 1.5 s / 2 s.) Retry once if smile is not detected or the neutral capture starts with a smile; after the automatic retry, the UI offers **Try again** rather than leaving the camera screen idle.
 
 Landmarks (Face Mesh): mouth corners `61`, `291`; nose tip `1`; eye outer corners `33`, `263`; inner corners `133`, `362`; chin `152`; lids `159/145` and `386/374`; brows `105`, `334`.
 
@@ -66,7 +66,7 @@ As built (`vision/face.ts`, `analyzeFace(neutral, smile)`, extra frame fields `b
 - **Neutral capture must not be smiling** (> 0.35 → retry): a pre-smile destroys the lift measurement. During the 2 s retry pause, the screen explicitly says **Relax your face** before restarting.
 - **Roll correction needs the real frame aspect** (see conventions).
 - **Blendshape left/right** (`mouthSmileLeft` = patient's left?) is ~50/50 unresolved; it only drives the "blendshape and landmark disagree" flag. Severity and `side` come from landmarks (Face Mesh 61/159/145 = patient's RIGHT, 263/291/386/374 = patient's LEFT — assumed, from the mesh's subject-perspective annotation).
-- Minimum frames: ≥ 5 detected neutral, ≥ 8 detected smile (~15 fps: neutral 1.5 s, smile 3 s). Pass `landmarks: []` frames for missed detections.
+- Minimum frames: ≥ 5 detected neutral, ≥ 8 detected smile (~15 fps: neutral 3 s, smile 5 s). Pass `landmarks: []` frames for missed detections.
 - Known limits: no pitch correction, glasses/dentures/old palsy not handled, `corner_height_diff` is measured in the smile frame only (natural baseline asymmetry counts).
 
 ## Arms test ("Raise both arms out and hold")

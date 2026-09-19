@@ -5,9 +5,15 @@ import { testRunner } from '../../lib/vision/useTestRunner'
 import { CameraView } from '../CameraView'
 import { Icon } from '../ui/Icon'
 import { MicroLabel } from '../ui/Primitives'
-import { ArmPoseFigure, BodyGuide } from './StageGuides'
+import { BodyGuide } from './StageGuides'
 import { TestScreen } from './TestScreen'
 import { VisionRetryButton } from './VisionRetryButton'
+
+/** The two position-guiding pictures shown beside the camera. */
+const POSES = [
+  { src: '/images/arms-stand.jpg', alt: 'A figure standing tall with arms relaxed at the sides', caption: 'Stand tall, arms relaxed' },
+  { src: '/images/arms-raise.jpg', alt: 'The same figure with both arms raised', caption: 'Then raise both arms' },
+] as const
 
 /** The one screen where the patient has to move: back about two metres, until both hands are in shot. */
 export function ArmsTest() {
@@ -36,12 +42,10 @@ export function ArmsTest() {
       rail={
         <aside className="grid grid-cols-2 gap-3 lg:grid-cols-1">
           <MicroLabel className="col-span-2 lg:col-span-1">The pose</MicroLabel>
-          {(['front', 'angle'] as const).map((view) => (
-            <figure key={view} className="overflow-hidden rounded-[var(--radius-control)]">
-              <ArmPoseFigure view={view} />
-              <figcaption className="mt-1.5 text-[0.875rem] leading-snug text-ink-3">
-                {view === 'front' ? 'Arms level with your shoulders.' : 'Palms up, elbows straight.'}
-              </figcaption>
+          {POSES.map((pose) => (
+            <figure key={pose.src} className="overflow-hidden rounded-[var(--radius-control)] border border-line bg-white">
+              <img src={pose.src} alt={pose.alt} width={320} height={320} loading="eager" className="block aspect-square w-full object-contain" />
+              <figcaption className="border-t border-line px-3 py-2 text-[0.9375rem] font-medium leading-snug text-ink-2">{pose.caption}</figcaption>
             </figure>
           ))}
           <p className="col-span-2 flex items-start gap-2 text-[0.875rem] leading-snug text-ink-3 lg:col-span-1">

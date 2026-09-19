@@ -54,11 +54,13 @@ describe('FACE capture', () => {
     expect(c.result?.needsRetry).toBeUndefined()
     expect(c.result?.severity).toBe(0.1)
     expect(c.result!.durationMs).toBeGreaterThan(T.faceNeutralMs + T.faceSmileMs)
-    // ~1.5 s and ~3 s of frames at 20 fps
-    expect(got!.n.length).toBeGreaterThanOrEqual(28)
-    expect(got!.n.length).toBeLessThanOrEqual(31)
-    expect(got!.s.length).toBeGreaterThanOrEqual(58)
-    expect(got!.s.length).toBeLessThanOrEqual(61)
+    // frames at 20 fps (one every 50 ms) for each phase, give or take a couple at the edges
+    const nExpected = T.faceNeutralMs / 50
+    const sExpected = T.faceSmileMs / 50
+    expect(got!.n.length).toBeGreaterThanOrEqual(nExpected - 2)
+    expect(got!.n.length).toBeLessThanOrEqual(nExpected + 1)
+    expect(got!.s.length).toBeGreaterThanOrEqual(sExpected - 2)
+    expect(got!.s.length).toBeLessThanOrEqual(sExpected + 1)
     // buffers are disjoint and ordered
     expect(got!.n[got!.n.length - 1].t).toBeLessThan(got!.s[0].t)
     expect(last?.phase).toBe('done')
@@ -83,11 +85,11 @@ describe('FACE capture', () => {
     drive(c, frame, () => OK, FRAMING_LIMITS.holdOkMs + 100)
     let p = c.tick(FRAMING_LIMITS.holdOkMs + 150, { framing: OK, frame: frame(0) })
     expect(p.caption).toBe('Relax your face')
-    expect(p.secondsLeft).toBe(2)
+    expect(p.secondsLeft).toBe(Math.ceil(T.faceNeutralMs / 1000))
     p = c.tick(FRAMING_LIMITS.holdOkMs + 150 + T.faceNeutralMs + 50, { framing: OK, frame: frame(0) })
     expect(p.phase).toBe('smile')
     expect(p.caption).toBe('Now smile as big as you can and hold')
-    expect(p.secondsLeft).toBe(3)
+    expect(p.secondsLeft).toBe(Math.ceil(T.faceSmileMs / 1000))
   })
 
   it('framing never OK -> timeout retry result with a spoken flag', () => {
@@ -123,7 +125,7 @@ describe('FACE capture', () => {
     drive(c, frame, blip, 20_000)
     expect(c.result?.needsRetry).toBeUndefined()
     expect(got.some((f) => f.t >= smileStart + 1050 && f.t < smileStart + 1500)).toBe(false)
-    expect(got.length).toBeLessThan(60)
+    expect(got.length).toBeLessThan(T.faceSmileMs / 50)
   })
 
   it('unstable framing (coverage below minCoverage) -> retry even without one long loss', () => {

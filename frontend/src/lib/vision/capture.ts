@@ -15,11 +15,13 @@ import type { Framing } from './framing'
 
 /** Protocol timings (ms unless noted). From spec 02; framing hold/timeout come from FRAMING_LIMITS. */
 export const CAPTURE_TIMING = {
-  faceNeutralMs: 1500,
-  faceSmileMs: 3000,
+  // Generous on purpose: people need a moment to settle into a relaxed face and then a big smile. The neutral phase
+  // doubles as the lead-in (the analyzer only needs its frames as a baseline), so a slow start no longer fails the run.
+  faceNeutralMs: 3000,
+  faceSmileMs: 5000,
   armsCueSeconds: 3,
   armsHoldMs: 10_000,
-  framingLossGraceMs: 1500, // framing bad continuously this long during a capture => retry
+  framingLossGraceMs: 3000, // framing bad continuously this long during a capture => retry (time to re-adjust)
   minCoverage: 0.6, // fraction of a capture segment's time that framing must have been OK, else retry
   maxDtMs: 250, // a single gap between ticks counts for at most this much coverage time
 } as const
