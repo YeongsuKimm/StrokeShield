@@ -48,6 +48,8 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
+from models import config as _CFG
+
 log = logging.getLogger("strokeshield.phoneme")
 
 # ---------------------------------------------------------------------------------------------------
@@ -274,7 +276,8 @@ def score_posteriors(
 # ---------------------------------------------------------------------------------------------------
 # Model handling (lazy torch / transformers)
 # ---------------------------------------------------------------------------------------------------
-_LOCK = threading.Lock()
+_LOCK = threading.Lock()  # guards model loading
+_INFER_LOCK = threading.Lock()  # one forward pass at a time: bounds RAM (~1.4 GB) and CPU when analyses overlap
 _STATE: dict = {}  # "model", "labels", "blank", "torch"
 
 
@@ -382,7 +385,13 @@ def score_phonemes(samples: np.ndarray, sample_rate: int, target_phrase: str) ->
             return None
         x = x[: int(MAX_AUDIO_S * MODEL_SAMPLE_RATE)]
         st = _load(local_only=True)
-        lp = _log_posteriors(x, st)
+        if not _INFER_LOCK.acquire(timeout=_CFG.PHONEME_LOCK_WAIT_S):
+            log.warning("phoneme scoring busy, skipping for this clip")
+            return None
+        try:
+            lp = _log_posteriors(x, st)
+        finally:
+            _INFER_LOCK.release()
         res = score_posteriors(lp, st["labels"], st["blank"], target)
         if res is None:
             log.info("phoneme scoring: alignment infeasible (clip too short for phrase)")

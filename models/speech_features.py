@@ -44,7 +44,12 @@ def load_wav(wav_bytes: bytes, target_sr: int = C.SAMPLE_RATE, max_s: float = C.
     if not wav_bytes or len(wav_bytes) < 44:
         return None, "empty or truncated recording"
     try:
-        data, sr = sf.read(io.BytesIO(wav_bytes), dtype="float32", always_2d=True)
+        with sf.SoundFile(io.BytesIO(wav_bytes)) as fh:
+            # Refuse absurd lengths from the header BEFORE decoding (a 5 MB 8-bit/8 kHz file is ~10 minutes of audio).
+            if fh.samplerate > 0 and fh.frames / fh.samplerate > C.MAX_ACCEPT_S:
+                return None, "recording too long"
+            data = fh.read(dtype="float32", always_2d=True)
+            sr = fh.samplerate
     except Exception as exc:  # noqa: BLE001 - any decode failure means "not usable audio"
         return None, f"could not decode audio ({type(exc).__name__})"
     if data.size == 0 or sr <= 0:
