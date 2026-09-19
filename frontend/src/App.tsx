@@ -174,7 +174,7 @@ function AppContent() {
             initial="enter"
             animate="center"
             exit="exit"
-            transition={{ duration: D, ease: 'easeOut' }}
+            transition={{ duration: D, ease: [0.16, 1, 0.3, 1] }}
           >
             <CurrentScreen route={route} />
           </motion.div>

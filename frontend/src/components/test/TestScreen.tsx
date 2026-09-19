@@ -118,12 +118,12 @@ export function TestScreen({ test, title, lede, children, rail, footer }: Props)
         >
           <div className="pop flex items-center justify-between gap-3 rounded-[var(--radius-panel)] border-2 border-accent bg-surface p-3 shadow-[var(--shadow-lift)] sm:block sm:p-4">
             <div>
-              <p className="text-lg font-bold leading-tight">
+              <p className="text-lg font-semibold leading-tight">
                 Stuck<span className="hidden sm:inline"> on this one</span>?
               </p>
               <p className="mb-3 mt-0.5 hidden text-[0.9375rem] text-ink-2 sm:block">Skip it and keep going.</p>
             </div>
-            <Button tone="accent" size="lg" className="sm:w-full" icon="skip" iconAfter="arrowRight" onClick={() => skipTest(test)}>
+            <Button tone="accent" size="lg" className="sm:w-full" iconAfter="arrowRight" onClick={() => skipTest(test)}>
               Skip this check
             </Button>
           </div>

@@ -16,7 +16,6 @@ import { clearAllLocalData } from '../../lib/privacy/clearData'
 import { Button } from '../ui/Button'
 import { ClearDataButton } from './ClearDataButton'
 import { Icon, type IconName } from '../ui/Icon'
-import { MicroLabel } from '../ui/Primitives'
 
 const ROWS: { key: PermissionKey; icon: IconName; label: string; why: string }[] = [
   { key: 'camera', icon: 'camera', label: 'Camera', why: 'Sees your face and arms. Video stays in this browser.' },
@@ -115,7 +114,6 @@ export function PermissionsCard() {
 
   return (
     <section className="rounded-[var(--radius-panel)] border border-line bg-surface p-5 shadow-[var(--shadow-panel)]">
-      <MicroLabel className="mb-3">First</MicroLabel>
       <h2 className="text-lg font-semibold tracking-tight">Before we start</h2>
 
       <ul className="mt-3 space-y-2 text-[0.9375rem] leading-snug text-ink-2">

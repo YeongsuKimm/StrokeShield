@@ -82,12 +82,8 @@ function ActionCard({
   }`
   const inner = (
     <>
-      <span
-        className={`flex size-10 items-center justify-center rounded-full ${
-          tone === 'danger' ? 'bg-danger/12 text-danger' : 'bg-accent-wash text-accent'
-        }`}
-      >
-        <Icon name={icon} size={20} />
+      <span className={tone === 'danger' ? 'text-danger' : 'text-accent'}>
+        <Icon name={icon} size={22} />
       </span>
       <h2 className={`mt-4 text-lg font-semibold tracking-tight ${tone === 'danger' ? 'text-danger' : ''}`}>{title}</h2>
       <p className="mt-1.5 text-[1rem] leading-snug text-ink-2">{body}</p>
@@ -144,7 +140,7 @@ export function ResultScreen() {
       <AlertStatus />
 
       {/* Actions. The high band keeps them too: a cancelled countdown still needs a way to get help. */}
-      <div className="mt-6 grid gap-4 sm:grid-cols-3">
+      <div className="mt-6 grid gap-4 sm:grid-cols-[1.35fr_1fr_1fr]">
         <ActionCard
           icon="phone"
           tone="danger"

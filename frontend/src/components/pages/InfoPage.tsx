@@ -41,7 +41,7 @@ export function InfoPage() {
       <div className="pointer-events-none fixed inset-x-0 top-0 z-40" aria-hidden>
         <div className="h-1.5 bg-accent transition-[width] duration-100 ease-out" style={{ width: `${pull * 100}%` }} />
       </div>
-    <div style={{ transform: `translateY(${pull * 28}px)`, opacity: 1 - pull * 0.25, transition: pull === 0 ? 'transform 300ms ease-out, opacity 300ms ease-out' : 'none' }} className="mx-auto w-full max-w-5xl px-4 pb-32 pt-24 sm:px-6 sm:pt-28">
+    <div style={{ transform: `translateY(${pull * 28}px)`, opacity: 1 - pull * 0.25, transition: pull === 0 ? 'transform 300ms var(--ease-out), opacity 300ms var(--ease-out)' : 'none' }} className="mx-auto w-full max-w-5xl px-4 pb-32 pt-24 sm:px-6 sm:pt-28">
 
       {/* The page's h1: the visible section titles below are h2s. Read out (and focused) when the page opens. */}
       <h1 ref={headingRef} tabIndex={-1} className="sr-only">
@@ -52,7 +52,7 @@ export function InfoPage() {
         Back to the check
       </Button>
 
-      <Disclaimer className="-mt-4 mb-12 max-w-[62ch] border-l-4 border-danger pl-4 text-lg font-medium leading-snug" />
+      <Disclaimer className="-mt-4 mb-12 max-w-[62ch] rounded-[var(--radius-control)] border border-line-strong bg-surface px-5 py-4 text-lg font-medium leading-snug" />
 
       {/* 01 — Process */}
       <section id="process" className="scroll-mt-24">
@@ -120,7 +120,7 @@ export function InfoPage() {
       {/* 03 — Stats */}
       <section id="stats" className="mt-24 scroll-mt-24">
         <SectionHead {...section('stats')} />
-        <div className="grid gap-px overflow-hidden rounded-[var(--radius-panel)] border border-line bg-line sm:grid-cols-2">
+        <div className="grid gap-px overflow-hidden rounded-[var(--radius-sheet)] border border-line bg-line sm:grid-cols-[3fr_2fr]">
           {STATS.map((s) => (
             <article key={s.caption} className="bg-surface p-7">
               <p className="flex items-baseline gap-2">
@@ -176,7 +176,7 @@ export function InfoPage() {
       {/* 05 — Team */}
       <section id="team" className="mt-24 scroll-mt-24">
         <SectionHead {...section('team')} />
-        <ul className="grid gap-px overflow-hidden rounded-[var(--radius-panel)] border border-line bg-line sm:grid-cols-2">
+        <ul className="grid gap-px overflow-hidden rounded-[var(--radius-sheet)] border border-line bg-line sm:grid-cols-2">
           {TEAM.map((m) => (
             <li key={m.name} className="bg-surface p-7">
               <p className="text-lg font-semibold tracking-tight">{m.name}</p>

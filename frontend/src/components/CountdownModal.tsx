@@ -44,7 +44,7 @@ export function CountdownModal() {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/80 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/80 p-4"
       role="alertdialog"
       aria-modal="true"
       aria-labelledby="countdown-title"

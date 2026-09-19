@@ -11,9 +11,7 @@ export function EmergencyButton() {
       aria-label="Call 911, emergency, any time"
       className="group fixed bottom-5 left-5 z-40 flex min-h-14 items-center gap-3 rounded-full bg-danger pl-4 pr-5 text-white shadow-[var(--shadow-lift)] transition-[background-color,transform] duration-150 ease-out hover:bg-danger-press active:translate-y-px sm:bottom-7 sm:left-7"
     >
-      <span aria-hidden className="relative flex size-9 items-center justify-center rounded-full bg-white/15">
-        <Icon name="phone" size={19} />
-      </span>
+      <Icon name="phone" size={22} className="shrink-0" />
       {/* The subtitle is dropped on small screens so the button intrudes less on a narrow page. */}
       <span className="text-left leading-tight">
         <span className="block text-[1rem] font-semibold">Call 911</span>

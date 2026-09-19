@@ -46,7 +46,7 @@ export function ProgressDots() {
       {steps.map((s) => (
         <li key={s.key} className="group flex items-center gap-2" aria-current={s.state === 'current' ? 'step' : undefined}>
           <span
-            className={`block transition-all duration-300 ease-out forced-colors:bg-[CanvasText] ${
+            className={`block transition-[width,height,background-color] duration-300 ease-out forced-colors:bg-[CanvasText] ${
               s.state === 'current'
                 ? 'h-2.5 w-8 rounded-full bg-accent'
                 : s.state === 'done'

@@ -29,7 +29,7 @@ export function SectionHead({ index, title, lede }: { index: string; title: stri
 export type PillTone = 'neutral' | 'ok' | 'caution' | 'danger' | 'accent'
 
 const PILL: Record<PillTone, string> = {
-  neutral: 'bg-sunken text-ink-2 border-line',
+  neutral: 'bg-sunken text-ink-2 border-transparent',
   ok: 'bg-ok-wash text-ok border-ok/25',
   caution: 'bg-caution-wash text-caution border-caution/25',
   danger: 'bg-danger-wash text-danger border-danger/25',
@@ -38,7 +38,7 @@ const PILL: Record<PillTone, string> = {
 
 export function Pill({ tone = 'neutral', icon, children }: { tone?: PillTone; icon?: IconName; children: ReactNode }) {
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 label-micro ${PILL[tone]}`}>
+    <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[0.8125rem] font-semibold ${PILL[tone]}`}>
       {icon && <Icon name={icon} size={13} />}
       {children}
     </span>
@@ -124,6 +124,7 @@ export function Ring({
           fontSize={size * 0.36}
           fontWeight={600}
           fontFamily="var(--font-sans)"
+          style={{ fontVariantNumeric: 'tabular-nums' }}
         >
           {label}
         </text>

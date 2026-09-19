@@ -131,7 +131,7 @@ export function CameraView({ guide, overlay, hideGuideWhileCapturing = true }: P
         {hint && progress?.phase !== 'intro' && (
           <div className="absolute inset-x-3 top-3 flex justify-center">
             <p
-              className="flex max-w-full items-center gap-2.5 rounded-full bg-caution px-5 py-3 text-center text-xl font-bold text-white shadow-[var(--shadow-lift)] sm:text-2xl"
+              className="flex max-w-full items-center gap-2.5 rounded-full bg-caution px-5 py-3 text-center text-xl font-semibold text-white shadow-[var(--shadow-lift)] sm:text-2xl"
             >
               <Icon name="alert" size={22} className="shrink-0" />
               {hint}
@@ -140,7 +140,7 @@ export function CameraView({ guide, overlay, hideGuideWhileCapturing = true }: P
         )}
         {!hint && framingOk && !capturing && progress?.phase !== 'intro' && (
           <div className="absolute inset-x-3 top-3 flex justify-center">
-            <p className="flex items-center gap-2.5 rounded-full bg-ok px-5 py-3 text-xl font-bold text-white shadow-[var(--shadow-lift)] sm:text-2xl">
+            <p className="flex items-center gap-2.5 rounded-full bg-ok px-5 py-3 text-xl font-semibold text-white shadow-[var(--shadow-lift)] sm:text-2xl">
               <Icon name="check" size={22} />
               Hold it right there
             </p>
@@ -164,7 +164,7 @@ export function CameraView({ guide, overlay, hideGuideWhileCapturing = true }: P
             <div
               className="pop max-w-[34rem] rounded-[var(--radius-panel)] bg-accent px-7 py-6 text-center text-white shadow-[var(--shadow-lift)]"
             >
-              <p className="text-balance text-2xl font-bold leading-snug sm:text-3xl">{progress.caption}</p>
+              <p className="text-balance text-2xl font-semibold leading-snug sm:text-3xl">{progress.caption}</p>
               <p className="mt-3 text-[1rem] font-medium text-white/85">Starting in {progress.secondsLeft}…</p>
             </div>
           </div>
@@ -175,7 +175,7 @@ export function CameraView({ guide, overlay, hideGuideWhileCapturing = true }: P
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
             <span
               key={progress.secondsLeft}
-              className="tnum text-[22vmin] font-bold leading-none text-white [text-shadow:0_4px_24px_rgba(0,0,0,0.75)] sm:text-[14rem]"
+              className="tnum text-[22vmin] font-semibold leading-none text-white [text-shadow:0_4px_24px_rgba(0,0,0,0.75)] sm:text-[14rem]"
               style={{ animation: 'ss-rise 300ms var(--ease-out) both' }}
               aria-hidden
             >
@@ -195,7 +195,7 @@ export function CameraView({ guide, overlay, hideGuideWhileCapturing = true }: P
             }`}
           >
             {timed && <Ring fraction={progress.fraction} label={String(progress.secondsLeft)} size={56} stroke={5} tone="#ffffff" />}
-            <p className="text-balance text-center text-2xl font-bold leading-tight sm:text-3xl">
+            <p className="text-balance text-center text-2xl font-semibold leading-tight sm:text-3xl">
               {progress.caption}
             </p>
           </div>

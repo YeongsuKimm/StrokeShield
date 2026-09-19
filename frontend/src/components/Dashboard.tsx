@@ -31,7 +31,7 @@ function TestCard({ test }: { test: TestName }) {
       <div className="flex items-start justify-between gap-3">
         <h3 className="font-semibold tracking-tight">{TEST_LABEL[test]}</h3>
         {status === 'scored' && result ? (
-          <Pill tone={severityTone(result.severity)}>{pct(result.severity)} severity</Pill>
+          <Pill tone={severityTone(result.severity)}><span className="tnum">{pct(result.severity)}</span> severity</Pill>
         ) : status === 'skipped' ? (
           <Pill tone="neutral">Skipped</Pill>
         ) : status === 'unmeasured' ? (
@@ -39,7 +39,7 @@ function TestCard({ test }: { test: TestName }) {
             Not measured
           </Pill>
         ) : (
-          <Pill tone="neutral">Waiting</Pill>
+          <Pill tone="neutral">Not run yet</Pill>
         )}
       </div>
 
@@ -55,7 +55,7 @@ function TestCard({ test }: { test: TestName }) {
         <span className="label-micro">Confidence</span>
         <span className="tnum">{result && !result.needsRetry ? pct(result.confidence) : '—'}</span>
         <span className="text-line-strong">·</span>
-        <span className="label-micro">Max weight</span>
+        <span className="label-micro">Counts up to</span>
         <span className="tnum">{MAX_WEIGHTS[test].toFixed(2)}</span>
       </p>
 
@@ -107,7 +107,7 @@ export function Dashboard() {
 
   return (
     <section aria-label="Risk breakdown" className="space-y-4">
-      <div className="grid gap-px overflow-hidden rounded-[var(--radius-panel)] border border-line bg-line sm:grid-cols-2">
+      <div className="grid gap-px overflow-hidden rounded-[var(--radius-sheet)] border border-line bg-line sm:grid-cols-2">
         {testSequence().map((t) => (
           <TestCard key={t} test={t} />
         ))}
@@ -138,22 +138,24 @@ export function Dashboard() {
         </div>
 
         {counted > 0 && (
-          <dl className="mt-5 space-y-2 border-t border-line pt-4">
-            <MicroLabel className="mb-1">How it adds up</MicroLabel>
-            {risk?.contributions.map((c) => (
-              <div key={c.test} className="flex items-baseline justify-between gap-3 text-[0.875rem]">
-                <dt className="capitalize text-ink-2">{c.test}</dt>
-                <dd className="tnum text-ink-3">
-                  {c.weight.toFixed(2)} × {c.severity.toFixed(2)} × {c.confidence.toFixed(2)} ={' '}
-                  <span className="text-ink">{c.contribution.toFixed(3)}</span>
-                </dd>
-              </div>
-            ))}
-            <p className="pt-1 text-[0.875rem] leading-snug text-ink-3">
+          <details className="mt-5 border-t border-line pt-4">
+            <summary className="text-[0.9375rem] font-medium text-ink-2">How the score is worked out</summary>
+            <dl className="mt-3 space-y-2">
+              {risk?.contributions.map((c) => (
+                <div key={c.test} className="flex items-baseline justify-between gap-3 text-[0.875rem]">
+                  <dt className="capitalize text-ink-2">{c.test}</dt>
+                  <dd className="tnum text-ink-3">
+                    {c.weight.toFixed(2)} × {c.severity.toFixed(2)} × {c.confidence.toFixed(2)} ={' '}
+                    <span className="text-ink">{c.contribution.toFixed(3)}</span>
+                  </dd>
+                </div>
+              ))}
+            </dl>
+            <p className="pt-3 text-[0.875rem] leading-snug text-ink-3">
               Combined with a noisy-OR, so one strong signal is enough on its own. Thresholds and weights are
               uncalibrated.
             </p>
-          </dl>
+          </details>
         )}
       </div>
     </section>

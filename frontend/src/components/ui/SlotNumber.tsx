@@ -51,7 +51,7 @@ export function SlotNumber({ value, className = '' }: { value: string; className
               className="absolute inset-x-0 top-0 flex flex-col leading-none will-change-transform"
               style={{
                 transform: `translateY(${rolled ? -n : 0}em)`,
-                transition: reduce ? 'none' : `transform ${1600 + r * 260}ms cubic-bezier(0.16, 1, 0.3, 1) ${r * 90}ms`,
+                transition: reduce ? 'none' : `transform ${900 + r * 120}ms cubic-bezier(0.16, 1, 0.3, 1) ${r * 50}ms`,
               }}
             >
               {DIGITS.map((d) => (

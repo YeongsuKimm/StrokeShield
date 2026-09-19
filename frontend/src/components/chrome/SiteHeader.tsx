@@ -107,7 +107,7 @@ export function SiteHeader() {
       <div ref={wrapRef} className={`pointer-events-auto relative h-12 ${closedWidth}`}>
         <nav
           aria-label="Site sections"
-          className={`absolute right-0 top-0 overflow-hidden rounded-[var(--radius-panel)] border border-line-strong bg-surface py-1.5 pr-3.5 backdrop-blur-sm transition-[width,padding,box-shadow] duration-300 ease-out ${
+          className={`absolute right-0 top-0 overflow-hidden rounded-[var(--radius-panel)] border border-line-strong bg-surface py-1.5 pr-3.5 transition-[width,padding,box-shadow] duration-300 ease-out ${
             // Open: extra left padding gives the breadcrumb's return arrow a gutter to sit in (it lives just left
             // of the label, so a tighter card would clip it). Both change together, so the label glides.
             open ? 'w-[min(17rem,calc(100vw-2.5rem))] pl-9 shadow-[var(--shadow-lift)]' : `${closedWidth} pl-3.5`
