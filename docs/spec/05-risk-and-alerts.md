@@ -22,7 +22,7 @@ Rules:
 ## Trigger flow
 1. Score computed after speech test (also recomputed live for the dashboard as each test lands).
 2. If triggered (or user requests): **10 s cancelable countdown** (big modal, "Cancel" button, agent says the script, tone/vibration). `user_request` uses a shorter 3 s confirm window.
-3. On expiry → `POST /api/alert`. Show status: "Calling… / Sent". Then the agent says help is being contacted and stays on the line reading calm instructions (sit down, don't eat or drink, unlock the door).
+3. On expiry → `POST /api/alert`. Show status: "Sending… / Sent". Then the agent says the emergency contact is being notified and stays on the line reading calm instructions (sit down, don't eat or drink, unlock the door).
 4. Always render a persistent manual `tel:911` button.
 
 ## `/api/alert` (backend)
@@ -30,19 +30,9 @@ Rules:
 2. If `reason == "risk_threshold"`, recompute risk from `risk.contributions` and confirm `risk ≥ threshold` (sanity check; don't trust the client blindly).
 3. `to = DEMO_PHONE_NUMBER` from env; if unset/invalid → 500 with clear error.
 4. If `DRY_RUN=true`: log the message that *would* be sent and return `{dryRun:true}`.
-5. Else Twilio: **voice call** with inline TwiML (no public webhook needed) and **SMS**.
+5. Else Twilio: send **one SMS only**. The app does not create an automated voice call.
 6. Rate limit: at most 1 alert per 2 minutes (in-memory) to prevent accidental call storms.
 
-### Voice call TwiML (built in `twilio_service.py`)
-```xml
-<Response>
-  <Say voice="Polly.Joanna">Automated alert from StrokeShield. A possible stroke has been detected.
-  Patient {name}. Symptoms: {symptoms}. Last known well: {lkw}. Location: {address_or_"see text message"}.
-  I repeat.</Say>
-  <Pause length="1"/>
-  <Say voice="Polly.Joanna">...same message once more...</Say>
-</Response>
-```
 ### SMS
 `StrokeShield ALERT: possible stroke. Symptoms: {symptoms}. Last known well: {lkw}. Location: https://maps.google.com/?q={lat},{lng} (±{acc} m). Risk {risk:.0%}. Demo message.`
 
@@ -50,7 +40,7 @@ Rules:
 Request `navigator.geolocation` at the **consent step** (not at alert time, so the prompt doesn't block the emergency). Cache the last fix; include accuracy. If denied, the message says "location unavailable".
 
 ## Twilio gotchas
-- Trial accounts: destination must be a **verified** number; calls play a trial preamble and may need a keypress. Upgrade for demo day if possible.
+- Trial accounts: the destination may need to be a **verified** number. Confirm it in the Twilio console before the live test.
 - SMS to US numbers from an unregistered local number can be filtered; prefer a toll-free/verified sender and test early.
 - `twilio` calls are blocking — run in a threadpool or use `run_in_threadpool` so the FastAPI loop isn't stalled.
 

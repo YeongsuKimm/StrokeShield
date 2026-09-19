@@ -47,7 +47,7 @@ Routing is `store.route` plus `store.phase` — no router library. `App.tsx` pic
 - **Risk dashboard** (`Dashboard`): per-test card (severity bar, confidence, max weight, flags, raw metrics in an
   expandable table), combined risk gauge with threshold marker, and the per-test noisy-OR arithmetic. Judge-facing.
 - **Countdown modal**: ring, reason line, big "Cancel — I am OK" (autofocused, Escape also cancels), and a direct
-  `tel:911` link. Copy says "emergency contact", never "911", because the backend only ever dials `DEMO_PHONE_NUMBER`.
+  `tel:911` link. Copy says "emergency contact", never "911", because the backend only ever texts `DEMO_PHONE_NUMBER`.
 - Persistent floating "Call 911" (`tel:`) on every screen, every phase.
 
 ### Result bands (UI only)
@@ -103,7 +103,7 @@ result screen says and offers.
 Enabled with `?demo=1` or `Shift+D`. Shows a floating **Demo Panel**:
 - Sliders to override each test's severity/confidence; "Simulate stroke" (face 0.8 + arms 0.7 + speech 0.7) and "Simulate healthy" presets.
 - Toggle "Skip live capture" (results come from overrides instantly) and "Trigger countdown now".
-- Shows `DRY_RUN` status from `/api/health`; loud red badge when live calls are armed.
+- Shows `DRY_RUN` status from `/api/health`; loud red badge when live messaging is armed.
 - Overrides go through the normal `completeTest` path so scoring, dashboard, agent context, and alert code all run for real.
 - Keep the demo panel out of the default UI unless enabled.
 

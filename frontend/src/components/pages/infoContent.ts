@@ -134,7 +134,7 @@ export const FAQS: Faq[] = [
   },
   {
     q: 'Does it really call an ambulance?',
-    a: 'In this demo the automatic call and text go to one verified demo phone only, never to emergency services. The red button dials your own device’s emergency number directly, and it is always on screen.',
+    a: 'In this demo the automatic text goes to one verified demo phone only, never to emergency services. The red button dials your own device’s emergency number directly, and it is always on screen.',
   },
   {
     q: 'What should I do while waiting for help?',

@@ -12,7 +12,7 @@ New human teammate? Point them to `docs/GETTING-STARTED.md`.
 ## What we're building
 A web app for HopHacks that runs a guided **FAST stroke check** (Face, Arms, Speech, Time) on a webcam + mic,
 narrated by an **ElevenLabs voice agent**. Each test produces a severity score; a weighted **risk score** decides
-whether to place an **emergency call + SMS via Twilio**. In the demo, the call/SMS goes ONLY to `DEMO_PHONE_NUMBER`.
+whether to send an **emergency SMS via Twilio** (SMS only; no voice call). In the demo, the SMS goes ONLY to `DEMO_PHONE_NUMBER`.
 It is a hackathon demo, **not a medical device**.
 
 ## Stack

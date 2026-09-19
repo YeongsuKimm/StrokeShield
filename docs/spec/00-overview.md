@@ -6,7 +6,7 @@ and automatically calls for help when the combined risk score crosses a threshol
 
 ## Users & scenario
 Someone alone (or a bystander) suspects a stroke. They open the site, consent to camera/mic/location, and the assistant guides them:
-smile → raise arms → repeat a sentence → verdict. If risk is high (or they ask), the system counts down 10 s and calls + texts for help.
+smile → raise arms → repeat a sentence → verdict. If risk is high (or they ask), the system counts down 10 s and texts for help.
 
 ## Scope (36–48 h, live demo)
 **MVP (must ship)**
@@ -14,7 +14,7 @@ smile → raise arms → repeat a sentence → verdict. If risk is high (or they
 - In-browser MediaPipe face + pose analysis with live overlay.
 - Speech analysis with advanced heuristics (Python DSP + ElevenLabs Scribe transcript).
 - ElevenLabs Agent with client tools; user can say "call 911 / call for help" at any time.
-- Weighted risk score with threshold; 10 s cancelable countdown; Twilio voice call + SMS to `DEMO_PHONE_NUMBER`.
+- Weighted risk score with threshold; 10 s cancelable countdown; Twilio SMS to `DEMO_PHONE_NUMBER`.
 - Location (browser geolocation) → Google Maps link in SMS and spoken on the call.
 - Live risk dashboard showing per-test metrics and score breakdown.
 - Demo/simulation mode (force results without acting symptomatic).
@@ -37,7 +37,7 @@ smile → raise arms → repeat a sentence → verdict. If risk is high (or they
 | Voice agent | ElevenLabs conversational agent + client tools; app state machine is source of truth | Natural conversation and interruptions, deterministic flow |
 | Trigger | Weighted risk score (noisy-OR) with threshold, plus explicit user request | Explainable dashboard, tunable |
 | Session | Guided FAST session | Predictable demo |
-| Telephony | Twilio voice call + SMS, demo number only | Reliable |
+| Messaging | Twilio SMS, demo number only | Reliable |
 | Hosting | Frontend Vercel; backend **Railway** (Dockerfile/nixpacks, no free-tier cold starts); local as demo fallback | HTTPS for camera/mic; Render free tier sleeps, Fly needs more setup |
 | Trained models | No custom-trained classifiers (no suitable stroke data in 36-48h). TensorFlow adds nothing: MediaPipe is already TFLite. Pretrained wav2vec2 (PyTorch) only as a speech stretch | Explainable heuristics beat an unvalidated model; pretrained phoneme scoring needs no patient data |
 | Eyes / phonemes | Both are post-MVP stretches, flag-gated, off by default | Ship FAST first; keep the demo path safe |
@@ -56,8 +56,8 @@ smile → raise arms → repeat a sentence → verdict. If risk is high (or they
 - Team has accounts/keys for Twilio, ElevenLabs, Anthropic before hour 4.
 
 ## Open items (owner: whoever answers first, record answer here)
-- [x] Twilio: **trial account, $15.50 credit** (plenty for demo: calls ≈ $0.01–0.02/min, SMS < $0.01). Trial calls prepend a "trial account" message and need a keypress; destination must be verified. `DEMO_PHONE_NUMBER` = the patient/demo-runner's phone (kept in local `.env`, not committed).
-- [ ] **Verify `DEMO_PHONE_NUMBER` in the Twilio console** (Phone Numbers → Verified Caller IDs) and confirm the trial number can text it. Test a call + SMS by hour 4.
+- [x] Twilio: **trial account, $15.50 credit** (plenty for the demo SMS). `DEMO_PHONE_NUMBER` = the patient/demo-runner's phone (kept in local `.env`, not committed).
+- [ ] **Verify `DEMO_PHONE_NUMBER` in the Twilio console** and confirm the Twilio sender can text it. Test one SMS by hour 4.
 - [x] Backend host: **Railway** (fallback: run locally).
 - [ ] Anthropic + ElevenLabs credit/plan limits (agent minutes, Scribe usage).
 - [x] Live-demo patient: the project lead. [ ] Fallback teammate if lighting/camera fails: TBD.

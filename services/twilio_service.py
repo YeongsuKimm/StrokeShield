@@ -1,8 +1,7 @@
-"""Twilio voice call + SMS. SAFETY: the destination is ALWAYS DEMO_PHONE_NUMBER from env (see AGENTS.md rule 1)."""
+"""Twilio SMS alerts. SAFETY: the destination is ALWAYS DEMO_PHONE_NUMBER from env (see AGENTS.md rule 1)."""
 import logging
 import os
 import time
-from xml.sax.saxutils import escape
 
 from backend import settings
 from backend.schemas import AlertRequest, AlertResponse
@@ -30,12 +29,6 @@ def build_message(req: AlertRequest) -> str:
     return " ".join(parts)
 
 
-def build_twiml(req: AlertRequest) -> str:
-    spoken = escape(build_message(req).replace("https://maps.google.com/?q=", "coordinates "))
-    say = f'<Say voice="Polly.Joanna">{spoken}</Say>'
-    return f'<Response>{say}<Pause length="1"/><Say voice="Polly.Joanna">I repeat.</Say>{say}</Response>'
-
-
 def risk_confirmed(req: AlertRequest) -> bool:
     """Server-side sanity check: recompute noisy-OR from the client's contributions vs OUR threshold."""
     if req.reason == "user_request":
@@ -61,7 +54,7 @@ def place_alert(req: AlertRequest) -> AlertResponse:
     message = build_message(req)
 
     if settings.dry_run():
-        log.info("DRY RUN alert (nothing sent). SMS/call text: %s", message)
+        log.info("DRY RUN alert (nothing sent). SMS text: %s", message)
         return AlertResponse(ok=True, dry_run=True)
 
     now = time.monotonic()
@@ -76,11 +69,10 @@ def place_alert(req: AlertRequest) -> AlertResponse:
 
     client = Client(sid, token)
     try:
-        call = client.calls.create(to=to, from_=sender, twiml=build_twiml(req))
         sms = client.messages.create(to=to, from_=sender, body=message)
     except Exception as exc:  # surface Twilio errors (e.g. unverified trial number) to the UI
         log.exception("Twilio alert failed")
         return AlertResponse(ok=False, dry_run=False, error=f"Twilio error: {exc}")
 
     _last_alert_at = now
-    return AlertResponse(ok=True, dry_run=False, call_sid=call.sid, sms_sid=sms.sid)
+    return AlertResponse(ok=True, dry_run=False, sms_sid=sms.sid)
