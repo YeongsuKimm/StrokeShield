@@ -35,7 +35,11 @@ async def get_signed_url() -> str:
 
 	if response.status_code >= 400:
 		raise ElevenLabsAPIError("ElevenLabs rejected the signed URL request")
-	signed_url = response.json().get("signed_url")
+	try:
+		payload = response.json()
+	except ValueError as exc:
+		raise ElevenLabsAPIError("ElevenLabs returned an invalid response") from exc
+	signed_url = payload.get("signed_url") if isinstance(payload, dict) else None
 	if not isinstance(signed_url, str) or not signed_url:
 		raise ElevenLabsAPIError("ElevenLabs returned no signed URL")
 	return signed_url
