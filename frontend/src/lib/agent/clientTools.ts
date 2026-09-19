@@ -2,15 +2,32 @@
 // Tool names/params must match the tools registered in the ElevenLabs dashboard exactly.
 // Each tool is async and returns a short string the agent can read. NEVER include a verdict.
 import { useSession } from '../session/store'
+import { testRunner } from '../vision/useTestRunner'
+import { recordSpeech } from '../speech/recorder'
+import { api } from '../api'
 
 const s = () => useSession.getState()
 
 export const clientTools = {
-  // TODO: resolve when the face test finishes (await the vision module), return retry text if needsRetry.
-  start_face_test: async (): Promise<string> => 'Face test not implemented yet.',
-  start_arm_test: async (): Promise<string> => 'Arm test not implemented yet.',
-  start_speech_test: async (): Promise<string> => 'Speech test not implemented yet.',
-
+  start_face_test: async (): Promise<string> => {
+    const result = await testRunner.runFace()
+    return result.needsRetry ? `Retry needed: ${result.flags[0] || 'face not detected'}` : 'Face test complete. Result recorded.'
+  },
+  start_arm_test: async (): Promise<string> => {
+    const result = await testRunner.runArms()
+    return result.needsRetry ? `Retry needed: ${result.flags[0] || 'arms not detected'}` : 'Arm test complete. Result recorded.'
+  },
+  start_speech_test: async ({ phrase }: { phrase?: string }): Promise<string> => {
+    // Agent mic should be muted by the caller (useConversation) before calling this
+    try {
+      const audioBlob = await recordSpeech()
+      // Upload/analyze
+      await api.post('/api/speech/analyze', { audio: audioBlob, target_phrase: phrase })
+      return 'Speech recorded.'
+    } catch (e) {
+      return `Retry needed: ${e instanceof Error ? e.message : 'speech recording failed'}`
+    }
+  },
   record_last_known_well: async ({ description }: { description: string }): Promise<string> => {
     s().setLastKnownWell(description)
     return 'Noted.'
