@@ -14,6 +14,7 @@ import { Ring } from './ui/Primitives'
  */
 export function CountdownModal() {
   const alertReason = useSession((s) => s.alertReason)
+  const agentConnected = useSession((s) => s.agentConnected)
   const cancelCountdown = useSession((s) => s.cancelCountdown)
   const confirmCountdown = useSession((s) => s.confirmCountdown)
   const total = alertReason === 'user_request' ? USER_REQUEST_COUNTDOWN_SECONDS : COUNTDOWN_SECONDS
@@ -64,7 +65,8 @@ export function CountdownModal() {
         </div>
 
         <p className="mx-auto max-w-[38ch] text-lg text-ink-2">
-          A text message with your location is about to go out. Say “cancel”, or press the button.
+          A text message with your location is about to go out.{' '}
+          {agentConnected ? 'Say “cancel”, or press the button.' : 'Press the button to cancel.'}
         </p>
 
         <Button autoFocus size="xl" tone="neutral" block className="mt-8" onClick={cancelCountdown}>

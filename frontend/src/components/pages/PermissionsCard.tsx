@@ -38,7 +38,11 @@ export function PermissionsCard() {
     const stops: (() => void)[] = []
     for (const { key } of ROWS) {
       void queryPermission(key).then((state) => alive && setPermission(key, state))
-      void watchPermission(key, (state) => alive && setPermission(key, state)).then((stop) => stops.push(stop))
+      void watchPermission(key, (state) => alive && setPermission(key, state)).then((stop) => {
+        // The card may have unmounted while the browser was answering: release the listener right away.
+        if (alive) stops.push(stop)
+        else stop()
+      })
     }
     return () => {
       alive = false

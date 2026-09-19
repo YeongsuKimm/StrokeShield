@@ -6,16 +6,18 @@ import { Icon } from '../ui/Icon'
  * Captions of what the ElevenLabs assistant said, under the camera stage on every test screen. The spec calls for
  * on-screen captions as the backup when the voice connection is poor or the room is loud (docs/spec/04 "Latency").
  *
- * PLACEHOLDER: the voice agent is not wired yet. `useAgent` should push each agent utterance through
- * `useSession.getState().addTranscript('agent', text)` and the strip fills in with no change here.
+ * `useAgent` pushes each utterance through `useSession.getState().addTranscript(...)`; this strip only renders them.
  */
 export function TranscriptStrip() {
   const transcript = useSession((s) => s.transcript)
   const connected = useSession((s) => s.agentConnected)
-  const endRef = useRef<HTMLDivElement>(null)
+  const boxRef = useRef<HTMLDivElement>(null)
 
+  // Follow the newest line by scrolling the strip's own box. `scrollIntoView` would also scroll the PAGE whenever
+  // the strip sits below the fold, yanking the camera out of view on every new caption.
   useEffect(() => {
-    endRef.current?.scrollIntoView({ block: 'nearest' })
+    const box = boxRef.current
+    if (box) box.scrollTop = box.scrollHeight
   }, [transcript.length])
 
   return (
@@ -25,7 +27,12 @@ export function TranscriptStrip() {
         <p className="label-micro text-ink-3">{connected ? 'Assistant · live' : 'Assistant · not connected'}</p>
       </div>
 
-      <div className="max-h-24 overflow-y-auto rounded-[var(--radius-control)] border border-line bg-surface px-4 py-3">
+      <div
+        ref={boxRef}
+        role="log"
+        aria-live="polite"
+        className="max-h-24 overflow-y-auto rounded-[var(--radius-control)] border border-line bg-surface px-4 py-3"
+      >
         {transcript.length === 0 ? (
           <p className="flex items-center gap-2 text-[1rem] text-ink-3">
             <Icon name="waveform" size={17} />
@@ -39,7 +46,6 @@ export function TranscriptStrip() {
                 <span className={line.speaker === 'agent' ? 'text-ink' : 'text-ink-2'}>{line.text}</span>
               </p>
             ))}
-            <div ref={endRef} />
           </div>
         )}
       </div>

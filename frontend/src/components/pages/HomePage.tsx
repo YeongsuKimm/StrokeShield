@@ -7,6 +7,8 @@ import { Icon } from '../ui/Icon'
 import { MicroLabel } from '../ui/Primitives'
 import { PermissionsCard } from './PermissionsCard'
 
+const CHECK_COUNT_WORD: Record<number, string> = { 1: 'one', 2: 'two', 3: 'three', 4: 'four', 5: 'five' }
+
 export function HomePage() {
   const start = useSession((s) => s.beginTests)
   const setRoute = useSession((s) => s.setRoute)
@@ -47,7 +49,8 @@ export function HomePage() {
           </h1>
 
           <p className="mt-5 max-w-[44ch] text-pretty text-lg leading-relaxed text-ink-2">
-            A voice guide walks you through four short checks. If something looks wrong, it calls for help.
+            A voice guide walks you through {CHECK_COUNT_WORD[steps.length] ?? steps.length} short checks. If something
+            looks wrong, it texts your emergency contact with your location.
           </p>
 
           <div className="mt-8 flex flex-wrap items-center gap-3">
