@@ -103,6 +103,7 @@ result screen says and offers.
   with Skip as the only action. The pause is explicit UI state, so **Try again** stays hidden until the automatic retry
   has finished; for a pre-smile, the heading switches to **Relax your face** during that pause. The framing timeout is
   12 s so the automatic retry begins before the 15 s skip hatch.
+  **Eyes check:** after the second failure the screen also shows the specific reason + tips and a **Continue without this check** button next to Try again (immediately, not after the 15 s hatch); it skips the eye test (dropped from the score, never guessed). Details: spec 02 "Eyes: outcomes, tolerances and never a dead end".
 - Large tap targets, high contrast, accessible captions (patient may be impaired). Visible focus rings everywhere,
   including on the dark stage.
 - No blocking spinners > 3 s without status text.

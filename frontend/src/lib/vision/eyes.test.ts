@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { MIN_CONFIDENCE } from '../config'
+import { EYE_MSG } from './eyeAdvice'
 import { analyzeEyes, EYES_CONFIG, type EyeFrame } from './eyes'
 import { EYE_PROTOCOL, EYE_PROTOCOL_TOTAL_MS, labelEyeFrames, targetAt } from './eyeProtocol'
 import type { FaceFrame, Landmark } from './landmarks'
@@ -253,12 +254,8 @@ describe('analyzeEyes: left/right convention', () => {
 })
 
 describe('analyzeEyes: quality gates', () => {
-  it('no movement at all -> needsRetry with an explanation', () => {
-    const r = analyze(run({ amp: 0 }))
-    expect(r.needsRetry).toBe(true)
-    expect(r.confidence).toBeLessThan(MIN_CONFIDENCE)
-    expect(r.severity).toBe(0)
-    expect(r.flags.join(' ')).toMatch(/barely moved/)
+  it('no movement at all is a COMPLETED behavioral result, not a retry (see "BEHAVIORAL outcomes" below)', () => {
+    expect(analyze(run({ amp: 0 })).needsRetry).toBeFalsy()
   })
   it('head yawed 20deg -> frames rejected -> needsRetry (choice: reject, not compensate)', () => {
     const r = analyze(run({ yawDeg: 20 }))
@@ -305,9 +302,8 @@ describe('analyzeEyes: quality gates', () => {
     expect(() => analyze(frames)).not.toThrow()
     expect(analyze(frames).needsRetry).toBe(true)
   })
-  it('missing target segment (never looked right) -> retry', () => {
-    const r = analyze(run().filter((f) => f.target !== 'right'))
-    expect(r.needsRetry).toBe(true)
+  it('both sides missing entirely -> retry (nothing to score; one missing side is a partial result, see below)', () => {
+    expect(analyze(run().filter((f) => f.target === 'center')).needsRetry).toBe(true)
   })
 })
 
@@ -331,5 +327,161 @@ describe('analyzeEyes: timing', () => {
     const slow = analyze(run({ latencyMs: 1100 }))
     expect(slow.metrics.tracking_lag_s).toBeGreaterThan(fast.metrics.tracking_lag_s + 0.4)
     expect(slow.flags).toContain('slow to follow the dot')
+  })
+})
+
+// ---- tolerance for TECHNICAL problems: dropouts, blinks, glitches, sparse cameras, partial protocol -----------------------
+const tOf = (f: EyeFrame) => f.face.t - 1000 // ms since the protocol started
+const inRange = (f: EyeFrame, from: number, to: number) => tOf(f) >= from && tOf(f) < to
+const withoutFrames = (frames: EyeFrame[], pred: (f: EyeFrame, i: number) => boolean) => frames.filter((f, i) => !pred(f, i))
+const mapFace = (frames: EyeFrame[], pred: (f: EyeFrame, i: number) => boolean, edit: (face: FaceFrame) => FaceFrame) =>
+  frames.map((f, i) => (pred(f, i) ? { ...f, face: edit(f.face) } : f))
+const shiftIris = (face: FaceFrame, dx: number): FaceFrame => {
+  const lm = face.landmarks.slice()
+  lm[468] = { ...lm[468], x: lm[468].x + dx }
+  lm[473] = { ...lm[473], x: lm[473].x + dx }
+  return { ...face, landmarks: lm }
+}
+const emptyFace = (face: FaceFrame): FaceFrame => ({ ...face, landmarks: [], blendshapes: {} })
+
+describe('analyzeEyes: dropouts and sparse data are tolerated (partial protocol)', () => {
+  it('a short dropout (0.4 s of no face in the middle of the left segment) does not matter', () => {
+    const r = analyze(mapFace(run({ noise: 0.01 }), (f) => inRange(f, 1800, 2200), emptyFace))
+    expect(r.needsRetry).toBeFalsy()
+    expect(r.severity).toBeLessThanOrEqual(0.15)
+    expect(r.flags).toContain('eyes followed the dot symmetrically')
+  })
+  it('30% of frames randomly lost still completes with the same severity', () => {
+    const rnd = rng(99)
+    const r = analyze(withoutFrames(run({ noise: 0.01 }), () => rnd() + 0.5 < 0.3))
+    expect(r.needsRetry).toBeFalsy()
+    expect(r.severity).toBeLessThanOrEqual(0.15)
+    expect(r.confidence).toBeGreaterThan(MIN_CONFIDENCE)
+  })
+  it('a slow (about 7 fps) camera still completes', () => {
+    const r = analyze(withoutFrames(run({ noise: 0.01 }), (_, i) => i % 4 !== 0))
+    expect(r.needsRetry).toBeFalsy()
+    expect(r.severity).toBeLessThanOrEqual(0.15)
+  })
+  it('PARTIAL: the whole LEFT segment lost -> completed on the right side only, flagged, confidence capped', () => {
+    const r = analyze(withoutFrames(run({ noise: 0.01 }), (f) => f.target === 'left'))
+    expect(r.needsRetry).toBeFalsy()
+    expect(r.severity).toBeLessThanOrEqual(0.15)
+    expect(r.side).toBe('none')
+    expect(r.flags).toContain('only the right side could be measured')
+    expect(r.flags).not.toContain('eyes followed the dot symmetrically') // never claims symmetry it did not see
+    expect(r.confidence).toBeLessThanOrEqual(EYES_CONFIG.partialConfidenceCap)
+    expect(r.confidence).toBeGreaterThanOrEqual(MIN_CONFIDENCE)
+    expect(r.metrics.excursion_asym).toBeUndefined() // not computable with one side
+    expect(r.metrics.exc_right).toBeCloseTo(0.1, 1)
+  })
+  it('PARTIAL with face-not-detected frames (empty landmarks) on the right side works the same', () => {
+    const r = analyze(mapFace(run({ noise: 0.01 }), (f) => f.target === 'right', emptyFace))
+    expect(r.needsRetry).toBeFalsy()
+    expect(r.flags).toContain('only the left side could be measured')
+  })
+  it('PARTIAL where the measured side was NOT followed is still a finding, not a pass', () => {
+    const r = analyze(withoutFrames(run({ ampRightR: 0, ampRightL: 0 }), (f) => f.target === 'left'))
+    expect(r.needsRetry).toBeFalsy()
+    expect(r.severity).toBe(EYES_CONFIG.notFollowSeverity)
+    expect(r.flags).toContain('eyes did not follow the dot to the right')
+    expect(r.confidence).toBeLessThanOrEqual(EYES_CONFIG.partialConfidenceCap)
+  })
+  it('center baseline lost -> retry (there is nothing to measure against)', () => {
+    expect(analyze(withoutFrames(run(), (f) => f.target === 'center')).needsRetry).toBe(true)
+  })
+  it('blinks (blendshape high, iris landmarks garbage) are ignored, not counted as tracking loss', () => {
+    const frames = mapFace(
+      run({ noise: 0.01 }),
+      (_, i) => i % 6 === 0,
+      (face) => ({ ...shiftIris(face, 0.03), blendshapes: { eyeBlinkLeft: 0.9, eyeBlinkRight: 0.85 } }),
+    )
+    const r = analyze(frames)
+    expect(r.needsRetry).toBeFalsy()
+    expect(r.severity).toBeLessThanOrEqual(0.15)
+    expect(r.metrics.frames_blink).toBeGreaterThan(20)
+    expect(r.metrics.usable_frac).toBeGreaterThan(0.95)
+  })
+  it('spiking iris landmarks (every 7th frame jumps) do not move the result', () => {
+    const clean = analyze(run({ noise: 0.01 }))
+    const r = analyze(mapFace(run({ noise: 0.01 }), (_, i) => i % 7 === 0, (face) => shiftIris(face, 0.008)))
+    expect(r.needsRetry).toBeFalsy()
+    expect(r.severity).toBeLessThanOrEqual(0.15)
+    expect(Math.abs(r.metrics.exc_left - clean.metrics.exc_left)).toBeLessThan(0.03)
+  })
+  it('a head turned 12 degrees (was rejected at 10) is accepted; 20 is not', () => {
+    expect(analyze(run({ yawDeg: 12 })).needsRetry).toBeFalsy()
+    expect(analyze(run({ yawDeg: 20 })).needsRetry).toBe(true)
+  })
+})
+
+describe('analyzeEyes: technical failures name a specific, actionable cause (flags[0])', () => {
+  const cause = (frames: EyeFrame[]) => {
+    const r = analyze(frames)
+    expect(r.needsRetry).toBe(true)
+    expect(r.flags[0]).toMatch(/^[^A-Z.]*$/) // lower-case phrase, no period (spoken by the agent)
+    return r.flags[0]
+  }
+  it('face never detected -> lost your eyes: face the screen and add light', () => {
+    expect(cause(run().map((f) => ({ ...f, face: emptyFace(f.face) })))).toBe(EYE_MSG.lostEyes)
+  })
+  it('too few frames -> lost your eyes', () => expect(cause(run().slice(0, 5))).toBe(EYE_MSG.lostEyes))
+  it('dark image -> add light', () => {
+    const dark = run().map((f) => ({ ...f, face: { ...emptyFace(f.face), brightness: 12 } as FaceFrame }))
+    expect(cause(dark)).toBe(EYE_MSG.dark)
+  })
+  it('head turned in every frame -> keep your head still', () => expect(cause(run({ yawDeg: 22 }))).toBe(EYE_MSG.headTurned))
+  it('head turned only while the dot is on the left (turning to look) -> keep your head still, not a partial score', () => {
+    expect(cause(mapFace(run(), (f) => f.target === 'left', (face) => ({ ...face, yawDeg: 24 })))).toBe(EYE_MSG.headTurned)
+  })
+  it('eye geometry glitching in most frames (glasses glare) -> take off glasses; in half of them it is tolerated', () => {
+    expect(cause(mapFace(run(), (_, i) => i % 7 !== 0, (face) => shiftIris(face, 0.5)))).toBe(EYE_MSG.glare)
+    expect(analyze(mapFace(run(), (_, i) => i % 2 === 0, (face) => shiftIris(face, 0.5))).needsRetry).toBeFalsy()
+  })
+  it('extremely jittery irises -> retry with an actionable cause', () => {
+    expect([EYE_MSG.glare, EYE_MSG.lostEyes]).toContain(cause(run({ noise: 0.3 })))
+  })
+  it('too far from the camera -> move closer', () => expect(cause(run({ scale: 0.3 }))).toBe(EYE_MSG.tooFar))
+  it('gaze moving against the dot -> look at the dot (the labeling hint stays as a detail)', () => {
+    const flip = { left: 'right', right: 'left', center: 'center' } as const
+    const r = analyze(run().map((f) => ({ ...f, target: flip[f.target] })))
+    expect(r.flags[0]).toBe(EYE_MSG.lookAtDot)
+    expect(r.flags.join(' ')).toMatch(/opposite/)
+  })
+})
+
+describe('analyzeEyes: BEHAVIORAL outcomes (eyes tracked fine, but did not follow the dot) are completed results', () => {
+  it('eyes never left the center: not a retry, moderate severity, plain flags, confident', () => {
+    const r = analyze(run({ amp: 0, noise: 0.01 }))
+    expect(r.needsRetry).toBeFalsy()
+    expect(r.severity).toBe(EYES_CONFIG.notFollowSeverity)
+    expect(r.severity).toBeGreaterThan(0.35) // above the borderline anchor
+    expect(r.severity).toBeLessThan(0.85) // below the clear-deficit anchor: conservative, non-diagnostic
+    expect(r.confidence).toBeGreaterThan(0.6) // the camera saw the eyes fine
+    expect(r.side).toBe('none')
+    expect(r.flags).toContain('eyes did not follow the dot to the left')
+    expect(r.flags).toContain('eyes did not follow the dot to the right')
+    expect(r.flags).not.toContain('eyes followed the dot symmetrically')
+    for (const v of Object.values(r.metrics)) expect(Number.isFinite(v)).toBe(true)
+  })
+  it('a tiny movement (0.035 eye widths) is also "did not follow", not a retry', () => {
+    const r = analyze(run({ amp: 0.035, noise: 0.01 }))
+    expect(r.needsRetry).toBeFalsy()
+    expect(r.severity).toBe(EYES_CONFIG.notFollowSeverity)
+  })
+  it('one side unfollowed is reported in plain words as well as the asymmetry flag', () => {
+    const r = analyze(run({ ampLeftR: 0.005, ampLeftL: 0.005 }))
+    expect(r.flags).toContain('eyes did not follow the dot to the left')
+    expect(r.flags).toContain('gaze does not reach the left')
+    expect(r.flags).not.toContain('eyes did not follow the dot to the right')
+  })
+  it('a behavioral result feeds the risk score at low weight and can never alert alone', async () => {
+    const { computeRisk } = await import('../risk')
+    const risk = computeRisk({ eyes: analyze(run({ amp: 0 })) })
+    expect(risk.contributions).toHaveLength(1)
+    expect(risk.triggered).toBe(false)
+  })
+  it('eyes fixed on center + very heavy jitter is a technical retry, not a finding', () => {
+    expect(analyze(run({ amp: 0, noise: 0.4 })).needsRetry).toBe(true)
   })
 })
