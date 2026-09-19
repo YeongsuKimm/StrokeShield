@@ -90,7 +90,10 @@ async def analyze(
     t0 = time.monotonic()
     started_at = int(time.time() * 1000)
 
-    data = await audio.read(MAX_UPLOAD_BYTES + 1)  # bounded read; the route class already capped the whole body
+    try:
+        data = await audio.read(MAX_UPLOAD_BYTES + 1)  # bounded read; the route class already capped the whole body
+    finally:
+        await audio.close()  # drop the spooled upload (in memory <= 1 MB, else a temp file) right away
     if len(data) > MAX_UPLOAD_BYTES:
         raise HTTPException(413, f"upload too large (max {MAX_UPLOAD_BYTES // (1024 * 1024)} MB)")
     if not _looks_like_wav(data):
@@ -105,7 +108,7 @@ async def analyze(
         logger.warning("speech analyze timed out after %.1fs (%d bytes)", ANALYZE_TIMEOUT_S, len(data))
         return _retry(FLAG_TIMEOUT, started_at)
     except Exception as exc:  # noqa: BLE001 - the patient flow must never see a bare 500
-        logger.exception("speech analyze failed (%s)", type(exc).__name__)
+        logger.error("speech analyze failed (%s)", type(exc).__name__)  # type only: a traceback/message could echo audio data
         return _retry(FLAG_ERROR, started_at)
 
     logger.info(

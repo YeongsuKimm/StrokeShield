@@ -203,8 +203,8 @@ def analyze_speech(wav_bytes: bytes, target_phrase: str, transcriber: Transcribe
     t0 = time.perf_counter()
     try:
         return _analyze(wav_bytes, target_phrase, transcriber, started_at, t0)
-    except Exception:  # noqa: BLE001
-        log.exception("speech analysis failed")
+    except Exception as exc:  # noqa: BLE001
+        log.error("speech analysis failed (%s)", type(exc).__name__)  # type only: no traceback/message from audio data
         return _retry("something went wrong analysing that, please try again", started_at, t0)
 
 

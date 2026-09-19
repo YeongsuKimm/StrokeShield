@@ -4,9 +4,12 @@
 # Check the current ElevenLabs SDK docs for exact method names and response fields.
 """Small server-side wrappers for ElevenLabs APIs."""
 
+import logging
 import os
 
 import httpx
+
+log = logging.getLogger("agent")
 
 
 class ElevenLabsConfigurationError(RuntimeError):
@@ -31,9 +34,11 @@ async def get_signed_url() -> str:
 				headers={"xi-api-key": api_key},
 			)
 	except httpx.HTTPError as exc:
+		log.warning("elevenlabs signed-url request failed (%s)", type(exc).__name__)  # type only: messages can echo the URL
 		raise ElevenLabsAPIError("Could not reach ElevenLabs") from exc
 
 	if response.status_code >= 400:
+		log.warning("elevenlabs signed-url request rejected (HTTP %d)", response.status_code)
 		raise ElevenLabsAPIError("ElevenLabs rejected the signed URL request")
 	try:
 		payload = response.json()

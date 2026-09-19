@@ -401,7 +401,7 @@ def score_phonemes(samples: np.ndarray, sample_rate: int, target_phrase: str) ->
             model=PHONEME_MODEL_ID,
         )
     except Exception as exc:
-        log.warning("phoneme scoring failed (%s: %s)", type(exc).__name__, exc)
+        log.warning("phoneme scoring failed (%s)", type(exc).__name__)  # type only: keep audio-derived text out of logs
         return None
 
 
