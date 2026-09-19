@@ -153,6 +153,10 @@ for how to get the site onto a device and what is still unverified there.
 - **The camera stage may not grow under the floating controls.** `--cam-max-h` (index.css) caps it below `sm`; the cap
   is applied as a MAX-WIDTH derived from the real aspect, because capping height would stretch the video and misalign
   the landmark overlay. Call 911 and the voice guide sit bottom-left and bottom-right, exactly where the hands are.
+- **Prompts over the camera are compact for the close-up checks.** Eyes and face are done near the screen, so their
+  pill, caption bar and intro card use small type and padding (`compact` in CameraView); the arms check keeps large
+  ones because the patient reads it from several feet away. The top of the stage is one stacked column ("SMILE!", then
+  the hint), so the two can never overlap, and nothing may sit on the eye-test dot's row. The dot is clamped inside its box.
 - **Check screens fit without scrolling.** The lede is hidden below `sm` (the same instruction is already on the camera
   in much larger type) and the header is tighter.
 - **Safe areas.** The page draws edge to edge (`viewport-fit=cover`); every fixed bottom control adds `var(--safe-b)`
