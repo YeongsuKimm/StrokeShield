@@ -64,5 +64,6 @@ smile → raise arms → repeat a sentence → verdict. If risk is high (or they
 
 ## Safety & ethics (state these in the pitch and UI)
 - Not a medical device; does not replace calling emergency services. UI always shows a manual "Call 911" `tel:` button.
+- Full data map, vendor terms, compliance posture and known gaps: [docs/PRIVACY.md](../PRIVACY.md) (designed to minimize data; not certified compliant).
 - Video is processed in the browser and never stored. Only optional still frames (with consent) go to the vision second opinion; audio clip goes to the backend for analysis and is not persisted.
 - Demo only calls the team's number. False positives/negatives are expected; thresholds are uncalibrated heuristics.
