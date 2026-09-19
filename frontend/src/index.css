@@ -219,3 +219,29 @@ textarea {
 button:disabled {
   cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='40' viewBox='0 0 26 40'%3E%3Cpath d='M3 3 V30 L9.5 24 L14.5 35.5 L19.5 33.3 L14.5 22 H23.5 Z' fill='white' stroke='black' stroke-width='2.4' stroke-linejoin='round'/%3E%3C/svg%3E") 3 3, default;
 }
+
+/* Use the browser's normal pointer. The decorative cursors above were too large on desktop. */
+html {
+  cursor: default;
+}
+
+a[href],
+button:not(:disabled),
+summary,
+[role="button"],
+label[for],
+select,
+input[type="range"],
+input[type="checkbox"],
+input[type="radio"] {
+  cursor: pointer;
+}
+
+input:not([type="range"]):not([type="checkbox"]):not([type="radio"]):not([type="button"]),
+textarea {
+  cursor: text;
+}
+
+button:disabled {
+  cursor: default;
+}
