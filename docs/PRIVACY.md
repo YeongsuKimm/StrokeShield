@@ -1,5 +1,7 @@
 # StrokeShield: Privacy and Data Handling
 
+> **Update 2026-09-19 (after this audit was written):** the alert text now goes by **email-to-SMS** (Gmail SMTP to the carrier text gateway, `ALERT_CHANNEL=email_sms`), not Twilio, so rows and sections below that name Twilio describe the legacy channel; on the live path the text also passes through Google (Gmail) and the carrier and there is no Twilio message record. Also, the live ElevenLabs agent privacy settings were changed after this audit (audio recording off, saved audio deleted, retention 1 day, data-collection/evaluation emptied, file input off; zero-retention mode and the account-level training opt-out are still open), so the "`retention_days: -1`" statements below are historical. Re-run a read-only GET before quoting either.
+
 Audience: engineers and judges. Status: **designed to minimize data; not certified compliant with any regime.**
 Verified against the code and against the live ElevenLabs agent config on **2026-09-19**. Vendor terms change: re-check the linked pages before any public launch.
 StrokeShield is a hackathon demo, **not a medical device**, and not intended for real patients or for anyone under 18.
@@ -109,7 +111,7 @@ It does **not** disclose the voice guide, transcripts, location, the SMS provide
 
 **Backend / infra**
 12. **Second opinion on the free Gemini tier conflicts with Google's own "do not submit personal information" rule.** Use a paid, billing-enabled key, or keep the feature off for the public demo (human decision).
-13. Run uvicorn with **`--no-access-log`** (or scrub IPs) and check Railway/Vercel log retention; there is no Dockerfile in the repo yet, so add this when it is written.
+13. Run uvicorn with **`--no-access-log`** (or scrub IPs) and check Railway/Vercel log retention; the root `Dockerfile` now runs uvicorn with `--no-access-log --proxy-headers` (see docs/DEPLOY.md); Railway/Vercel platform log retention is still a dashboard check.
 14. Twilio: consider **Message Body Redaction**, deleting demo messages after the event, and dropping the exact-location link or rounding coordinates. SMS content stays minimal (already true: no diagnosis, no score breakdown).
 15. `patient.name` is accepted by the contract and rendered into the SMS but nothing sets it; either remove it later (contracts change needs sign-off) or keep it off the UI.
 16. Do not implement ElevenLabs Scribe for the speech clip without `enable_logging=false` (enterprise) or an explicit consent line; today no clip goes to ElevenLabs.

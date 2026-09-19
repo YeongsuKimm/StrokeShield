@@ -19,9 +19,15 @@ const inFrame = (p: Landmark | undefined): boolean =>
 /** Face/eyes/speech tests: patient close to the screen. `face` = 478 face-mesh landmarks (or null if none). */
 export function checkFaceFraming(face: Landmark[] | null): Framing {
   if (!face || face.length === 0) return { ok: false, hint: "I can't see your face. Look at the camera." }
-  const xs = face.map((p) => p.x)
-  const minX = Math.min(...xs)
-  const maxX = Math.max(...xs)
+  // Plain loop: runs every frame, so no per-frame arrays or 478-argument spreads.
+  let minX = Infinity
+  let maxX = -Infinity
+  for (let i = 0; i < face.length; i++) {
+    const x = face[i].x
+    if (x < minX) minX = x
+    if (x > maxX) maxX = x
+  }
+  if (!Number.isFinite(minX) || !Number.isFinite(maxX)) return { ok: false, hint: "I can't see your face. Look at the camera." }
   if (minX < L.edgeMargin || maxX > 1 - L.edgeMargin) return { ok: false, hint: 'Center your face in the view.' }
   const width = maxX - minX
   if (width < L.faceWidthMin) return { ok: false, hint: 'Move a little closer to the screen.' }

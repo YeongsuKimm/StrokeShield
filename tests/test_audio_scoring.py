@@ -173,9 +173,12 @@ def test_weights_are_renormalized_over_available_components():
 def test_missing_component_does_not_dilute_or_inflate_severity():
     only_rate_bad = {"articulation_rate": 1.0}
     s = score_metrics(only_rate_bad)
-    assert s.components == {"rate": 1.0} and s.weights == {"rate": 1.0} and s.severity == 1.0
+    assert s.components == {"rate": 1.0} and s.weights == {"rate": 1.0}
+    assert s.uncapped_severity == 1.0 and s.severity == C.TIMING_ONLY_CAP["rate"]  # a lone timing signal is capped (robustness rule)
+    assert score_metrics({**HEALTHY_METRICS, "articulation_rate": 1.0}).severity <= s.severity
+    assert score_metrics({"articulation_rate": 1.0, "longest_pause_s": 1.5, "pause_ratio": 0.5}).severity == 1.0  # two timing signals agree
     # the same bad rate diluted by healthy other components is lower than when it is the only evidence
-    assert score_metrics({**HEALTHY_METRICS, "articulation_rate": 1.0}).severity < s.severity
+    assert score_metrics({**HEALTHY_METRICS, "articulation_rate": 1.0}).uncapped_severity < s.uncapped_severity
 
 
 def test_intelligibility_needs_a_transcript_and_articulation_needs_phoneme_scores():
@@ -412,6 +415,7 @@ def install_fake_phoneme(monkeypatch, result=None, raises: Exception | None = No
         return result
 
     mod.score_phonemes = score_phonemes
+    mod.phoneme_scoring_enabled = lambda: True  # the orchestrator only asks for phoneme scores when scoring is enabled
     monkeypatch.setitem(sys.modules, "models.phoneme", mod)
     monkeypatch.setattr(models, "phoneme", mod, raising=False)
     return calls
@@ -436,8 +440,13 @@ def test_bad_phoneme_scores_raise_severity_and_name_the_phones(monkeypatch):
     base = run("healthy")
     install_fake_phoneme(monkeypatch, phoneme_result(0.8, -5.0, bad=("ah", "s", "t", "k")))
     r = run("healthy")
-    assert r.severity > base.severity + 0.3
-    assert "unclear sounds (ah, s, t)" in r.flags
+    # Bad articulation ALONE (healthy timing) is exactly what accents / rooms / mics produce: capped, not headlined.
+    assert base.severity < r.severity <= C.QUALITY_ONLY_CAP
+    assert not any(f.startswith("unclear sounds") for f in r.flags)
+    # Corroborated by slow, halting timing it counts in full and names the phones.
+    r2 = analyze_speech(wav("impaired"), PHRASE)
+    assert r2.severity >= 0.85
+    assert "unclear sounds (ah, s, t)" in r2.flags
 
 
 def test_phoneme_none_or_error_or_missing_module_is_ignored(monkeypatch):

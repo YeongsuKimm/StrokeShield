@@ -26,6 +26,14 @@ describe('classifyMicError', () => {
     expect(classifyMicError('boom')).toBe('unknown')
   })
 
+  it('every kind has actionable text; unsupported names the fix; muted says where to look', () => {
+    for (const text of Object.values(MIC_ERROR_TEXT)) expect(text.length).toBeGreaterThan(20)
+    expect(MIC_ERROR_TEXT.unsupported).toMatch(/HTTPS/)
+    expect(MIC_ERROR_TEXT.unsupported).toMatch(/Chrome/)
+    expect(MIC_ERROR_TEXT.muted).toMatch(/mute/i)
+    expect(new MicError('muted').kind).toBe('muted')
+  })
+
   it('MicError carries its kind and default text', () => {
     const e = new MicError('permission-denied')
     expect(e.kind).toBe('permission-denied')

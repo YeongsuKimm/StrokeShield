@@ -1,3 +1,5 @@
+import { useRef } from 'react'
+import { useFocusHeading } from '../../lib/a11y/useA11y'
 import { useSession } from '../../lib/session/store'
 import { speechRunner } from '../../lib/speech/speechRunner'
 import { testRunner } from '../../lib/vision/useTestRunner'
@@ -14,8 +16,10 @@ const section = (id: string) => INFO_SECTIONS.find((s) => s.id === id)!
 /** The long scrollable document behind the home screen: what the checks are, why they matter, who to call. */
 export function InfoPage() {
   const setRoute = useSession((s) => s.setRoute)
+  const headingRef = useRef<HTMLHeadingElement>(null)
+  useFocusHeading(headingRef)
   const beginTests = useSession((s) => s.beginTests)
-  // "Start the test" here means a NEW check. Without the reset, results, skips and any alert status from an earlier
+  // "Start the check" here means a NEW check. Without the reset, results, skips and any alert status from an earlier
   // run in this tab (reached via "Stroke resources" on the result screen) would carry into the new one.
   const start = () => {
     // Nothing starts before consent: without it, send the visitor to the consent panel on the home screen instead.
@@ -37,13 +41,18 @@ export function InfoPage() {
       <div className="pointer-events-none fixed inset-x-0 top-0 z-40" aria-hidden>
         <div className="h-1.5 bg-accent transition-[width] duration-100 ease-out" style={{ width: `${pull * 100}%` }} />
       </div>
-    <div style={{ transform: `translateY(${pull * 28}px)`, opacity: 1 - pull * 0.25, transition: pull === 0 ? 'transform 300ms ease-out, opacity 300ms ease-out' : 'none' }} className="mx-auto w-full max-w-5xl px-4 pb-32 pt-24 sm:px-6 sm:pt-28">
+    <div style={{ transform: `translateY(${pull * 28}px)`, opacity: 1 - pull * 0.25, transition: pull === 0 ? 'transform 300ms var(--ease-out), opacity 300ms var(--ease-out)' : 'none' }} className="mx-auto w-full max-w-5xl px-4 pb-32 pt-24 sm:px-6 sm:pt-28">
+
+      {/* The page's h1: the visible section titles below are h2s. Read out (and focused) when the page opens. */}
+      <h1 ref={headingRef} tabIndex={-1} className="sr-only">
+        How the BE-FAST check works, and who to call
+      </h1>
 
       <Button tone="quiet" icon="arrowDown" className="mb-12 [&>svg]:rotate-180" onClick={() => setRoute('home')}>
         Back to the check
       </Button>
 
-      <Disclaimer className="-mt-4 mb-12 max-w-[62ch] border-l-4 border-danger pl-4 text-lg font-medium leading-snug" />
+      <Disclaimer className="-mt-4 mb-12 max-w-[62ch] rounded-[var(--radius-control)] border border-line-strong bg-surface px-5 py-4 text-lg font-medium leading-snug" />
 
       {/* 01 — Process */}
       <section id="process" className="scroll-mt-24">
@@ -79,19 +88,17 @@ export function InfoPage() {
           <div className="sm:col-span-3">
             <p className="text-2xl leading-snug text-pretty">
               Every minute a stroke goes untreated, the brain loses roughly 1.9 million neurons. The medicines that can
-              reverse it only work for the first few hours. So the real question isn&rsquo;t whether to get checked.
-              It&rsquo;s how quickly.
+              reverse it only work for the first few hours. That is why a stroke is treated as an emergency even when
+              the signs are mild or come and go.
             </p>
             <p className="mt-5 max-w-[62ch] text-lg leading-relaxed text-ink-2">
-              Most people don&rsquo;t call right away. They&rsquo;re on their own, or they don&rsquo;t want to
-              overreact, or they figure it will pass. That&rsquo;s completely human. But waiting is what makes a stroke
-              worse. A guided two-minute check walks you through the signs, but it is only a prompt to call
+              Many people wait because they are alone, or because they do not want to overreact. The wait is the
+              costly part. A guided two-minute check walks you through the signs, but it is only a prompt to call
               911, never a substitute for it.
             </p>
             <p className="mt-4 max-w-[62ch] text-lg leading-relaxed text-ink-2">
-              We also tried to be honest about what this can&rsquo;t see. If the camera can&rsquo;t get a good look at
-              you, that check gets left out and we tell you so. Even when every check works, this tool cannot rule a
-              stroke out, so it can never reassure you.
+              If the camera cannot get a good look at you, that check is left out and the result says so. Even when
+              every check works, this tool cannot rule a stroke out, so it can never reassure you.
             </p>
           </div>
           <aside className="sm:col-span-2">
@@ -100,7 +107,7 @@ export function InfoPage() {
               <ul className="space-y-3 text-[1rem] leading-snug text-ink-2">
                 {['Claim any medical accuracy. It has never been validated.', 'Tell you whether or not you are having a stroke.', 'Replace a call to emergency services.', 'Save your video, or keep your speech clip on our server.', 'Text anyone you haven\u2019t set up ahead of time.'].map((t) => (
                   <li key={t} className="flex gap-2.5">
-                    <Icon name="close" size={16} className="mt-0.5 shrink-0 text-danger" />
+                    <Icon name="close" size={16} className="mt-0.5 shrink-0 text-ink-3" />
                     {t}
                   </li>
                 ))}
@@ -113,7 +120,7 @@ export function InfoPage() {
       {/* 03 — Stats */}
       <section id="stats" className="mt-24 scroll-mt-24">
         <SectionHead {...section('stats')} />
-        <div className="grid gap-px overflow-hidden rounded-[var(--radius-panel)] border border-line bg-line sm:grid-cols-2">
+        <div className="grid gap-px overflow-hidden rounded-[var(--radius-sheet)] border border-line bg-line sm:grid-cols-[3fr_2fr]">
           {STATS.map((s) => (
             <article key={s.caption} className="bg-surface p-7">
               <p className="flex items-baseline gap-2">
@@ -169,7 +176,7 @@ export function InfoPage() {
       {/* 05 — Team */}
       <section id="team" className="mt-24 scroll-mt-24">
         <SectionHead {...section('team')} />
-        <ul className="grid gap-px overflow-hidden rounded-[var(--radius-panel)] border border-line bg-line sm:grid-cols-2">
+        <ul className="grid gap-px overflow-hidden rounded-[var(--radius-sheet)] border border-line bg-line sm:grid-cols-2">
           {TEAM.map((m) => (
             <li key={m.name} className="bg-surface p-7">
               <p className="text-lg font-semibold tracking-tight">{m.name}</p>
@@ -193,7 +200,7 @@ export function InfoPage() {
             start()
           }}
         >
-          Start the test
+          Start the check
         </Button>
       </div>
     </div>

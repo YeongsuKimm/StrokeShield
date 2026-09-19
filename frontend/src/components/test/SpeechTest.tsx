@@ -1,4 +1,5 @@
 import { SPEECH_TARGET_PHRASE } from '../../lib/config'
+import { smartQuotes } from '../../lib/typography'
 import { useMic } from '../../lib/media/micLevel'
 import { useSpeechProgress } from '../../lib/speech/speechProgressStore'
 import { useSpeechRunner } from '../../lib/speech/speechRunner'
@@ -21,13 +22,18 @@ export function SpeechTest() {
   const { runSpeech, running } = useSpeechRunner()
   const stage = useSpeechProgress((s) => s.stage)
   const hint = useSpeechProgress((s) => s.hint)
+  // The first audio chunk arrives a beat after the click (the mic is still opening). Ask for the sentence only once sound is
+  // flowing, or the first word ("You can't...") gets lost.
+  const heard = useSpeechProgress((s) => s.heard)
   const { verdict } = useMic()
 
   const status =
     stage === 'listening'
-      ? 'Listening. Say the sentence now.'
+      ? heard
+        ? 'Listening. Say the sentence now.'
+        : 'Getting the microphone ready…'
       : stage === 'analyzing'
-        ? 'Analysing your speech…'
+        ? 'Analyzing your speech…'
         : verdict.muted
           ? 'Waiting for your microphone.'
           : 'Ready when you are.'
@@ -43,7 +49,7 @@ export function SpeechTest() {
 
         {/* The phrase is the hero of this screen: the largest type in the app. */}
         <blockquote className="text-balance text-center text-3xl leading-tight sm:text-5xl sm:leading-[1.12]">
-          “{SPEECH_TARGET_PHRASE}”
+          “{smartQuotes(SPEECH_TARGET_PHRASE)}”
         </blockquote>
 
         <div className="mt-8 rounded-[var(--radius-control)] bg-sunken px-4 py-3">
@@ -60,7 +66,7 @@ export function SpeechTest() {
             role="alert"
           >
             <Icon name="alert" size={18} className="mt-px shrink-0" />
-            {hint}
+            {smartQuotes(hint)}
           </p>
         )}
 
@@ -68,10 +74,11 @@ export function SpeechTest() {
           <Button
             size="lg"
             icon={hint && !running ? 'refresh' : 'mic'}
-            onClick={() => void runSpeech()}
-            disabled={running}
+            // aria-disabled (not disabled) while recording: the button keeps keyboard focus instead of dropping it.
+            onClick={() => !running && void runSpeech()}
+            aria-disabled={running}
           >
-            {stage === 'listening' ? 'Recording…' : stage === 'analyzing' ? 'Analysing…' : hint ? 'Try again' : 'Start recording'}
+            {stage === 'listening' ? 'Recording…' : stage === 'analyzing' ? 'Analyzing…' : hint ? 'Try again' : 'Start recording'}
           </Button>
         </div>
       </div>

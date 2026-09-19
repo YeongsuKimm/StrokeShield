@@ -22,7 +22,7 @@ UI buttons call the **same** functions.
 ## Screens (two documents: the check, and the info page)
 Routing is `store.route` plus `store.phase` — no router library. `App.tsx` picks the screen.
 - **Home** (`HomePage`): consent panel (camera / mic / location, each with its reason and live grant state) beside the
-  hero and "Start the test". Sustained downward input opens the info document and **commits** (no half-scrolled state). The gesture lives in
+  hero and "Start the check". Sustained downward input opens the info document and **commits** (no half-scrolled state). The gesture lives in
   `lib/useScrollHandoff.ts` and is shared with the info page, which uses it in the other direction: **scrolling up
   past the top of the info page returns to the check**, alongside the "Back to the check" button (kept, since the
   gesture is only a shortcut). 186 px of wheel travel down / 287 px up (`HANDOFF_BUFFER_PX`; the way back asks for more, so a stray upward scroll can't eject the reader), a swipe (152 / 220 px), or ↓/PageDown/End (↑/PageUp/Home
@@ -35,10 +35,10 @@ Routing is `store.route` plus `store.phase` — no router library. `App.tsx` pic
 - The persistent ElevenLabs voice-guide control stays at the top center of the viewport (from `sm` up) so it remains
   available without overlapping the bottom-right skip control. On phones the header fills the top edge, so it drops to
   the bottom-right (button only; status text is screen-reader only), opposite the Call 911 button.
-- `reset()` (logo, "Run the check again", info-page "Start the test", demo reset) clears the session but keeps
+- `reset()` (logo, "Run the check again", info-page "Start the check", demo reset) clears the session but keeps
   browser facts: `permissions` and `agentConnected`. Alert actions are phase-guarded: `cancelCountdown` /
   `confirmCountdown` only act during `countdown`, `setAlertResult` only during `alerting` (a response arriving after a
-  reset is dropped), and `requestEmergency` is ignored while an alert is in flight (no double SMS).
+  reset is dropped), and `requestEmergency` is ignored while an alert is in flight (no double SMS). After a FAILED alert `retryAlert()` (one-shot) re-sends without a countdown; the send itself lives in `lib/alertFlow.ts`, failure wording in `lib/alertFailure.ts` (spec 05).
 - The speech screen starts recording only from the user's **Start recording** button. The voice agent waits for that
   result and cannot start the microphone through its client tool.
 - **Info** (`InfoPage`): process (BE-FAST), why, stats (digits roll up from zero via `ui/SlotNumber` when scrolled into view), Q&A + hotlines, team (names + Johns Hopkins University). The header logo resets the session and returns home. Reached from the header menu too.
@@ -109,6 +109,34 @@ result screen says and offers.
 - No blocking spinners > 3 s without status text.
 - The mute warning only fires for a microphone we actually hold (`evaluateMic`), never as a guess.
 
+## Accessibility (target WCAG 2.2 AA)
+Audience: people who may be having a stroke, older adults, screen-reader, keyboard and low-vision users. Verified by code
+reading, unit tests and lint only; a real screen reader and browser pass is still needed (see STATUS).
+- **Keyboard:** whole flow is operable without a mouse. Tab order is skip link, **Call 911**, header, page. While the
+  countdown dialog is open everything else is `inert`, focus starts on **Cancel the text** (Enter/Space cancels), Escape also
+  cancels, and its own **call 911** link is next. Consent prompt of the voice guide closes on Escape and returns focus.
+- **Focus + titles:** each screen's heading (`h1`, `tabIndex=-1`) takes focus when the screen appears (not on the first
+  page load), via `useFocusHeading`; the result screen re-focuses when the phase moves on (`lib/a11y/useA11y.ts`).
+  `document.title` is unique per route/phase (`lib/a11y/pageTitle.ts`).
+- **Live regions (never spam):** test heading + lede are one polite region (instruction changes). The camera stage has ONE
+  sr-only polite region fed through `createAnnouncer` (max one change per 3 s): intro / get-ready caption, framing hint,
+  and capture seconds only on 5 s marks (`captureAnnouncement`). The 3-2-1 digits, ring, guides, canvas, video and eye dot are
+  `aria-hidden`; the guides keep a text alternative. The emergency countdown speaks at the start, every 5 s and at 3, 2, 1
+  (`countdownAnnouncement`). Retry/permission errors use `role="alert"`. The transcript is a keyboard-scrollable `role="log"`;
+  everything the voice agent says is also on screen there.
+- **Structure:** `lang="en"`, header/nav/main/footer landmarks, one `h1` per screen (the info page has an sr-only one),
+  progress is an `ol` with state in words (done / you are here / skipped / still to do) and different shapes, not colour only.
+- **Contrast:** every token pair is checked by `lib/a11y/contrast.test.ts`, which reads `index.css`. Muted ink `--color-ink-3`
+  was darkened to 5.0:1 on the sunken well; `--color-control-edge` (>= 3:1) borders quiet buttons and the consent checkbox;
+  `--color-ok-stage` is the green used on the dark camera stage. `prefers-contrast: more` darkens muted text and hairlines;
+  `forced-colors` gets a system focus ring and border/fill fallbacks for dots and meters.
+- **Motion:** CSS animations/transitions are cut by `prefers-reduced-motion`; framer-motion and the slot numbers also check it.
+- **Targets and reflow:** primary actions are >= 44 px (Allow buttons, voice guide buttons, brand); nothing uses fixed px
+  heights for text (all rem). Header brand shrinks on 320 px phones.
+- **Lint:** oxlint runs the `jsx-a11y` plugin (`.oxlintrc.json`); `prefer-tag-over-role` is off on purpose.
+- **Not changed on purpose:** the emergency countdown is the only timed step; everything else has no time limit. Scroll-to-info
+  hand-off (wheel) is a shortcut only; the "How it works" button is always there.
+
 ## Demo / simulation mode
 Enabled with `?demo=1` or `Shift+D`. Shows a floating **Demo Panel**:
 - Sliders to override each test's severity/confidence; "Simulate stroke" (face 0.8 + arms 0.7 + speech 0.7) and "Simulate healthy" presets.
@@ -126,6 +154,18 @@ Every vision check screen must always show something to see or press: a run in p
 - MediaPipe models load when the page mounts (as built; the camera permission prompt therefore appears immediately). Models are committed in `frontend/public/models/`; wasm is copied from `node_modules` on `pnpm install`, so nothing depends on a CDN on demo day.
 - Cap detection to ~20 fps; avoid React state per frame (use refs/canvas for overlay).
 - Handle: camera denied, mic denied, no webcam, model load fail, backend down → each has an on-screen fallback and demo-mode escape hatch.
+
+## Resilience (flaky wifi, no white screen, no dead end)
+Code: `frontend/src/lib/resilience/*`, `lib/preflight/*`, `lib/demo/scenarios.ts`, `components/ErrorBoundary.tsx`, `LazyBoundary.tsx`, `PreflightPanel.tsx`, `chrome/StatusBanners.tsx`. All pure logic is unit-tested (fuzz, leak, api, preflight, lifecycle).
+- **Crash screen.** A root `ErrorBoundary` (`main.tsx`) catches render errors, switches the camera and microphone off and offers Reload / Start over / Clear my data plus a plain `tel:911` link; it uses no store or icons, so it cannot fail for the same reason. `error` / `unhandledrejection` handlers only log (name + short message with digits, emails and query strings blanked; never a stack, payload, transcript or location) and keep the last 8 in memory. Lazy pieces (info page, dashboard, voice guide, preflight) sit in a `LazyBoundary`: a failed download shows "could not load, Try again / Reload" for that piece only and never touches a running check.
+- **Network.** Every call in `lib/api.ts` has a timeout (health 4 s, signed URL 6 s, alert 20 s, speech 25 s, second opinion 8 s) and fails with a typed `ApiError` (`offline` / `timeout` / `network` / `rate-limited` / `server` / `client` / `malformed`) carrying a plain sentence. Only read-style calls retry (signed URL once); the **alert is never retried**, so a lost response cannot become a second text. `useNetwork` (`navigator.onLine` plus "two connectivity failures in a row") drives a banner saying the camera checks still work and 911 is the fallback. Speech failures say wifi vs slow server and point at Skip. The vision checks never call the backend.
+- **A failed alert is loud.** One implementation: main's `lib/alertFlow.ts` + `alertFailure.ts` + `components/result/AlertStatus.tsx` (categories, Call 911 first, one-shot retry, 120 s lock). Typed `ApiError`s (`kind`, `status`, `retryAfterS`) feed `failureFromError`, so offline and timeout say so; the alert request itself is never auto-retried.
+- **Session invariants** (`session/fuzz.test.ts`, 36 000 random steps): results only for the four known tests with finite numbers; a test screen is never a skipped/finished test; alert status lives and dies with its phase; `alerting` only from `countdown`, `alerted` only from `alerting`; every phase has an exit; `reset()` always returns a clean idle (consent kept). Store fixes the fuzz found: a late result or skip during the countdown/alert no longer steals the screen; `start`/`beginTests`/`acceptConsent` cannot pull the screen off a countdown or in-flight alert; `beginTests`/`start` begin with a clean run; a fresh emergency request clears the previous attempt's outcome; `setAlertResult` only accepts `sent`/`failed`; `goHome` is a full reset.
+- **Lifecycle** (`lifecycle.ts`). Tab hidden mid-check: run cancelled (nothing half-captured is stored), camera off, "Paused while this tab was in the background" notice; visible again: camera checks restart automatically, speech waits for the patient to press Start recording. The countdown and alert are never paused. `pagehide` / `beforeunload` stop camera and microphone. Screen Wake Lock is held during checks, countdown and alert (best effort, released after, re-acquired on visible). Resize / orientation is handled by `CameraView`'s `ResizeObserver` and `100dvh` layout.
+- **Bundle.** The app shell was one 1,113 kB chunk; now 519 kB (167 kB gzip, after merging main's a11y work). Lazy chunks: voice guide + ElevenLabs SDK 594 kB, MediaPipe runtime 154 kB (already dynamic, loaded when the first camera check starts), info page 9 kB, dashboard 5 kB, preflight 9 kB. After consent the MediaPipe runtime, both models and the SIMD wasm are prefetched (skipped on Save-Data). `chunkSizeWarningLimit` is 650 because the lazy voice chunk is third-party. framer-motion stays in the shell.
+- **Preflight** (`?preflight=1` or the footer link "Demo preflight"): green/amber/red rows with a one-line fix for secure context, browser support (getUserMedia, AudioWorklet, WebGL, WebAssembly), `/api/health` (shows `dryRun` and `demoMode`; **live texts armed is amber**), camera and microphone (permission query + device count, no stream opened), MediaPipe models + WASM (loads and closes both, reports GPU vs CPU), and the voice guide (`api.signedUrl()` only; the link is never displayed). Nothing captured or stored. The health contract is unchanged.
+- **Demo mode** keeps working with no consent, no camera and no backend: `lib/demo/scenarios.ts` (used by the DemoPanel) reaches the low, caution and high bands and the countdown, tested in `demo/scenarios.test.ts`.
+- **Needs a real browser** (not verifiable here): hidden-tab pause/resume with a live camera, wake lock, the crash screen and the offline banner visually, preflight on real hardware (GPU vs CPU), lazy-chunk retry with wifi cut.
 
 ## Frontend tests
 - Vitest for `risk.ts` and metric functions; a store test walking the state machine with fake results (including the
@@ -145,7 +185,7 @@ One constant, `lib/disclaimer.ts` (`DISCLAIMER_SHORT`, `DISCLAIMER_LONG`), rende
 
 ## Privacy, consent and clearing data
 Designed to minimize data; the app makes no compliance claims ("HIPAA compliant", "fully private" are banned wording, pinned by `privacy/consent.test.ts`). Copy lives in `lib/privacy/consentText.ts` and must stay true to the data flow.
-- **Consent before capture.** The home panel (`PermissionsCard`) lists what happens to video, the speech clip, the voice guide, the alert text and stored data, then an unchecked-by-default checkbox (`store.consented`). Until it is ticked: "Start the test" is disabled and `beginTests()` is a no-op, the permission buttons do nothing, `useMediaPipe` does not acquire the camera, and `openBrowserMic` refuses. Unticking withdraws and calls `clearAllLocalData()`. Consent is memory-only (every page load starts unconsented) and survives `reset()` ("Run the check again") but not `clearAll()`.
+- **Consent before capture.** The home panel (`PermissionsCard`) lists what happens to video, the speech clip, the voice guide, the alert text and stored data, then an unchecked-by-default checkbox (`store.consented`). Until it is ticked: "Start the check" is disabled and `beginTests()` is a no-op, the permission buttons do nothing, `useMediaPipe` does not acquire the camera, and `openBrowserMic` refuses. Unticking withdraws and calls `clearAllLocalData()`. Consent is memory-only (every page load starts unconsented) and survives `reset()` ("Run the check again") but not `clearAll()`.
 - **Voice guide is a separate opt-in** (`store.voiceConsent`), asked at the point of use: "Start guide" opens a short disclosure (streams mic audio to ElevenLabs) with "Allow and start" / "Not now". `useAgent.start()` also refuses without it, so nothing contacts `/api/agent/signed-url` or ElevenLabs first. It resets whenever the session disconnects (End guide, dropped socket, Clear my data).
 - **Location** has its own "Allow" button per row and can be skipped; it only goes into the alert text.
 - **Permission prompts** (`lib/media/permissions.ts`, `PermissionsCard`): each of camera / microphone / location is requested only from its own button (or "Allow all", sequential) AFTER the consent tick, never on load (page load only *queries* state and watches `change`). Every request resolves (never throws or hangs: a 45 s cap covers a prompt nobody answers) to `{state, problem}`: `denied` -> lock-icon instructions; `dismissed` (closed with the X, Chrome state still `prompt`) -> "press again"; `no-device` / `busy` (NotFound/Overconstrained, NotReadable) -> plug in / close the other app, state left as-is; `insecure` (not HTTPS/localhost) -> one banner, buttons disabled. Every failed row keeps a **Try again** button, so nothing is stranded; Start never requires a permission, camera denial at test time shows "Try the camera again" plus the skip hatch, and a camera track that ends mid-test (revoked/unplugged) flips the engine to that same error state. A stream that arrives after consent was withdrawn, or after the 45 s cap, is stopped. The mic stream from the card is kept for the mute meter only (analyser, never played or recorded); the speech test and the voice guide open their own streams (no second prompt once granted); `clearAllLocalData` releases all of it. A voice-guide start failure now shows an actionable message instead of failing silently.

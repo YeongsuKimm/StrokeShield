@@ -1,12 +1,13 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
+import { ChunkLoading, LazyBoundary } from './components/LazyBoundary'
 import { CountdownModal } from './components/CountdownModal'
 import { DemoPanel } from './components/DemoPanel'
 import { RecordPanel } from './components/RecordPanel'
 import { EmergencyButton } from './components/chrome/EmergencyButton'
+import { ConnectivityBanner, ResumeNotice } from './components/chrome/StatusBanners'
 import { SiteHeader } from './components/chrome/SiteHeader'
 import { HomePage } from './components/pages/HomePage'
-import { InfoPage } from './components/pages/InfoPage'
 import { ResultScreen } from './components/result/ResultScreen'
 import { Disclaimer } from './components/ui/Disclaimer'
 import { ArmsTest } from './components/test/ArmsTest'
@@ -14,116 +15,58 @@ import { EyeTest } from './components/test/EyeTest'
 import { FaceTest } from './components/test/FaceTest'
 import { SpeechTest } from './components/test/SpeechTest'
 import { SpeechRecordPanel } from './components/SpeechRecordPanel'
-import { api } from './lib/api'
+import { sendAlertForSession } from './lib/alertFlow'
 import { consumePendingAnchor } from './lib/anchorTarget'
-import { guideStartProblemText, locationForAlert } from './lib/media/permissions'
 import { isSpeechRecordSearch } from './lib/calibration/recorder'
+import { usePreflightUi } from './lib/preflight/store'
+import { lazyChunk } from './lib/resilience/lazyChunk'
+import { installBrowserLifecycle } from './lib/resilience/lifecycle'
+import { installConnectivityListeners } from './lib/resilience/network'
+import { installPrefetchOnConsent } from './lib/resilience/prefetch'
+import { resumeCheck } from './lib/resilience/resumeCheck'
 import { useSession, isResultPhase } from './lib/session/store'
-import { ConversationProvider } from '@elevenlabs/react'
-import { useAgent } from './lib/agent/useAgent'
-import { VOICE_CONSENT_TEXT } from './lib/privacy/consentText'
+import { FACE_MODEL, POSE_MODEL, WASM_BASE } from './lib/vision/useMediaPipe'
+import { pageTitle } from './lib/a11y/pageTitle'
+import { markAppReady } from './lib/a11y/useA11y'
+import { testSequence } from './lib/config'
 
-function AgentControl() {
-  const { start, end, status } = useAgent()
-  const connected = status === 'connected'
-  const connecting = status === 'connecting'
-  // The guide streams microphone audio to ElevenLabs, so it has its own opt-in, asked here at the point of use.
-  const voiceConsent = useSession((s) => s.voiceConsent)
-  const setVoiceConsent = useSession((s) => s.setVoiceConsent)
-  const [asking, setAsking] = useState(false)
-  const [note, setNote] = useState<string | null>(null)
-  // A blocked microphone, no device or a failed signed-URL request must say so, not fail silently.
-  const run = () => {
-    setNote(null)
-    start().catch((e: unknown) => {
-      console.debug('[agent] start failed', (e as { name?: string } | null)?.name)
-      setVoiceConsent(false)
-      setNote(guideStartProblemText(e))
-    })
-  }
-  const begin = () => {
-    setAsking(false)
-    setVoiceConsent(true)
-    run()
-  }
-  // However the session ended (button, dropped socket, Clear my data), the opt-in ends with it.
+// Loaded on demand (each its own chunk): the checks themselves never need them, so they must not delay first paint.
+// The voice guide (with the ElevenLabs SDK, the heaviest dependency), the info document and the preflight panel.
+const AgentDock = lazyChunk(() => import('./components/AgentControl'))
+const InfoPage = lazyChunk(() => import('./components/pages/InfoPage').then((m) => ({ default: m.InfoPage })))
+const PreflightPanel = lazyChunk(() => import('./components/PreflightPanel'))
+
+/** Resilience plumbing (docs/spec/06 "Resilience"): online/offline tracking, tab-hidden and page-leave handling with
+ *  the screen wake lock, and warming the vision models once the visitor has consented. */
+function useResilience() {
   useEffect(() => {
-    if (status === 'disconnected') setVoiceConsent(false)
-  }, [status, setVoiceConsent])
-  const finish = () => {
-    setVoiceConsent(false) // ending the guide withdraws the opt-in; the next start asks again
-    void end()
-  }
-
-  return (
-    // Top-centre from `sm` up. On a phone the header already fills the top edge (brand + menu), so the control
-    // sits bottom-right instead (opposite the Call 911 button), with the status text kept for screen readers only.
-    <div className="fixed bottom-5 right-5 z-40 flex items-center gap-3 rounded-full border border-line bg-surface p-1.5 shadow-[var(--shadow-lift)] sm:bottom-auto sm:left-1/2 sm:right-auto sm:top-7 sm:-translate-x-1/2 sm:px-4 sm:py-2">
-      <span className="sr-only text-[0.875rem] text-ink-2 sm:not-sr-only" role="status">
-        {connected ? 'Guide is listening' : connecting ? 'Connecting…' : 'Voice guide'}
-      </span>
-      <button
-        type="button"
-        onClick={() => (connected ? finish() : voiceConsent ? run() : setAsking((v) => !v))}
-        disabled={connecting}
-        className="rounded-full bg-ink px-4 py-2 text-[0.875rem] font-semibold text-paper transition-opacity hover:opacity-80 disabled:opacity-50"
-      >
-        {connected ? 'End guide' : 'Start guide'}
-      </button>
-      {note && !connected && !connecting && !asking && (
-        <p
-          role="alert"
-          className="absolute bottom-full right-0 mb-3 w-[min(20rem,calc(100vw-2.5rem))] rounded-[var(--radius-panel)] border border-line-strong bg-surface p-4 text-[0.9375rem] leading-snug text-danger shadow-[var(--shadow-lift)] sm:bottom-auto sm:left-1/2 sm:right-auto sm:top-full sm:mb-0 sm:mt-3 sm:-translate-x-1/2"
-        >
-          {note}
-        </p>
-      )}
-      {asking && !connected && (
-        <div
-          role="group"
-          aria-label="Voice guide consent"
-          className="absolute bottom-full right-0 mb-3 w-[min(20rem,calc(100vw-2.5rem))] rounded-[var(--radius-panel)] border border-line-strong bg-surface p-4 shadow-[var(--shadow-lift)] sm:bottom-auto sm:left-1/2 sm:right-auto sm:top-full sm:mb-0 sm:mt-3 sm:-translate-x-1/2"
-        >
-          <p className="text-[0.9375rem] leading-snug text-ink-2">{VOICE_CONSENT_TEXT}</p>
-          <div className="mt-3 flex gap-2">
-            <button type="button" onClick={begin} className="rounded-full bg-ink px-4 py-2 text-[0.875rem] font-semibold text-paper hover:opacity-80">
-              Allow and start
-            </button>
-            <button type="button" onClick={() => setAsking(false)} className="rounded-full border border-line-strong px-4 py-2 text-[0.875rem] font-semibold text-ink hover:bg-sunken">
-              Not now
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  )
+    const offs = [
+      installConnectivityListeners(),
+      installBrowserLifecycle(resumeCheck),
+      installPrefetchOnConsent({
+        urls: [FACE_MODEL, POSE_MODEL, `${WASM_BASE}/vision_wasm_internal.js`, `${WASM_BASE}/vision_wasm_internal.wasm`],
+      }),
+    ]
+    // Warm the small lazy chunks when the browser is idle, so opening the info page later works even if wifi drops.
+    const idle = (globalThis as { requestIdleCallback?: (cb: () => void) => number }).requestIdleCallback
+    const id = idle ? idle(() => void import('./components/pages/InfoPage').catch(() => undefined)) : undefined
+    return () => {
+      offs.forEach((off) => off())
+      if (id !== undefined) (globalThis as { cancelIdleCallback?: (n: number) => void }).cancelIdleCallback?.(id)
+    }
+  }, [])
 }
 
-/** Sends the alert once the countdown expires. The backend decides the destination number — never this client. */
+/**
+ * Sends the alert when the store enters alerting+sending: countdown expiry, or the one retry after a failure
+ * (`retryAlert`). The backend decides the destination number, never this client (lib/alertFlow.ts).
+ */
 function useAlertOnExpiry() {
   const phase = useSession((s) => s.phase)
+  const alertStatus = useSession((s) => s.alertStatus)
   useEffect(() => {
-    if (phase !== 'alerting') return
-    const st = useSession.getState()
-    const symptoms = Object.values(st.results).flatMap((r) => r?.flags ?? [])
-    // Location never blocks the alert: at most ALERT_LOCATION_CAP_MS for a refresh (only if already granted, never a
-    // prompt), else the fix cached at the consent step, else none ("Location unavailable" in the text).
-    // Without the consent tick nothing location-related is read at all.
-    ;(st.consented ? locationForAlert(st.location) : Promise.resolve(undefined))
-      .catch(() => undefined)
-      .then((location) =>
-        api.sendAlert({
-          reason: st.alertReason ?? 'user_request',
-          risk: st.risk ?? undefined,
-          patient: { name: st.patientName },
-          lastKnownWell: st.lastKnownWell,
-          location,
-          symptoms,
-        }),
-      )
-      .then((res) => st.setAlertResult(res.ok ? 'sent' : 'failed', res))
-      .catch((e) => st.setAlertResult('failed', { ok: false, dryRun: false, error: String(e) }))
-  }, [phase])
+    if (phase === 'alerting' && alertStatus === 'sending') void sendAlertForSession()
+  }, [phase, alertStatus])
 }
 
 /** Shift+D turns on the demo panel mid-session, as well as ?demo=1 (docs/spec/06). */
@@ -149,7 +92,12 @@ function useDemoHotkey() {
 function CurrentScreen({ route }: { route: 'home' | 'info' }) {
   const phase = useSession((s) => s.phase)
 
-  if (route === 'info') return <InfoPage />
+  if (route === 'info')
+    return (
+      <LazyBoundary what="The information page" reset={InfoPage.reset} fallback={<ChunkLoading label="Loading the information page…" />}>
+        <InfoPage />
+      </LazyBoundary>
+    )
   if (isResultPhase(phase)) return <ResultScreen />
 
   switch (phase) {
@@ -170,8 +118,16 @@ function AppContent() {
   const phase = useSession((s) => s.phase)
   const route = useSession((s) => s.route)
   const demoEnabled = useSession((s) => s.demoEnabled)
+  const preflightOpen = usePreflightUi((s) => s.open)
+  const setPreflightOpen = usePreflightUi((s) => s.setOpen)
+  // A unique <title> for every screen (WCAG 2.4.2); focus moves to each screen's heading (lib/a11y/useA11y.ts).
+  useEffect(() => {
+    document.title = pageTitle(route, phase, testSequence())
+  }, [route, phase])
+  useEffect(markAppReady, [])
   useAlertOnExpiry()
   useDemoHotkey()
+  useResilience()
 
   // Home <-> info is a soft hand-off, not a cut: the old page eases out in the direction of travel (down to info =
   // content moves up), then the new page eases in from the far side. Direction follows the destination.
@@ -182,6 +138,9 @@ function AppContent() {
 
   return (
     <div className="min-h-[100dvh]">
+      {/* While the countdown modal is up, EVERYTHING behind it is inert (not focusable, not read), so Tab cannot leave
+          the dialog for the page. The modal has its own Cancel and call-911 controls. */}
+      <div inert={phase === 'countdown'}>
       {/* Tailwind's own sr-only utility outranks the base-layer "visible on focus" rule, so the reveal is explicit. */}
       <a
         href="#main"
@@ -189,9 +148,11 @@ function AppContent() {
       >
         Skip to the main content
       </a>
+      {/* Second in tab order on every screen, right after the skip link: help is the first thing a keyboard user reaches.
+          It is fixed-position, so its place in the DOM does not change where it is drawn. */}
+      <EmergencyButton />
       <SiteHeader />
-      {/* While the countdown modal is up, nothing behind it should take focus (it is aria-modal). */}
-      <main id="main" className="overflow-x-clip" inert={phase === 'countdown'}>
+      <main id="main" tabIndex={-1} className="overflow-x-clip outline-none">
         <AnimatePresence
           mode="wait"
           initial={false}
@@ -213,7 +174,7 @@ function AppContent() {
             initial="enter"
             animate="center"
             exit="exit"
-            transition={{ duration: D, ease: 'easeOut' }}
+            transition={{ duration: D, ease: [0.16, 1, 0.3, 1] }}
           >
             <CurrentScreen route={route} />
           </motion.div>
@@ -222,22 +183,35 @@ function AppContent() {
       {/* Persistent on every route and phase. Bottom padding keeps it clear of the fixed Call 911 / guide buttons. */}
       <footer className="mx-auto max-w-3xl px-4 pb-28 text-center sm:pb-24">
         <Disclaimer variant="short" className="text-[0.8125rem] leading-snug text-ink-3" />
+        <button
+          type="button"
+          onClick={() => setPreflightOpen(true)}
+          className="mt-2 text-[0.75rem] text-ink-3 underline underline-offset-2 hover:text-ink"
+        >
+          Demo preflight
+        </button>
       </footer>
-      <EmergencyButton />
-
-      {phase === 'countdown' && <CountdownModal />}
+      <ConnectivityBanner />
+      <ResumeNotice />
       {demoEnabled && <DemoPanel />}
       <RecordPanel />
       {isSpeechRecordSearch(globalThis.location?.search ?? '') && <SpeechRecordPanel />}
-      <AgentControl />
+      {/* The guide is optional: while its chunk loads, or if it cannot load at all, the checks are unaffected. */}
+      <LazyBoundary what="The voice guide" reset={AgentDock.reset} fallback={null} failed={null}>
+        <AgentDock />
+      </LazyBoundary>
+      </div>
+
+      {phase === 'countdown' && <CountdownModal />}
+      {preflightOpen && (
+        <LazyBoundary what="The preflight panel" reset={PreflightPanel.reset} fallback={<ChunkLoading label="Loading the preflight…" />}>
+          <PreflightPanel onClose={() => setPreflightOpen(false)} />
+        </LazyBoundary>
+      )}
     </div>
   )
 }
 
 export default function App() {
-  return (
-    <ConversationProvider>
-      <AppContent />
-    </ConversationProvider>
-  )
+  return <AppContent />
 }

@@ -57,7 +57,7 @@ def sms_gateway_address() -> str | None:
     num = demo_phone_number()
     if not num or not num.startswith("+1") or len(num) != 12:
         return None
-    domain = os.getenv("SMS_GATEWAY_DOMAIN", "vtext.com").strip().lower()
+    domain = (os.getenv("SMS_GATEWAY_DOMAIN", "").strip() or "vtext.com").lower()  # an empty `SMS_GATEWAY_DOMAIN=` means default
     return f"{num[2:]}@{domain}" if _GATEWAY_DOMAIN.match(domain) else None
 
 

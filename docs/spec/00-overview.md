@@ -12,10 +12,10 @@ smile → raise arms → repeat a sentence → verdict. If risk is high (or they
 **MVP (must ship)**
 - Guided FAST session: Face → Arms → Speech → verdict.
 - In-browser MediaPipe face + pose analysis with live overlay.
-- Speech analysis with advanced heuristics (Python DSP + ElevenLabs Scribe transcript).
+- Speech analysis with advanced heuristics (Python DSP; optional PyTorch phoneme scoring). A transcript step (ElevenLabs Scribe) is a pluggable interface only: **no transcriber is implemented**, so intelligibility comes from phoneme scoring when enabled.
 - ElevenLabs Agent with client tools; user can say "call 911 / call for help" at any time.
 - Weighted risk score with threshold; 10 s cancelable countdown; a text to the demo phone (email-to-SMS via the carrier gateway; Twilio is the legacy option).
-- Location (browser geolocation) → Google Maps link in SMS and spoken on the call.
+- Location (browser geolocation) → Google Maps link in the alert text (there is no phone call).
 - Live risk dashboard showing per-test metrics and score breakdown.
 - Demo/simulation mode (force results without acting symptomatic).
 
@@ -35,7 +35,7 @@ smile → raise arms → repeat a sentence → verdict. If risk is high (or they
 | Privacy | Explicit unchecked-by-default consent before any capture; voice guide and (future) second opinion are separate opt-ins; "Clear my data" wipes memory and browser storage; CSP via `frontend/vercel.json`; wording is "designed to minimize data", never a compliance claim | Owner wants the app very privacy-compliant; details in spec 06 "Privacy" |
 | Stack | Vite+React+TS frontend, FastAPI backend | Matches existing scaffold; Python gives us librosa/Parselmouth for speech DSP |
 | Vision | Hybrid: in-browser MediaPipe (real time) + Gemini vision second opinion on still frames (free tier) | Real-time + no video upload for the core path; second opinion adds robustness. Gemini, not Claude: the event allows only free/public APIs and Gemini has a free tier |
-| Speech | Fixed-phrase repetition; ElevenLabs Scribe transcript + acoustic/temporal heuristics | Most explainable, best accuracy achievable without training data |
+| Speech | Fixed-phrase repetition; acoustic/temporal DSP heuristics (+ optional phoneme scoring). Scribe transcript was planned but is NOT implemented | Most explainable, best accuracy achievable without training data |
 | Voice agent | ElevenLabs conversational agent + client tools; app state machine is source of truth | Natural conversation and interruptions, deterministic flow |
 | Trigger | Weighted risk score (noisy-OR) with threshold, plus explicit user request | Explainable dashboard, tunable |
 | Session | Guided FAST session | Predictable demo |
@@ -51,16 +51,17 @@ smile → raise arms → repeat a sentence → verdict. If risk is high (or they
 | Result bands | Three UI bands (`high` / `caution` / `low`) via `resultBand()`; the alert trigger stays the single `RISK_THRESHOLD` | The storyboard wants a "somewhat concerning" screen that offers self-help without raising an alarm |
 | Visual direction | Light clinical chrome, one deep-blue accent, red reserved for emergency, dark camera stage, no gradients | Reads as a medical instrument rather than a consumer app; the dark stage makes the viewfinder unmistakable |
 | Typography | **Tiempos** (titles) + **Avenir** (everything else), per the design brief. Both are commercial, so the CSS stacks lead with the real fonts and fall back to bundled **Newsreader** / **Nunito Sans** (`@fontsource-variable/*`, self-hosted, no CDN). Replaces the earlier Geist + Geist Mono choice | Brief asked for it. Avenir is on macOS/iOS already; Tiempos needs licensed files added under `public/fonts/` for the deployed site (see spec 06) |
+| Speech robustness | Conservative scoring for unknown voices/rooms/mics: QUALITY signals (phoneme model, jitter/shimmer) are capped at 0.20 unless a TIMING signal (rate, pausing, prosody) agrees; a lone timing signal is capped 0.20-0.40; a noisy room (SNR < 15 dB) caps at 0.35 and dents confidence; a different sentence or background voices are a specific retry, not a severity. Costs sensitivity for a speaker whose ONLY sign is mis-articulation | The biggest demo risk is a healthy judge being flagged; on TTS variants of a healthy sentence the phoneme+voice-quality pair alone reached 0.45-0.75. Details: spec 03 "Robustness" |
 
 ## Assumptions (change if wrong)
 - One patient, one webcam, decent lighting, upper body visible from ~1–1.5 m.
 - English only. Desktop Chrome for the demo.
 - Time "T" in FAST = last-known-well time, asked by the agent and included in the alert.
-- Team has accounts/keys for Twilio, ElevenLabs, Gemini before hour 4.
+- Team has accounts/keys for ElevenLabs, Gemini (optional) and a Gmail app password for email-to-SMS (Twilio only if using the legacy channel).
 
 ## Open items (owner: whoever answers first, record answer here)
-- [x] Twilio: **trial account, $15.50 credit** (plenty for the demo SMS). `DEMO_PHONE_NUMBER` = the patient/demo-runner's phone (kept in local `.env`, not committed).
-- [ ] **Verify `DEMO_PHONE_NUMBER` in the Twilio console** and confirm the Twilio sender can text it. Test one SMS by hour 4.
+- [x] Twilio was abandoned as the alert channel (trial numbers are blocked by US carriers; registration is paid). `DEMO_PHONE_NUMBER` = the demo-runner's phone (local `.env`, not committed).
+- [ ] Send one real email-to-SMS test with `python scripts/sms_check.py --send` (`DRY_RUN=false`) and note trigger-to-receipt time.
 - [x] Backend host: **Railway** (fallback: run locally).
 - [ ] Gemini free-tier + ElevenLabs credit/plan limits (agent minutes, Scribe usage).
 - [x] Live-demo patient: the project lead. [ ] Fallback teammate if lighting/camera fails: TBD.
@@ -70,4 +71,4 @@ smile → raise arms → repeat a sentence → verdict. If risk is high (or they
 - Not a medical device; does not replace calling emergency services. UI always shows a manual "Call 911" `tel:` button.
 - Full data map, vendor terms, compliance posture and known gaps: [docs/PRIVACY.md](../PRIVACY.md) (designed to minimize data; not certified compliant).
 - Video is processed in the browser and never stored. Only optional still frames (with consent) go to the vision second opinion; audio clip goes to the backend for analysis and is not persisted.
-- Demo only calls the team's number. False positives/negatives are expected; thresholds are uncalibrated heuristics.
+- Demo only texts the team's number (no phone call is ever placed). False positives/negatives are expected; thresholds are uncalibrated heuristics.

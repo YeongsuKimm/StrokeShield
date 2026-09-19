@@ -35,7 +35,7 @@ export function ArmsTest() {
       title={inPosition ? 'Hold both arms out' : 'Step back, about three feet'}
       lede={
         inPosition
-          ? 'Straight out to your sides, palms turned up. Hold still — I am watching for ten seconds.'
+          ? 'Straight out to your sides, palms turned up. Hold still for ten seconds while I watch.'
           : 'Keep going until your whole upper body and both hands fit inside the outline.'
       }
       footer={<VisionRetryButton test="arms" run={testRunner.runArms} />}

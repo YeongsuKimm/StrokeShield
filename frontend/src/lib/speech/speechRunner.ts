@@ -12,8 +12,10 @@
 import { api } from '../api'
 import { SPEECH_TARGET_PHRASE } from '../config'
 import type { TestResult } from '../contracts'
+import { isApiError } from '../resilience/apiErrors'
 import { useSession } from '../session/store'
 import { MIC_ERROR_TEXT, MicError, RecordingCancelled } from './micErrors'
+import { looksMuted } from './qc'
 import { recordSpeech, type RecordSpeechOptions, type SpeechRecording } from './recorder'
 import { recordSpeechRun } from './speechRecorder'
 import { useSpeechProgress, type SpeechProgress } from './speechProgressStore'
@@ -21,10 +23,12 @@ import { useSpeechProgress, type SpeechProgress } from './speechProgressStore'
 export const SPEECH_HINTS = {
   cancelled: 'Cancelled.',
   noSpeech: "I didn't hear anything. Please try again and say the sentence clearly.",
+  muted: "I can't hear any sound at all. Your microphone looks muted or blocked. Check the mute switch on your headset or laptop and the input device in your sound settings, then try again.",
   tooQuiet: "I couldn't hear you, please speak louder.",
   tooLoud: 'That was too loud and distorted. Please speak a little softer, or move back from the microphone.',
-  timeout: 'The analysis took too long. Please try again.',
-  backend: "I couldn't reach the analysis service. Please try again.",
+  timeout: 'The analysis took too long, probably a slow connection. Please try again, or skip this step.',
+  backend: "I couldn't reach the analysis service. The camera checks still work. Please try again, or skip this step.",
+  offline: "You seem to be offline, so I can't analyze your speech. Check the connection and try again, or skip this step.",
 } as const
 
 export interface SpeechRunnerDeps {
@@ -72,6 +76,13 @@ const retryResult = (reason: string, startedAt: number, durationMs: number): Tes
 })
 
 const isAbortError = (e: unknown) => (e as { name?: string } | null)?.name === 'AbortError'
+/** Spoken-style hint for a failed analysis call: says whether it was the wifi, a slow server, or something else. */
+const analyzeFailureHint = (e: unknown): string =>
+  isAbortError(e) || (isApiError(e) && e.kind === 'timeout')
+    ? SPEECH_HINTS.timeout
+    : isApiError(e) && e.kind === 'offline'
+      ? SPEECH_HINTS.offline
+      : SPEECH_HINTS.backend
 const looksLikeResult = (r: unknown): r is TestResult =>
   !!r && typeof (r as TestResult).severity === 'number' && typeof (r as TestResult).confidence === 'number' && Array.isArray((r as TestResult).flags)
 
@@ -91,9 +102,17 @@ export function createSpeechRunner(overrides: Partial<SpeechRunnerDeps> = {}): S
     })
 
     let rec: SpeechRecording
+    let heard = false // the first chunk means the mic is really open
     try {
-      deps.publish({ stage: 'listening', level: 0 })
-      rec = await deps.record({ signal: abort.signal, onLevel: (level) => deps.publish({ level }) })
+      deps.publish({ stage: 'listening', level: 0, heard: false })
+      rec = await deps.record({
+        signal: abort.signal,
+        onLevel: (level) => {
+          const first = !heard
+          heard = true
+          deps.publish(first ? { level, heard: true } : { level })
+        },
+      })
     } catch (e) {
       if (e instanceof RecordingCancelled || abort.signal.aborted) return cancelled()
       if (e instanceof MicError) return retry(`I couldn't start the microphone. ${MIC_ERROR_TEXT[e.kind]}`)
@@ -103,6 +122,7 @@ export function createSpeechRunner(overrides: Partial<SpeechRunnerDeps> = {}): S
     if (abort.signal.aborted) return cancelled()
 
     // Client-side QC: do not send unusable audio to the backend.
+    if (looksMuted(rec.qc)) return retry(SPEECH_HINTS.muted)
     if (!rec.qc.speechDetected) return retry(SPEECH_HINTS.noSpeech)
     const unusable =
       rec.qc.level === 'too-quiet' ? SPEECH_HINTS.tooQuiet : rec.qc.level === 'too-loud' ? SPEECH_HINTS.tooLoud : null
@@ -122,7 +142,7 @@ export function createSpeechRunner(overrides: Partial<SpeechRunnerDeps> = {}): S
     } catch (e) {
       if (abort.signal.aborted) return cancelled()
       console.debug('[speech] analyze failed', e)
-      result = retryResult(isAbortError(e) ? SPEECH_HINTS.timeout : SPEECH_HINTS.backend, startedAt, deps.now() - startedAt)
+      result = retryResult(analyzeFailureHint(e), startedAt, deps.now() - startedAt)
     }
     safeRecorded(rec, result)
     return done(result)
@@ -143,7 +163,7 @@ export function createSpeechRunner(overrides: Partial<SpeechRunnerDeps> = {}): S
   function runSpeech(): Promise<TestResult> {
     if (current) return current.promise
     const abort = new AbortController()
-    deps.publish({ running: true, stage: 'listening', level: 0, hint: undefined })
+    deps.publish({ running: true, stage: 'listening', level: 0, heard: false, hint: undefined })
     const token = Symbol('speech')
     current = {
       token,
@@ -163,7 +183,7 @@ export function createSpeechRunner(overrides: Partial<SpeechRunnerDeps> = {}): S
           if (!cancelled) deps.completeTest(result) // a cancelled run is NOT stored
           const hint = !cancelled && result.needsRetry ? result.flags[0] : undefined
           deps.setHint(hint)
-          deps.publish({ running: false, stage: 'idle', level: 0, hint })
+          deps.publish({ running: false, stage: 'idle', level: 0, heard: false, hint })
         } catch (e) {
           console.debug('[speech] store update failed', e)
         }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { TestName, TestResult } from '../../lib/contracts'
 import { useSession } from '../../lib/session/store'
+import { smartQuotes } from '../../lib/typography'
 import { eyeAdvice } from '../../lib/vision/eyeAdvice'
 import { useCaptureProgress } from '../../lib/vision/progressStore'
 import { isVisionScreenActive, runVisionWithOneRetry, showsRetryButton, VISION_STUCK_GRACE_MS, visionActionState } from '../../lib/vision/retry'
@@ -47,8 +48,8 @@ export function VisionRetryButton({ test, run, skippable = false }: Props) {
     <div className="flex flex-col items-center gap-3" data-testid="vision-retry">
       {advice && (
         <div className="max-w-[48ch] text-center" role="status">
-          <p className="text-lg font-semibold">{advice.headline}</p>
-          {advice.tips.length > 0 && <p className="mt-1 text-[1rem] text-ink-2">{advice.tips.join(' ')}</p>}
+          <p className="text-lg font-semibold">{smartQuotes(advice.headline)}</p>
+          {advice.tips.length > 0 && <p className="mt-1 text-[1rem] text-ink-2">{smartQuotes(advice.tips.join(' '))}</p>}
         </div>
       )}
       <div className="flex flex-wrap items-center justify-center gap-3">

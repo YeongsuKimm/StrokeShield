@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { COUNTDOWN_SECONDS, USER_REQUEST_COUNTDOWN_SECONDS } from '../lib/config'
+import { countdownAnnouncement } from '../lib/a11y/announce'
 import { useSession } from '../lib/session/store'
 import { Button } from './ui/Button'
 import { Icon } from './ui/Icon'
@@ -10,7 +11,7 @@ import { Ring } from './ui/Primitives'
  * be impaired, and cancelling has to be the easiest thing on screen.
  *
  * The alert never dials emergency services — the backend only ever contacts DEMO_PHONE_NUMBER. The copy says
- * "emergency contact" rather than "911" so the demo never overstates what it does.
+ * "demo contact" rather than "911" so the demo never overstates what it does.
  */
 export function CountdownModal() {
   const alertReason = useSession((s) => s.alertReason)
@@ -29,6 +30,11 @@ export function CountdownModal() {
     return () => clearTimeout(id)
   }, [left, confirmCountdown])
 
+  // Focus starts on Cancel (the safe, first control): Enter or Space cancels at once. The rest of the page is inert.
+  useEffect(() => {
+    document.getElementById('countdown-cancel')?.focus()
+  }, [])
+
   // Cancel is the default target: Escape does the same thing as the button.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && cancelCountdown()
@@ -38,10 +44,11 @@ export function CountdownModal() {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/80 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/80 p-4"
       role="alertdialog"
       aria-modal="true"
       aria-labelledby="countdown-title"
+      aria-describedby="countdown-body"
     >
       <div className="w-full max-w-lg rounded-[var(--radius-panel)] bg-surface p-8 text-center shadow-[var(--shadow-lift)] sm:p-12">
         <p className="label-micro flex items-center justify-center gap-2 text-danger">
@@ -50,8 +57,13 @@ export function CountdownModal() {
         </p>
 
         <h2 id="countdown-title" className="mt-4 text-balance text-3xl font-semibold leading-tight tracking-tight">
-          Contacting your emergency contact
+          Texting the demo contact
         </h2>
+
+        {/* Sparse spoken countdown (start, every 5 s, last 3 s): the ring below is decorative and never read out. */}
+        <p role="status" className="sr-only">
+          {countdownAnnouncement(left, total)}
+        </p>
 
         <div className="my-8 flex justify-center text-danger">
           <Ring
@@ -64,12 +76,12 @@ export function CountdownModal() {
           />
         </div>
 
-        <p className="mx-auto max-w-[38ch] text-lg text-ink-2">
+        <p id="countdown-body" className="mx-auto max-w-[38ch] text-lg text-ink-2">
           A text message with your location is about to go out.{' '}
           {agentConnected ? 'Say “cancel”, or press the button.' : 'Press the button to cancel.'}
         </p>
 
-        <Button autoFocus size="xl" tone="neutral" block className="mt-8" onClick={cancelCountdown}>
+        <Button id="countdown-cancel" size="xl" tone="neutral" block className="mt-8" onClick={cancelCountdown}>
           Cancel the text
         </Button>
 

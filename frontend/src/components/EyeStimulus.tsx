@@ -45,16 +45,14 @@ export function EyeStimulus({ onTargetChange, onDone, mirrored = false }: Props)
   const pct = mirrored ? 100 - POS_PCT[target] : POS_PCT[target]
 
   return (
-    <div
-      className="relative h-64 w-full overflow-hidden rounded-2xl bg-black/40"
-      role="img"
-      aria-label="Follow the dot with your eyes"
-    >
+    <div className="relative h-64 w-full overflow-hidden rounded-2xl bg-black/40">
+      {/* The dot is purely visual (aria-hidden); the caption below and the screen heading give the same instruction as text. */}
       <div
+        aria-hidden
         className="absolute top-1/2 h-20 w-20 -translate-x-1/2 -translate-y-1/2 rounded-full border-4 border-black bg-yellow-300 shadow-[0_0_24px_8px_rgba(253,224,71,0.6)] transition-[left] duration-500 ease-in-out"
         style={{ left: `${pct}%` }}
       />
-      <p className="absolute inset-x-0 bottom-3 text-center text-sm text-white/80">
+      <p className="absolute inset-x-0 bottom-3 text-center text-sm font-medium text-white">
         Keep your head still. Follow the dot with your eyes only.
       </p>
     </div>

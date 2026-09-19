@@ -8,7 +8,7 @@
 /* ---------------------------------------------------------------------------------------------------------------
    StrokeShield design tokens.
    Light "clinical" chrome + a near-black camera stage. No gradients anywhere: flat fills, one hairline, one shadow.
-   Every pairing below is >= 4.5:1 against its own background (checked by hand; see docs/spec/06-frontend-ux.md).
+   Every pairing below is >= 4.5:1 against its own background (enforced by src/lib/a11y/contrast.test.ts, which reads this file).
    Red is RESERVED for emergency (countdown, alert, call button) so it never competes with ordinary UI.
 --------------------------------------------------------------------------------------------------------------- */
 @theme {
@@ -29,12 +29,13 @@
   --color-surface: #ffffff;
   --color-sunken: #f3f3ef; /* inset wells, unfilled tracks */
   --color-line: #e3e3dc; /* hairline */
-  --color-line-strong: #c9c9c0;
+  --color-line-strong: #c9c9c0; /* decorative dividers only (1.6:1): never the sole edge of a control */
+  --color-control-edge: #7a848f; /* borders of buttons and checkboxes: >= 3:1 on white, paper and sunken (WCAG 1.4.11) */
 
   /* Ink */
   --color-ink: #12161b; /* off-black, never #000 — 15.8:1 on paper */
   --color-ink-2: #4a5561; /*  7.5:1 on paper */
-  --color-ink-3: #6b7683; /*  4.6:1 on paper, large/secondary only */
+  --color-ink-3: #5e6975; /*  5.4:1 on paper, 5.0:1 on sunken: safe for small text */
 
   /* One accent. Deep clinical blue, 6.7:1 against white. */
   --color-accent: #0b5cab;
@@ -49,6 +50,7 @@
   --color-caution-wash: #fdf3e0;
   --color-ok: #1b6b48;
   --color-ok-wash: #e9f4ee;
+  --color-ok-stage: #34b47c; /* the "ok" green ON THE DARK STAGE (>= 3:1 there; --color-ok is too dark for it) */
 
   /* Camera stage: its own dark material, so the video reads as a viewfinder rather than a photo on a page. */
   --color-stage: #0e1216;
@@ -58,6 +60,7 @@
 
   --radius-panel: 1.25rem;
   --radius-control: 0.625rem;
+  --radius-sheet: 0.5rem; /* hairline data tables (gap-px grids): tighter than the panels around them */
 
   /* One shadow, tinted to the paper hue rather than neutral black. */
   --shadow-panel: 0 1px 2px rgba(18, 22, 27, 0.04), 0 12px 32px -16px rgba(18, 22, 27, 0.18);
@@ -69,6 +72,39 @@
 @layer base {
   html {
     -webkit-text-size-adjust: 100%;
+    scrollbar-gutter: stable; /* home (short) to info (long) must not shift sideways */
+  }
+
+  /* Line breaking: balance short blocks, avoid single-word last lines in paragraphs. Unsupported browsers ignore it. */
+  h1,
+  h2,
+  h3,
+  blockquote,
+  figcaption {
+    text-wrap: balance;
+  }
+
+  p,
+  li,
+  dd,
+  dt {
+    text-wrap: pretty;
+  }
+
+  /* One blue for selection with ink text on top (>= 10:1); a lighter blue on the dark stage. */
+  ::selection {
+    background: color-mix(in srgb, var(--color-accent) 24%, white);
+    color: var(--color-ink);
+  }
+
+  .on-stage ::selection {
+    background: #8fc2f5;
+    color: var(--color-stage);
+  }
+
+  input,
+  textarea {
+    caret-color: var(--color-accent);
   }
 
   body {
@@ -112,8 +148,8 @@
   .label-micro {
     font-family: var(--font-sans);
     font-size: 0.8125rem;
-    font-weight: 700;
-    letter-spacing: 0.09em;
+    font-weight: 600;
+    letter-spacing: 0.07em;
     text-transform: uppercase;
   }
 
@@ -134,24 +170,20 @@
     animation-delay: calc(var(--i, 0) * 70ms);
   }
 
-  /* One-off spring-in for things that must be noticed the moment they appear (the skip offer). */
+  /* One-off entrance for things that must be noticed the moment they appear (the skip offer): a short settle, no overshoot. */
   @keyframes ss-pop {
-    0% {
+    from {
       opacity: 0;
-      transform: translateY(16px) scale(0.94);
+      transform: translateY(8px);
     }
-    60% {
-      opacity: 1;
-      transform: translateY(-3px) scale(1.02);
-    }
-    100% {
+    to {
       opacity: 1;
       transform: none;
     }
   }
 
   .pop {
-    animation: ss-pop 480ms var(--ease-out) both;
+    animation: ss-pop 260ms var(--ease-out) both;
   }
 
   @keyframes ss-breathe {
@@ -181,6 +213,24 @@
   }
 }
 
+/* People who ask their OS for more contrast get darker muted text and visible hairlines. */
+@media (prefers-contrast: more) {
+  :root {
+    --color-ink-3: #3f4954;
+    --color-line: #8a949e;
+    --color-line-strong: #6a747e;
+  }
+}
+
+/* Windows High Contrast / forced colours: the palette is replaced by the system's, so anything drawn only with a
+   background or a box-shadow (rings, progress dots, meters) must fall back to system colours and real borders. */
+@media (forced-colors: active) {
+  :focus-visible {
+    outline: 3px solid Highlight;
+    outline-offset: 3px;
+  }
+}
+
 /* Title face. Deliberately UNLAYERED: unlayered rules beat every @layer, so this reliably overrides the
    tracking / weight utilities that headings carry and switches every h1-h3 in the app at once. */
 h1,
@@ -192,6 +242,12 @@ blockquote,
   font-weight: 500;
   letter-spacing: -0.012em;
   font-variant-numeric: lining-nums;
+}
+
+/* Must come AFTER the unlayered serif rule above, which would otherwise win over the layered .tnum and turn
+   tabular numerals off on serif figures (combined risk %, the slot-number reels). */
+.tnum {
+  font-variant-numeric: lining-nums tabular-nums;
 }
 
 
@@ -218,4 +274,38 @@ textarea {
 }
 button:disabled {
   cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='40' viewBox='0 0 26 40'%3E%3Cpath d='M3 3 V30 L9.5 24 L14.5 35.5 L19.5 33.3 L14.5 22 H23.5 Z' fill='white' stroke='black' stroke-width='2.4' stroke-linejoin='round'/%3E%3C/svg%3E") 3 3, default;
+}
+
+/* Printing the result: drop the fixed 911 button, guide control, header and buttons; the disclaimer footer stays. */
+@media print {
+  html {
+    cursor: auto;
+  }
+
+  body {
+    background: #fff;
+  }
+
+  * {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  header,
+  .fixed,
+  button,
+  [role="region"][aria-label="Skip this check"] {
+    display: none !important;
+  }
+
+  article,
+  section,
+  .rounded-\[var\(--radius-panel\)\] {
+    break-inside: avoid;
+  }
+
+  a[href^="tel:"]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.85em;
+  }
 }

@@ -40,6 +40,7 @@ const AUDIO_CONSTRAINTS: MediaTrackConstraints = {
 
 /** Open the microphone. Throws MicError (typed via classifyMicError) if it cannot. */
 export async function openBrowserMic(): Promise<MicCapture> {
+  // Old browsers, or a page not served over HTTPS/localhost (navigator.mediaDevices is then undefined).
   if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia || typeof AudioContext === 'undefined') {
     throw new MicError('unsupported')
   }
@@ -129,14 +130,26 @@ export async function openBrowserMic(): Promise<MicCapture> {
           workletNode.port.onmessage = (ev: MessageEvent<Float32Array>) => onChunk(ev.data)
           workletNode.onprocessorerror = () => onError(new MicError('unknown', 'Audio capture failed.'))
         } else {
-          // Deprecated but universally available fallback.
-          const sp = context.createScriptProcessor(4096, 1, 1)
+          // Deprecated fallback for browsers without AudioWorklet (older Safari, some webviews). If even this is gone the
+          // failure is reported as 'unsupported' and the patient gets the "use a current browser" message.
+          let sp: ScriptProcessorNode
+          try {
+            sp = context.createScriptProcessor(4096, 1, 1)
+          } catch {
+            throw new MicError('unsupported')
+          }
           sp.onaudioprocess = (ev) => onChunk(new Float32Array(ev.inputBuffer.getChannelData(0))) // copy: the buffer is reused
           node = sp
         }
         src.connect(node)
         node.connect(sink as GainNode)
-        stream.getAudioTracks()[0]?.addEventListener('ended', () => onError(new MicError('mic-busy', 'The microphone was disconnected.')))
+        const track = stream.getAudioTracks()[0]
+        track?.addEventListener('ended', () => onError(new MicError('mic-busy', 'The microphone was disconnected.')))
+        // An OS-level or headset mute delivers silence; the browser reports it on the track. Say so now instead of after the
+        // 4 s "no speech" timeout. Only if it STAYS muted: Bluetooth profile switches mute the track for a moment.
+        const failIfStillMuted = () => setTimeout(() => track?.muted && onError(new MicError('muted')), 800)
+        track?.addEventListener('mute', failIfStillMuted)
+        if (track?.muted) failIfStillMuted()
       },
       close,
     }

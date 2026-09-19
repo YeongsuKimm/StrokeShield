@@ -64,6 +64,8 @@ interface SessionState {
   alertReason?: AlertReason
   alertStatus: AlertStatus
   alertResponse?: AlertResponse
+  /** ms epoch of the last alert outcome (drives the retry wait shown after a rate limit). */
+  alertResultAt?: number
   demoEnabled: boolean
   /** Live positioning caption, e.g. "Step back until I can see both hands." */
   hint?: string
@@ -91,6 +93,8 @@ interface SessionState {
   requestEmergency: (reason?: AlertReason) => void
   cancelCountdown: () => void
   confirmCountdown: () => void
+  /** After a FAILED alert: send once more (no countdown). Returns false, and does nothing, unless the last attempt failed. */
+  retryAlert: () => boolean
   setAlertResult: (status: AlertStatus, res?: AlertResponse) => void
   setDemoEnabled: (v: boolean) => void
   setHint: (hint?: string) => void
@@ -116,6 +120,7 @@ const initial = {
   hint: undefined,
   alertReason: undefined,
   alertResponse: undefined,
+  alertResultAt: undefined,
   lastKnownWell: undefined,
 }
 
@@ -126,6 +131,37 @@ export const isTestPhase = (p: Phase): boolean => ['face', 'arms', 'speech', 'ey
 export const isResultPhase = (p: Phase): boolean =>
   ['scoring', 'clear', 'countdown', 'alerting', 'alerted', 'cancelled'].includes(p)
 
+/** The per-run part of the state: what "start over" and a fresh `beginTests` both clear. */
+const freshRun = () => ({
+  phase: 'idle' as Phase,
+  results: {} as Partial<Record<TestName, TestResult>>,
+  skipped: [] as TestName[],
+  opinions: [] as VisionOpinion[],
+  risk: null as RiskBreakdown | null,
+  alertStatus: 'none' as AlertStatus,
+  alertReason: undefined as AlertReason | undefined,
+  alertResponse: undefined as AlertResponse | undefined,
+  alertResultAt: undefined as number | undefined,
+  hint: undefined as string | undefined,
+})
+
+/** Phases where a finished (or skipped) check may move the flow on. Anywhere else (countdown, alert, result screens) a
+ *  late result from a run that was still finishing is recorded but must NOT steal the screen from the emergency path. */
+const advancesOnResult = (p: Phase): boolean => p === 'idle' || p === 'consent' || p === 'intro' || p === 'scoring' || isTestPhase(p)
+
+const inEmergency = (p: Phase): boolean => p === 'countdown' || p === 'alerting'
+
+const KNOWN_TESTS: readonly TestName[] = ['face', 'arms', 'speech', 'eyes']
+const isKnownTest = (t: unknown): t is TestName => KNOWN_TESTS.includes(t as TestName)
+
+/** A result the scorer can trust: a known test and finite numbers. Anything else becomes an unscored retry (never a
+ *  NaN in the risk score, never a result filed under a test that does not exist). Returns null for an unknown test. */
+function sanitizeResult(r: TestResult): TestResult | null {
+  if (!r || !isKnownTest(r.test)) return null
+  if (Number.isFinite(r.severity) && Number.isFinite(r.confidence)) return r
+  return { ...r, severity: 0, confidence: 0, needsRetry: true, flags: r.flags?.length ? r.flags : ['Could not read that result. Please try again.'] }
+}
+
 let transcriptId = 0
 
 export const useSession = create<SessionState>((set, get) => ({
@@ -133,15 +169,25 @@ export const useSession = create<SessionState>((set, get) => ({
   demoEnabled: new URLSearchParams(globalThis.location?.search ?? '').get('demo') === '1',
 
   setRoute: (route) => set({ route }),
-  goHome: () => set({ route: 'home', phase: 'idle' }),
-  start: () => set({ phase: 'consent', route: 'home' }),
-  acceptConsent: () => set({ phase: 'intro' }),
+  // "Home" is a fresh start: leftover results, skips or alert state must not follow the visitor into the next run.
+  goHome: () => get().reset(),
+  // Like beginTests, these never pull the screen away from a countdown or an alert in flight.
+  start: () => {
+    if (!inEmergency(get().phase)) set({ ...freshRun(), phase: 'consent', route: 'home' })
+  },
+  acceptConsent: () => {
+    if (get().phase === 'consent') set({ phase: 'intro' }) // only the step after 'consent'; never out of a result screen
+  },
   giveConsent: () => set({ consented: true }),
   setVoiceConsent: (voiceConsent) => set({ voiceConsent }),
   // No consent, no check: the camera and microphone are only ever opened by a screen that this transition reveals.
   beginTests: () => {
     if (!get().consented) return
-    set({ phase: testSequence()[0], route: 'home' })
+    // Never yank the screen away from the countdown or an alert in flight; those end through Cancel / their result.
+    if (inEmergency(get().phase)) return
+    // A new run starts clean, whatever screen it was started from (stale skips and results would land the patient on
+    // a step that is already skipped, or score old readings).
+    set({ ...freshRun(), phase: testSequence()[0], route: 'home' })
   },
   setLastKnownWell: (lastKnownWell) => set({ lastKnownWell }),
   setPhase: (phase) => set({ phase, route: 'home' }),
@@ -153,10 +199,12 @@ export const useSession = create<SessionState>((set, get) => ({
   setMicMuted: (micMuted) => set({ micMuted }),
   addOpinions: (o) => set((s) => ({ opinions: [...s.opinions, ...o] })),
 
-  completeTest: (result) => {
+  completeTest: (incoming) => {
+    const result = sanitizeResult(incoming)
+    if (!result) return
     const results = { ...get().results, [result.test]: result }
     const risk = computeRisk(results, get().opinions)
-    if (result.needsRetry) {
+    if (result.needsRetry || !advancesOnResult(get().phase)) {
       set({ results, risk })
       return
     }
@@ -171,6 +219,7 @@ export const useSession = create<SessionState>((set, get) => ({
   },
 
   skipTest: (test) => {
+    if (!isKnownTest(test) || !advancesOnResult(get().phase)) return
     const skipped = get().skipped.includes(test) ? get().skipped : [...get().skipped, test]
     const results = get().results
     const risk = computeRisk(results, get().opinions)
@@ -190,7 +239,8 @@ export const useSession = create<SessionState>((set, get) => ({
   // can ask again.
   requestEmergency: (reason = 'user_request') => {
     if (get().phase === 'alerting' && get().alertStatus === 'sending') return
-    set({ phase: 'countdown', alertReason: reason, route: 'home' })
+    // A fresh request wipes the previous attempt's outcome (a stale "sent" or "failed" must not sit behind the countdown).
+    set({ phase: 'countdown', alertReason: reason, route: 'home', alertStatus: 'none', alertResponse: undefined, alertResultAt: undefined })
   },
   cancelCountdown: () => {
     if (get().phase !== 'countdown') return
@@ -200,10 +250,17 @@ export const useSession = create<SessionState>((set, get) => ({
     if (get().phase !== 'countdown') return
     set({ phase: 'alerting', alertStatus: 'sending', alertResponse: undefined }) // drop a previous attempt's error
   },
+  // One-shot: only a failed alert can be retried, and it flips to 'sending' synchronously, so a double click (or an
+  // agent tool and a click together) cannot start two sends.
+  retryAlert: () => {
+    if (get().phase !== 'alerting' || get().alertStatus !== 'failed') return false
+    set({ alertStatus: 'sending', alertResponse: undefined })
+    return true
+  },
   setAlertResult: (alertStatus, alertResponse) => {
     // A response that lands after the session was reset must not paint "Alert sent" onto the next session.
-    if (get().phase !== 'alerting') return
-    set({ alertStatus, alertResponse, phase: alertStatus === 'sent' ? 'alerted' : 'alerting' })
+    if (get().phase !== 'alerting' || (alertStatus !== 'sent' && alertStatus !== 'failed')) return
+    set({ alertStatus, alertResponse, alertResultAt: Date.now(), phase: alertStatus === 'sent' ? 'alerted' : 'alerting' })
   },
   setDemoEnabled: (demoEnabled) => set({ demoEnabled }),
   setHint: (hint) => set({ hint }),

@@ -103,9 +103,14 @@ def test_load_wav_truncated_file_does_not_raise():
 
 
 def test_load_wav_truncates_very_long_audio():
-    long = np.zeros(int(30 * SR_), dtype=np.float32)
+    long = np.zeros(int(15 * SR_), dtype=np.float32)
     x, _ = load_wav(to_wav_bytes(long))
     assert x is not None and len(x) == int(C.MAX_ANALYSIS_S * SR_)
+
+
+def test_load_wav_refuses_absurdly_long_audio_from_the_header():
+    x, err = load_wav(to_wav_bytes(np.zeros(int(30 * SR_), dtype=np.float32)))
+    assert x is None and "too long" in err
 
 
 def test_clipped_fraction():

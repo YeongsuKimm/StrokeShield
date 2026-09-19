@@ -4,6 +4,7 @@ import {
   buildFaceFrame,
   buildPoseFrame,
   classifyCameraError,
+  faceRegion,
   isDebugSearch,
   meanLuminance,
   nextTimestamp,
@@ -122,5 +123,18 @@ describe('isDebugSearch', () => {
     expect(isDebugSearch('?demo=1&debug=1')).toBe(true)
     expect(isDebugSearch('?debug=0')).toBe(false)
     expect(isDebugSearch('')).toBe(false)
+  })
+})
+
+describe('faceRegion (subject-face brightness crop)', () => {
+  it('grows the face box, clamps to the frame, and rejects unusable boxes', () => {
+    const r = faceRegion({ cx: 0.5, cy: 0.5, size: 0.2 }, 1000, 500)!
+    expect(r.sw).toBeCloseTo(250, 3) // 0.2 * 1.25 of the width
+    expect(r.sx).toBeCloseTo(375, 3)
+    const edge = faceRegion({ cx: 0.98, cy: 0.5, size: 0.3 }, 1000, 500)!
+    expect(edge.sx + edge.sw).toBeLessThanOrEqual(1000)
+    expect(faceRegion(null, 1000, 500)).toBeNull()
+    expect(faceRegion({ cx: 0.5, cy: 0.5, size: 0.005 }, 1000, 500)).toBeNull()
+    expect(faceRegion({ cx: 0.5, cy: 0.5, size: 0.2 }, 0, 500)).toBeNull()
   })
 })

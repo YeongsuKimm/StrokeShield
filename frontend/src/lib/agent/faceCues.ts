@@ -4,7 +4,7 @@
 import { useCaptureProgress } from '../vision/progressStore'
 
 export const FACE_BRIEFING =
-  'The website is now on the face step. Immediately tell the user to look at the camera and hold a serious, neutral expression with their lips gently closed, like a passport photo: no smile, and mouth not stretched wide. Then call start_face_test. Do NOT mention smiling yet: the website will tell you the moment the resting-face check is complete and it is time to smile. Do not discuss the previous step.'
+  'The website is now on the face step. Immediately tell the user to look at the camera and hold a serious, neutral expression with their lips gently closed, like a passport photo, with the mouth relaxed and not stretched wide. Then call start_face_test. Give no other facial instruction until the website sends its next message. Do not discuss the previous step.'
 
 export const SMILE_CUE =
   'The serious-face check is now complete. Tell the user, in one short sentence, to smile as wide as they can and hold it. Do not describe results.'

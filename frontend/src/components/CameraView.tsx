@@ -1,5 +1,8 @@
 import { useEffect, useRef, type ReactNode } from 'react'
+import { captureAnnouncement } from '../lib/a11y/announce'
+import { useThrottledAnnouncement } from '../lib/a11y/useA11y'
 import { useSession } from '../lib/session/store'
+import { smartQuotes } from '../lib/typography'
 import { isDebugSearch } from '../lib/vision/frameUtils'
 import { useCaptureProgress } from '../lib/vision/progressStore'
 import { useMediaPipe } from '../lib/vision/useMediaPipe'
@@ -38,6 +41,8 @@ export function CameraView({ guide, overlay, hideGuideWhileCapturing = true }: P
     // objectFit 'fill' on purpose: the box already carries the video's own aspect ratio, and stretching (rather than
     // cropping) keeps normalized landmarks aligned with the overlay canvas even before the video size is known.
     Object.assign(v.style, { width: '100%', height: '100%', objectFit: 'fill', transform: 'scaleX(-1)', display: 'block' })
+    // The live picture is for sighted users; the outline, hints and heading say everything a screen reader needs.
+    v.setAttribute('aria-hidden', 'true')
     host.prepend(v)
     return () => {
       if (v.parentElement === host) host.removeChild(v)
@@ -84,11 +89,29 @@ export function CameraView({ guide, overlay, hideGuideWhileCapturing = true }: P
 
   const aspect = summary.videoSize ? summary.videoSize.w / summary.videoSize.h : 16 / 9
   const framingOk = progress?.framingOk ?? false
-  const ring = !progress ? 'ring-stage-2' : framingOk ? 'ring-ok' : 'ring-caution'
+  const ring = !progress ? 'ring-stage-2' : framingOk ? 'ring-ok-stage' : 'ring-caution'
   const showCue = progress?.phase === 'cue' && progress.secondsLeft !== null
   const capturing = !!progress && ['neutral', 'smile', 'hold'].includes(progress.phase)
   const timed = progress && progress.secondsLeft !== null && progress.phase !== 'cue'
   const showGuide = guide && !(hideGuideWhileCapturing && capturing)
+
+  // ONE polite live region speaks for the whole stage, at most once every 3 s: the intro / get-ready caption, the framing
+  // hint, and the seconds left only on 5 s marks. The on-screen pills, digits and ring below are visual duplicates, so
+  // they carry no live roles (the screen heading, in TestScreen, announces the main instruction changes).
+  const spoken = !progress
+    ? ''
+    : progress.phase === 'intro'
+      ? smartQuotes(progress.caption ?? '')
+      : progress.phase === 'cue'
+        ? smartQuotes(progress.caption ?? '')
+        : hint
+          ? smartQuotes(hint)
+          : capturing || timed
+            ? captureAnnouncement('', progress.secondsLeft)
+            : framingOk
+              ? 'Hold it right there'
+              : ''
+  const announced = useThrottledAnnouncement(spoken)
 
   return (
     <div className="on-stage">
@@ -97,7 +120,10 @@ export function CameraView({ guide, overlay, hideGuideWhileCapturing = true }: P
         style={{ aspectRatio: aspect }}
       >
         <div ref={hostRef} className="absolute inset-0" />
-        <canvas ref={canvasRef} className="pointer-events-none absolute inset-0 h-full w-full" />
+        <canvas ref={canvasRef} aria-hidden className="pointer-events-none absolute inset-0 h-full w-full" />
+        <p role="status" className="sr-only">
+          {announced}
+        </p>
 
         {showGuide && <div className="absolute inset-0">{guide}</div>}
         {overlay}
@@ -106,17 +132,16 @@ export function CameraView({ guide, overlay, hideGuideWhileCapturing = true }: P
         {hint && progress?.phase !== 'intro' && (
           <div className="absolute inset-x-3 top-3 flex justify-center">
             <p
-              className="flex max-w-full items-center gap-2.5 rounded-full bg-caution px-5 py-3 text-center text-xl font-bold text-white shadow-[var(--shadow-lift)] sm:text-2xl"
-              role="status"
+              className="flex max-w-full items-center gap-2.5 rounded-full bg-caution px-5 py-3 text-center text-xl font-semibold text-white shadow-[var(--shadow-lift)] sm:text-2xl"
             >
               <Icon name="alert" size={22} className="shrink-0" />
-              {hint}
+              {smartQuotes(hint)}
             </p>
           </div>
         )}
         {!hint && framingOk && !capturing && progress?.phase !== 'intro' && (
           <div className="absolute inset-x-3 top-3 flex justify-center">
-            <p className="flex items-center gap-2.5 rounded-full bg-ok px-5 py-3 text-xl font-bold text-white shadow-[var(--shadow-lift)] sm:text-2xl">
+            <p className="flex items-center gap-2.5 rounded-full bg-ok px-5 py-3 text-xl font-semibold text-white shadow-[var(--shadow-lift)] sm:text-2xl">
               <Icon name="check" size={22} />
               Hold it right there
             </p>
@@ -127,7 +152,7 @@ export function CameraView({ guide, overlay, hideGuideWhileCapturing = true }: P
             says so, so the change of phase is impossible to miss. */}
         {progress?.test === 'face' && progress.phase === 'smile' && (
           <div className="absolute inset-x-3 top-3 flex justify-center">
-            <p className="pop rounded-full bg-accent px-7 py-2.5 text-3xl font-extrabold tracking-wide text-white shadow-[var(--shadow-lift)] sm:text-4xl" role="status">
+            <p className="pop rounded-full bg-accent px-7 py-2.5 text-3xl font-extrabold tracking-wide text-white shadow-[var(--shadow-lift)] sm:text-4xl">
               SMILE!
             </p>
           </div>
@@ -139,9 +164,8 @@ export function CameraView({ guide, overlay, hideGuideWhileCapturing = true }: P
           <div className="absolute inset-0 flex items-center justify-center p-4">
             <div
               className="pop max-w-[34rem] rounded-[var(--radius-panel)] bg-accent px-7 py-6 text-center text-white shadow-[var(--shadow-lift)]"
-              role="status"
             >
-              <p className="text-balance text-2xl font-bold leading-snug sm:text-3xl">{progress.caption}</p>
+              <p className="text-balance text-2xl font-semibold leading-snug sm:text-3xl">{smartQuotes(progress.caption)}</p>
               <p className="mt-3 text-[1rem] font-medium text-white/85">Starting in {progress.secondsLeft}…</p>
             </div>
           </div>
@@ -152,9 +176,9 @@ export function CameraView({ guide, overlay, hideGuideWhileCapturing = true }: P
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
             <span
               key={progress.secondsLeft}
-              className="tnum text-[22vmin] font-bold leading-none text-white [text-shadow:0_4px_24px_rgba(0,0,0,0.75)] sm:text-[14rem]"
+              className="tnum text-[22vmin] font-semibold leading-none text-white [text-shadow:0_4px_24px_rgba(0,0,0,0.75)] sm:text-[14rem]"
               style={{ animation: 'ss-rise 300ms var(--ease-out) both' }}
-              aria-live="assertive"
+              aria-hidden
             >
               {progress.secondsLeft}
             </span>
@@ -172,8 +196,8 @@ export function CameraView({ guide, overlay, hideGuideWhileCapturing = true }: P
             }`}
           >
             {timed && <Ring fraction={progress.fraction} label={String(progress.secondsLeft)} size={56} stroke={5} tone="#ffffff" />}
-            <p className="text-balance text-center text-2xl font-bold leading-tight sm:text-3xl" role="status">
-              {progress.caption}
+            <p className="text-balance text-center text-2xl font-semibold leading-tight sm:text-3xl">
+              {smartQuotes(progress.caption)}
             </p>
           </div>
         )}
@@ -186,9 +210,9 @@ export function CameraView({ guide, overlay, hideGuideWhileCapturing = true }: P
                 <span className="flex size-12 items-center justify-center rounded-full bg-danger/20 text-danger-wash">
                   <Icon name="camera" size={24} />
                 </span>
-                <div>
+                <div role="alert">
                   <p className="text-lg font-semibold text-stage-ink">The camera did not start</p>
-                  <p className="mt-1 max-w-sm text-[1rem] text-stage-ink-2">{summary.error?.message}</p>
+                  <p className="mt-1 max-w-sm text-[1rem] text-stage-ink-2">{smartQuotes(summary.error?.message ?? '')}</p>
                 </div>
                 <Button tone="stage" icon="refresh" onClick={() => engine.restart()}>
                   Try the camera again

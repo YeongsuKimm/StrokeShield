@@ -3,8 +3,13 @@
 import type { ReactNode } from 'react'
 import { Icon, type IconName } from './Icon'
 
-export function MicroLabel({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <p className={`label-micro text-ink-3 ${className}`}>{children}</p>
+/** `level` makes it a heading for assistive tech without changing how it looks (it stays a styled <p>). */
+export function MicroLabel({ children, className = '', level }: { children: ReactNode; className?: string; level?: 2 | 3 }) {
+  return (
+    <p className={`label-micro text-ink-3 ${className}`} role={level ? 'heading' : undefined} aria-level={level}>
+      {children}
+    </p>
+  )
 }
 
 /** The rule + label that opens every section of the info page (mirrors the storyboard's hand-drawn underlines). */
@@ -24,7 +29,7 @@ export function SectionHead({ index, title, lede }: { index: string; title: stri
 export type PillTone = 'neutral' | 'ok' | 'caution' | 'danger' | 'accent'
 
 const PILL: Record<PillTone, string> = {
-  neutral: 'bg-sunken text-ink-2 border-line',
+  neutral: 'bg-sunken text-ink-2 border-transparent',
   ok: 'bg-ok-wash text-ok border-ok/25',
   caution: 'bg-caution-wash text-caution border-caution/25',
   danger: 'bg-danger-wash text-danger border-danger/25',
@@ -33,7 +38,7 @@ const PILL: Record<PillTone, string> = {
 
 export function Pill({ tone = 'neutral', icon, children }: { tone?: PillTone; icon?: IconName; children: ReactNode }) {
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 label-micro ${PILL[tone]}`}>
+    <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[0.8125rem] font-semibold ${PILL[tone]}`}>
       {icon && <Icon name={icon} size={13} />}
       {children}
     </span>
@@ -57,7 +62,7 @@ export function Meter({
   const fill = { neutral: 'bg-ink-3', ok: 'bg-ok', caution: 'bg-caution', danger: 'bg-danger', accent: 'bg-accent' }[tone]
   return (
     <div
-      className={`relative w-full overflow-hidden rounded-full bg-sunken ${height}`}
+      className={`relative w-full overflow-hidden rounded-full bg-sunken forced-colors:border forced-colors:border-[CanvasText] ${height}`}
       role="meter"
       aria-valuenow={Math.round(value * 100)}
       aria-valuemin={0}
@@ -65,7 +70,7 @@ export function Meter({
       aria-label={label}
     >
       <div
-        className={`h-full rounded-full transition-[width] duration-500 ease-out ${fill}`}
+        className={`h-full rounded-full transition-[width] duration-500 ease-out forced-colors:bg-[Highlight] ${fill}`}
         style={{ width: `${Math.max(0, Math.min(1, value)) * 100}%` }}
       />
       {mark !== undefined && (
@@ -119,6 +124,7 @@ export function Ring({
           fontSize={size * 0.36}
           fontWeight={600}
           fontFamily="var(--font-sans)"
+          style={{ fontVariantNumeric: 'tabular-nums' }}
         >
           {label}
         </text>

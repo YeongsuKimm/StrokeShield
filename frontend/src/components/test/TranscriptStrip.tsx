@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useSession } from '../../lib/session/store'
+import { smartQuotes } from '../../lib/typography'
 import { Icon } from '../ui/Icon'
 
 /**
@@ -23,7 +24,7 @@ export function TranscriptStrip() {
   return (
     <section aria-label="Assistant transcript" className="mt-4">
       <div className="mb-2 flex items-center gap-2">
-        <span className={`size-2 rounded-full ${connected ? 'bg-ok breathe' : 'bg-line-strong'}`} aria-hidden />
+        <span className={`size-2 rounded-full ${connected ? 'bg-ok breathe' : 'bg-ink-3'}`} aria-hidden />
         <p className="label-micro text-ink-3">{connected ? 'Assistant · live' : 'Assistant · not connected'}</p>
       </div>
 
@@ -31,6 +32,10 @@ export function TranscriptStrip() {
         ref={boxRef}
         role="log"
         aria-live="polite"
+        // A scrollable box must be reachable by keyboard so older captions can be read; it also needs its own name.
+        // oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+        tabIndex={0}
+        aria-label="Conversation so far"
         className="max-h-24 overflow-y-auto rounded-[var(--radius-control)] border border-line bg-surface px-4 py-3"
       >
         {transcript.length === 0 ? (
@@ -43,7 +48,7 @@ export function TranscriptStrip() {
             {transcript.map((line) => (
               <p key={line.id} className="text-[1rem] leading-snug">
                 <span className="label-micro mr-2 text-ink-3">{line.speaker === 'agent' ? 'Assistant' : 'You'}</span>
-                <span className={line.speaker === 'agent' ? 'text-ink' : 'text-ink-2'}>{line.text}</span>
+                <span className={line.speaker === 'agent' ? 'text-ink' : 'text-ink-2'}>{smartQuotes(line.text)}</span>
               </p>
             ))}
           </div>
