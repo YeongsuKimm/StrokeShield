@@ -175,7 +175,7 @@ def quiet_healthy(**kw) -> SynthSpeech:
 
 def borderline(**kw) -> SynthSpeech:
     """Slightly slow, one noticeable pause, a bit flat and a bit rough."""
-    return synth_speech(**{**dict(syllable_rate=3.4, pauses={3: 0.6}, f0_sd_st=1.9, jitter=0.010, shimmer=0.04,
+    return synth_speech(**{**dict(syllable_rate=2.4, pauses={3: 0.8}, f0_sd_st=1.2, jitter=0.010, shimmer=0.04,
                                   breathiness=0.12, snr_db=32.0, seed=4), **kw})
 
 

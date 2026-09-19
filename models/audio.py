@@ -82,7 +82,9 @@ def component_scores(m: Mapping[str, float]) -> dict[str, float]:
         out["pausing"] = _mean(pause)
     if "f0_sd_semitones" in m:
         out["prosody"] = ramp(m["f0_sd_semitones"], *R["f0_sd_semitones"])
-    vq = [ramp(m[k], *R[k]) for k in ("jitter_rap", "shimmer_apq3", "hnr_db") if k in m]
+    # HNR is useful to report, but consonants and natural unvoiced intervals make whole-utterance HNR too low for
+    # sustained-vowel clinical thresholds. It false-alarmed on the first clean real-mic fixed-phrase recording.
+    vq = [ramp(m[k], *R[k]) for k in ("jitter_rap", "shimmer_apq3") if k in m]
     if vq:
         out["voice_quality"] = _mean(vq)
     return out
@@ -120,7 +122,7 @@ def _flags_for(components: Mapping[str, float], metrics: Mapping[str, float], ba
         flags.append(f"transcript mismatch (CER {metrics['cer']:.2f})")
     if components.get("articulation", 0) >= t:
         flags.append(f"unclear sounds ({', '.join(bad_phones[:3])})" if bad_phones else "unclear sounds")
-    if components.get("rate", 0) >= 0.75:
+    if components.get("rate", 0) >= 0.6:
         flags.append("very slow articulation")
     elif components.get("rate", 0) >= t:
         flags.append("slow articulation")
