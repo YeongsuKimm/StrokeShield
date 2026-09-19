@@ -29,9 +29,8 @@ WEIGHTS = {
 # (normal, abnormal) ramps; ramp() semantics: 0 at first value, 1 at second, linear between, clamped. Works when hi < lo.
 RAMPS = {
     "cer": (0.10, 0.40),  # character error rate, 0..1
-    "per": (0.15, 0.50),  # phoneme error rate, 0..1 (articulation component)
-    "per_intelligibility": (0.20, 0.55),  # PER used as intelligibility proxy when there is no transcript; a bit lenient
-    "gop_mean": (-0.7, -2.5),  # mean per-phone log-posterior (natural log, <= 0), LOW is bad. Scale of agent B's GOP UNVERIFIED
+    "per": (0.25, 0.60),  # phoneme error rate, 0..1 (articulation component). Spec start was 0.15->0.50, but the real model gives 0.09-0.28 on CORRECT TTS speech, so normal speakers must not be penalised
+    "gop_mean": (-1.5, -4.5),  # mean per-phone ln-posterior in [-10, 0] (models/phoneme.py), LOW is bad; correct TTS speech measured -0.7..-1.5, mumbled -5..-6
     "articulation_rate": (4.0, 2.2),  # syllables/sec, LOW is bad
     "longest_pause_s": (0.4, 1.2),  # seconds
     "pause_ratio": (0.2, 0.5),  # fraction of utterance
@@ -52,7 +51,7 @@ RAMPS = {
 SEVERITY_MAP = (0.10, 0.60)  # weighted-sum units (0..1)
 
 # Stretch: wav2vec2 phoneme scoring (docs/spec/03-speech.md). Off unless PHONEME_SCORING=true AND torch is installed.
-PHONEME_MODEL = "facebook/wav2vec2-xlsr-53-espeak-cv-ft"  # verify current model id / license before use
+PHONEME_MODEL = "mostafaashahin/wav2vec2-base-timit-phoneme-arpa-39"  # 378 MB, ARPAbet-39; no declared licence (base model Apache-2.0). Override with env PHONEME_MODEL_ID. Real model id lives in models/phoneme.py
 
 # ---------------------------------------------------------------------------------------------------------
 # Quality gates (QC). Failing any of these -> needs_retry with a spoken-style reason.

@@ -101,7 +101,7 @@ Errors: JSON `{error: string}` with proper status; frontend shows retry/fallback
 See `.env.example`. Backend reads via `python-dotenv`; frontend only gets `VITE_API_BASE_URL` and (if agent is public) `VITE_ELEVENLABS_AGENT_ID`.
 
 ## Optional ML dependencies
-Heavy packages (torch, transformers) go in a separate `requirements-ml.txt` (to be created by whoever builds phoneme scoring), NOT in `requirements.txt`, so the Railway image and teammates' installs stay light. Code must import them lazily and fall back gracefully when they're missing.
+Heavy packages (torch, transformers) go in a separate `requirements-ml.txt` (exists: PyTorch CPU + transformers, ~1 GB, laptop only), NOT in `requirements.txt`, so the Railway image and teammates' installs stay light. Code must import them lazily and fall back gracefully when they're missing.
 
 ## Deployment
 - Frontend → Vercel (`frontend/` root, build `pnpm build`, env `VITE_API_BASE_URL`).

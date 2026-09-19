@@ -66,10 +66,8 @@ def component_scores(m: Mapping[str, float]) -> dict[str, float]:
     """Each available component as 0..1 (0 = normal, 1 = clearly abnormal). Missing inputs -> component omitted."""
     R = C.RAMPS
     out: dict[str, float] = {}
-    if "cer" in m:
+    if "cer" in m:  # intelligibility comes ONLY from a real transcript (PER is scored once, in articulation, below)
         out["intelligibility"] = ramp(m["cer"], *R["cer"])
-    elif "per" in m:
-        out["intelligibility"] = ramp(m["per"], *R["per_intelligibility"])
     art = []
     if "per" in m:
         art.append(ramp(m["per"], *R["per"]))

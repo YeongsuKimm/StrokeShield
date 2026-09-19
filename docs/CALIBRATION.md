@@ -45,7 +45,15 @@ It also shows which runs scored differently now than when recorded (after you ch
 4. High retry rate → the capture gates are too strict for real cameras (min frames, yaw, face width, brightness); loosen them, or fix how the runner feeds frames.
 5. When the team agrees on new values: update the config, spec 02 (as-built values) and `docs/STATUS.md`, and say what data the values are based on (e.g. "12 people, 248 runs").
 
+## Speech calibration (same loop, audio instead of landmarks)
+1. Open **http://localhost:5173/?record=1**. A "speech scenarios" panel appears next to the vision one. Pick a scenario, read the instruction, press **Run speech test**, and say the sentence. Each run downloads `<name>__<scenario>__<time>.wav` plus a matching `.json` label file.
+   - Healthy: `speech-normal`, `speech-fast-casual`, `speech-quiet-tired`. Mimicked impairment: `speech-mimic-slurred` (slow, mushy consonants), `speech-mimic-slow-pauses`, `speech-mimic-flat-monotone`.
+   - Use a real microphone in a normal room; note headset vs laptop mic, background noise, accents. ≥ 8 people, ≥ 2 runs per scenario. Non-native speakers and noisy rooms matter: they are where false alarms will come from.
+2. Move the files into **`recordings/speech/`** (repo root, gitignored; audio of real people is personal data: don't commit or post it; consented clips may be committed to `tests/fixtures/audio/{normal,slurred}/`).
+3. Run `python -m models.calibrate` (add `--csv out.csv` for a spreadsheet). Set `PHONEME_SCORING=true` first to include phoneme scores (needs `requirements-ml.txt`, see spec 03). Read the per-feature table first: it shows which measurements actually separate healthy from impaired speech; a `WRONG WAY` marker means a ramp in `models/config.py` points the wrong way.
+4. Tune `models/config.py`, re-run (seconds), keep `pytest` green, record the new values and what data they're based on in spec 03 and STATUS.md.
+Remember the noisy-OR: speech has max weight 0.5 and acoustic-only confidence tops out at 0.6, so speech alone never alerts; it corroborates. What matters most is that healthy speakers stay ≤ 0.15.
+
 ## Not covered yet
 - **Eyes:** recording schema and replay support `eyes`, but `runEyes` isn't wired, so there are no eyes scenarios yet. Add them to `SCENARIOS` in `lib/calibration/recording.ts` when it is.
-- **Speech:** audio clips need the recorder (spec 03) and a Python replay (`python -m models.calibrate`, spec 03). Use the same idea: normal vs simulated-slurred clips in `tests/fixtures/audio/`.
 - **End to end:** calibration checks the scoring only. Still do full rehearsals of the demo (spec 07).

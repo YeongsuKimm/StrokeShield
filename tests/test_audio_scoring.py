@@ -153,12 +153,13 @@ def test_missing_component_does_not_dilute_or_inflate_severity():
     assert score_metrics({**HEALTHY_METRICS, "articulation_rate": 1.0}).severity < s.severity
 
 
-def test_intelligibility_needs_transcript_or_phoneme_and_articulation_needs_phoneme():
+def test_intelligibility_needs_a_transcript_and_articulation_needs_phoneme_scores():
     assert "intelligibility" not in score_metrics(HEALTHY_METRICS).components
     with_cer = score_metrics({**HEALTHY_METRICS, "cer": 0.4})
     assert with_cer.components["intelligibility"] == 1.0 and "articulation" not in with_cer.components
-    with_per = score_metrics({**HEALTHY_METRICS, "per": 0.5, "gop_mean": -3.0})
-    assert "intelligibility" in with_per.components and with_per.components["articulation"] == 1.0
+    # PER is scored ONCE (articulation); it is deliberately NOT reused as an intelligibility proxy (no double counting)
+    with_per = score_metrics({**HEALTHY_METRICS, "per": 0.7, "gop_mean": -4.5})
+    assert "intelligibility" not in with_per.components and with_per.components["articulation"] == 1.0
     assert with_per.severity > score_metrics(HEALTHY_METRICS).severity
 
 
@@ -408,7 +409,7 @@ def test_phoneme_scores_add_metrics_component_and_raise_confidence(monkeypatch):
 
 def test_bad_phoneme_scores_raise_severity_and_name_the_phones(monkeypatch):
     base = run("healthy")
-    install_fake_phoneme(monkeypatch, phoneme_result(0.6, -3.0, bad=("ah", "s", "t", "k")))
+    install_fake_phoneme(monkeypatch, phoneme_result(0.8, -5.0, bad=("ah", "s", "t", "k")))
     r = run("healthy")
     assert r.severity > base.severity + 0.3
     assert "unclear sounds (ah, s, t)" in r.flags
