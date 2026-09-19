@@ -32,12 +32,13 @@ Routing is `store.route` plus `store.phase` — no router library. `App.tsx` pic
   page itself is never scroll-locked.
 - **Test screens** (`TestScreen` + `SpeechTest` / `EyeTest` / `FaceTest` / `ArmsTest`): progress dots, one big
   instruction, the stage, the assistant transcript strip, the mute warning, and the skip hatch.
-- **Info** (`InfoPage`): process (BE-FAST), why, stats, Q&A + hotlines, team. Reached from the header menu too.
+- **Info** (`InfoPage`): process (BE-FAST), why, stats (digits roll up from zero via `ui/SlotNumber` when scrolled into view), Q&A + hotlines, team (names + Johns Hopkins University). The header logo resets the session and returns home. Reached from the header menu too.
 - **Header menu** (`chrome/SiteHeader` + `ui/DrilldownMenu` + `chrome/menuTree.ts`): a drilldown list. Collapsed it shows
   ONE row, "Learn more" ("Sections" on the info page); opening it reveals the sections, and "The process" (Speech, Eyes,
   Face, Arms, Time) and "Questions & hotlines" (Hotlines, Common questions) drill one level deeper. The clicked row
   stays put and greys into a breadcrumb; click it to step back. Leaves jump to an element id on the info page, so
-  every target needs an id there (`process`, `step-*`, `why`, `stats`, `help`, `hotlines`, `faq`, `team`). Collapses on
+  every target needs an id there (`process`, `step-*`, `why`, `stats`, `help`, `hotlines`, `faq`, `team`). The logo
+  returns to the idle homepage from any phase. Collapses on
   Escape, outside click and after a choice. The component is adapted from **Drilldown Menu by ruixen.ui on 21st.dev**
   (retrieved with `npx @21st-dev/cli get`, not `add`: the CLI's install path runs `shadcn add`, which would init shadcn
   and rewrite `index.css`). New dependency: `framer-motion` (~+159 kB gzipped on the main bundle).
@@ -71,6 +72,7 @@ result screen says and offers.
 - **Type floor:** nothing user-facing is below 13 px. Uppercase micro-labels are 13 px bold; secondary text is 14-15 px;
   body is 16 px+ (raised from an 11 px floor).
 - Icons are inline SVG primitives (`ui/Icon.tsx`), one 24px grid at 1.75 stroke. No icon dependency, no emoji.
+- Cursor: 2x default size, as SVG data-URI cursors (arrow / hand / I-beam; under the 128 px browser cap).
 - Motion is CSS-only (transform/opacity), and `prefers-reduced-motion` disables all of it.
 
 ## UX rules

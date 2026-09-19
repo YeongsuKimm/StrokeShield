@@ -16,7 +16,7 @@ export function HomePage() {
   const steps = testSequence()
 
   return (
-    <div className="relative mx-auto flex min-h-[100dvh] w-full max-w-7xl flex-col justify-center px-4 pb-28 pt-24 sm:px-6 sm:pb-24 sm:pt-28 [@media(max-height:800px)]:sm:pb-20 [@media(max-height:800px)]:sm:pt-20">
+    <div style={{ transform: `translateY(${-pull * 28}px)`, opacity: 1 - pull * 0.25, transition: pull === 0 ? 'transform 300ms ease-out, opacity 300ms ease-out' : 'none' }} className="relative mx-auto flex min-h-[100dvh] w-full max-w-7xl flex-col justify-center px-4 pb-28 pt-24 sm:px-6 sm:pb-24 sm:pt-28 [@media(max-height:800px)]:sm:pb-20 [@media(max-height:800px)]:sm:pt-20">
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,19rem)_minmax(0,1fr)] lg:gap-10">
         <div className="rise order-2 lg:order-1 lg:pt-6" style={{ '--i': 1 } as CSSProperties}>
           <PermissionsCard />

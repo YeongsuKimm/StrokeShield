@@ -1,4 +1,5 @@
 import { useSession } from '../../lib/session/store'
+import { SlotNumber } from '../ui/SlotNumber'
 import { useScrollHandoff } from '../../lib/useScrollHandoff'
 import { Button } from '../ui/Button'
 import { Icon } from '../ui/Icon'
@@ -16,7 +17,7 @@ export function InfoPage() {
   const pull = useScrollHandoff(true, 'up', () => setRoute('home'))
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 pb-32 pt-24 sm:px-6 sm:pt-28">
+    <div style={{ transform: `translateY(${pull * 28}px)`, opacity: 1 - pull * 0.25, transition: pull === 0 ? 'transform 300ms ease-out, opacity 300ms ease-out' : 'none' }} className="mx-auto w-full max-w-5xl px-4 pb-32 pt-24 sm:px-6 sm:pt-28">
       {/* Progress of the scroll-up hand-off: a bar across the top edge, plus a label once it is clearly under way. */}
       <div className="pointer-events-none fixed inset-x-0 top-0 z-40" aria-hidden>
         <div className="h-1.5 bg-accent transition-[width] duration-100 ease-out" style={{ width: `${pull * 100}%` }} />
@@ -103,7 +104,7 @@ export function InfoPage() {
           {STATS.map((s) => (
             <article key={s.caption} className="bg-surface p-7">
               <p className="flex items-baseline gap-2">
-                <span className="tnum font-serif text-6xl leading-none">{s.figure}</span>
+                <SlotNumber value={s.figure} className="tnum font-serif text-6xl leading-none" />
                 <span className="label-micro text-ink-3">{s.unit}</span>
               </p>
               <p className="mt-4 max-w-[34ch] leading-relaxed text-ink-2">{s.caption}</p>
@@ -159,8 +160,7 @@ export function InfoPage() {
           {TEAM.map((m) => (
             <li key={m.name} className="bg-surface p-7">
               <p className="text-lg font-semibold tracking-tight">{m.name}</p>
-              <p className="label-micro mt-1 text-accent">{m.role}</p>
-              <p className="mt-3 max-w-[38ch] leading-relaxed text-ink-2">{m.focus}</p>
+              <p className="mt-1 text-ink-2">{m.affiliation}</p>
             </li>
           ))}
         </ul>
