@@ -22,3 +22,8 @@ export function assessQc(samples: Float32Array, speechDetected: boolean): Speech
   const clipping = clippingFraction(samples, SPEECH_QC.clipLevel)
   return { peak: p, clipping, level: assessLevel(p, clipping), speechDetected }
 }
+
+/** No speech AND essentially digital silence: the microphone is muted (OS switch, headset button), blocked or dead. */
+export function looksMuted(qc: Pick<SpeechQc, 'peak' | 'speechDetected'>): boolean {
+  return !qc.speechDetected && qc.peak < SPEECH_QC.silentPeak
+}

@@ -33,6 +33,23 @@ describe('createSilenceDetector', () => {
     expect(st.lastVoicedEndS).toBeGreaterThan(3.2) // the second word was captured
   })
 
+  it('does not cut off a hesitant start: a short first burst, a 1.6 s think, then the rest of the sentence', () => {
+    const st = run(cat(room(SR, 0.3), voice(SR, 0.6), room(SR, 1.6), voice(SR, 1.8), room(SR, 3)))
+    expect(st.stop).toBe('silence')
+    expect(st.lastVoicedEndS).toBeGreaterThan(4.0) // the rest of the sentence was captured
+  })
+
+  it('a lone cough followed by silence waits 2 s (not 1.2 s) before giving up', () => {
+    const st = run(cat(room(SR, 0.3), voice(SR, 0.3), room(SR, 4)))
+    expect(st.stop).toBe('silence')
+    expect(st.trailingSilenceS).toBeGreaterThanOrEqual(2 - 1e-6)
+  })
+
+  it('a full-length utterance still stops after the normal 1.2 s of silence', () => {
+    const st = run(cat(room(SR, 0.3), voice(SR, 2.5), room(SR, 3)))
+    expect(st.trailingSilenceS).toBeLessThan(1.3)
+  })
+
   it('never stops before 1.5 s of audio even with a short utterance', () => {
     const vad = createSilenceDetector(SR)
     const sig = cat(room(SR, 0.1), voice(SR, 0.3), room(SR, 3))

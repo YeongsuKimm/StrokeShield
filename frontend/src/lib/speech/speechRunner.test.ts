@@ -75,6 +75,33 @@ describe('createSpeechRunner', () => {
     expect(h.published.at(-1)).toMatchObject({ running: false, stage: 'idle' })
   })
 
+  it('publishes heard=true only once the first audio chunk arrives (so the UI does not ask for speech while the mic is opening)', async () => {
+    const h = harness()
+    h.record.mockImplementation((o) => {
+      expect(h.published.at(-1)).toMatchObject({ stage: 'listening', heard: false })
+      o.onLevel?.(0.01)
+      o.onLevel?.(0.02)
+      return Promise.resolve(recording())
+    })
+    await createSpeechRunner(h.deps).runSpeech()
+    const heardTrue = h.published.filter((p) => (p as { heard?: boolean }).heard === true)
+    expect(heardTrue).toHaveLength(1)
+    expect(h.published.at(-1)).toMatchObject({ running: false, heard: false })
+  })
+
+  it('a muted / dead microphone (pure silence) gets its own message and is not sent to the backend', async () => {
+    const h = harness()
+    h.record.mockResolvedValue(recording({ speechDetected: false, level: 'too-quiet', peak: 0 }))
+    const r = await createSpeechRunner(h.deps).runSpeech()
+    expectRetry(r, SPEECH_HINTS.muted)
+    expect(SPEECH_HINTS.muted).toMatch(/muted|blocked/)
+    expect(h.analyze).not.toHaveBeenCalled()
+    // a quiet room with nobody speaking is NOT reported as muted
+    const quiet = harness()
+    quiet.record.mockResolvedValue(recording({ speechDetected: false, level: 'too-quiet', peak: 0.01 }))
+    expectRetry(await createSpeechRunner(quiet.deps).runSpeech(), SPEECH_HINTS.noSpeech)
+  })
+
   it('no speech: retry, not sent to the backend', async () => {
     const h = harness()
     h.record.mockResolvedValue(recording({ speechDetected: false, level: 'too-quiet' }))
@@ -249,7 +276,7 @@ describe('createSpeechRunner', () => {
       return Promise.resolve(recording())
     })
     await createSpeechRunner(h.deps).runSpeech()
-    expect(h.published).toContainEqual({ level: 0.25 })
+    expect(h.published).toContainEqual({ level: 0.25, heard: true })
   })
 })
 

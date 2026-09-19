@@ -21,11 +21,16 @@ export function SpeechTest() {
   const { runSpeech, running } = useSpeechRunner()
   const stage = useSpeechProgress((s) => s.stage)
   const hint = useSpeechProgress((s) => s.hint)
+  // The first audio chunk arrives a beat after the click (the mic is still opening). Ask for the sentence only once sound is
+  // flowing, or the first word ("You can't...") gets lost.
+  const heard = useSpeechProgress((s) => s.heard)
   const { verdict } = useMic()
 
   const status =
     stage === 'listening'
-      ? 'Listening. Say the sentence now.'
+      ? heard
+        ? 'Listening. Say the sentence now.'
+        : 'Getting the microphone ready…'
       : stage === 'analyzing'
         ? 'Analysing your speech…'
         : verdict.muted
