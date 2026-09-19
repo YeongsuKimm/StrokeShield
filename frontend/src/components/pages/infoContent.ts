@@ -31,7 +31,7 @@ export const INFO_SECTIONS: InfoSection[] = [
   },
   { id: 'stats', nav: 'The numbers', index: '03', title: 'The numbers we built around' },
   { id: 'help', nav: 'Questions & hotlines', index: '04', title: 'Questions, and who to call' },
-  { id: 'team', nav: 'The team', index: '05', title: 'Who built this' },
+  { id: 'team', nav: 'The team', index: '05', title: 'Built by' },
 ]
 
 export interface ProcessStep {
@@ -77,8 +77,7 @@ export const TIME_NOTE = {
   letter: 'T',
   name: 'Time',
   body:
-    'The assistant asks when you were last completely normal. That single answer decides which treatments are still ' +
-    'on the table, so it travels with the alert — in the text message and spoken on the call.',
+    'If the person shows any of these symptoms, even if the symptoms go away, call 911 and get them to the hospital immediately',
 }
 
 export interface Stat {
@@ -123,7 +122,7 @@ export interface Faq {
 export const FAQS: Faq[] = [
   {
     q: 'Is this a diagnosis?',
-    a: 'No. StrokeShield is a hackathon prototype, not a medical device, and it has not been clinically validated. It screens for the signs that emergency dispatchers are trained to ask about, and it errs toward telling you to get help.',
+    a: 'No. StrokeShield is a web project designed for health awareness, not a medical device, and it has not been clinically validated. It screens for the signs that emergency dispatchers are trained to ask about, and it errs toward telling you to get help.',
   },
   {
     q: 'What happens to the video and audio?',
@@ -135,7 +134,7 @@ export const FAQS: Faq[] = [
   },
   {
     q: 'Does it really call an ambulance?',
-    a: 'In this demo the automatic call and text go to one verified demo phone only, never to emergency services. The red button dials your own phone’s emergency number directly, and it is always on screen.',
+    a: 'In this demo the automatic call and text go to one verified demo phone only, never to emergency services. The red button dials your own device’s emergency number directly, and it is always on screen.',
   },
   {
     q: 'What should I do while waiting for help?',

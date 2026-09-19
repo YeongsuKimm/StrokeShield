@@ -259,16 +259,18 @@ describe('default wiring (real stores)', () => {
     expect(useSpeechProgress.getState()).toMatchObject({ running: false, stage: 'idle', hint: r.flags[0] })
   })
 
-  it('a good result advances speech -> arms', async () => {
-    // face and eyes are already done, so arms is the next pending test whatever order / eyes flag is configured
-    // (the UI order is Speech -> Eyes -> Face -> Arms with FEATURES.eyesTest on).
+  it('speech is the LAST test: a good result with the others done moves on to the verdict', async () => {
     useSession.setState({
       phase: 'speech',
-      results: { face: { ...okResult, test: 'face' }, eyes: { ...okResult, test: 'eyes' } },
+      results: {
+        face: { ...okResult, test: 'face' },
+        eyes: { ...okResult, test: 'eyes' },
+        arms: { ...okResult, test: 'arms' },
+      },
     })
     const h = harness()
     const runner = createSpeechRunner({ record: h.record, analyze: h.analyze, onRecorded: h.onRecorded })
     await runner.runSpeech()
-    expect(useSession.getState().phase).toBe('arms')
+    expect(useSession.getState().phase).toBe('clear')
   })
 })

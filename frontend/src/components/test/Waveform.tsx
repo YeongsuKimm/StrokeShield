@@ -1,9 +1,15 @@
 import { useEffect, useRef } from 'react'
 import { micMonitor } from '../../lib/media/micLevel'
+import { useSpeechProgress } from '../../lib/speech/speechProgressStore'
 
 /**
- * Live level meter for the speech check, drawn on a canvas straight from the mic monitor's rolling history —
- * never through React state, so a 60 Hz signal costs no re-renders (docs/spec/06 "Performance").
+ * Live level meter for the speech check, drawn on a canvas — never through React state, so a 60 Hz signal costs no
+ * re-renders (docs/spec/06 "Performance").
+ *
+ * TWO level sources, because either can be missing. The consent-time mic monitor only has a stream if the patient
+ * pressed "Allow" on the home screen this session (a permission the browser already remembered never attaches it), and
+ * the speech recorder opens its OWN stream and reports its level while listening. Using only the monitor left the wave
+ * flat whenever the monitor had no stream. Each frame plots the louder of the two, so it moves whenever either hears you.
  */
 export function Waveform({ active, height = 132 }: { active: boolean; height?: number }) {
   const ref = useRef<HTMLCanvasElement>(null)
@@ -26,8 +32,18 @@ export function Waveform({ active, height = 132 }: { active: boolean; height?: n
     ro.observe(canvas)
     resize()
 
-    const draw = () => {
+    const bars: number[] = new Array(micMonitor.history.length).fill(0)
+    let lastPush = 0
+    const draw = (now: number) => {
       raf = requestAnimationFrame(draw)
+      // Roll the local history at ~30 Hz, mixing both sources (recorder RMS is scaled like the monitor's: x6).
+      if (now - lastPush >= 33) {
+        lastPush = now
+        const fromMonitor = micMonitor.history[micMonitor.history.length - 1] ?? 0
+        const fromRecorder = activeRef.current ? Math.min(1, useSpeechProgress.getState().level * 6) : 0
+        bars.push(Math.max(fromMonitor, fromRecorder))
+        bars.shift()
+      }
       const ctx = canvas.getContext('2d')
       if (!ctx) return
       const dpr = window.devicePixelRatio || 1
@@ -36,7 +52,6 @@ export function Waveform({ active, height = 132 }: { active: boolean; height?: n
       const h = canvas.height / dpr
       ctx.clearRect(0, 0, w, h)
 
-      const bars = micMonitor.history
       const gap = 3
       const barW = Math.max(2, w / bars.length - gap)
       const mid = h / 2

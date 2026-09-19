@@ -14,7 +14,7 @@ export const FEATURES = {
 // BACK once for the arms test (both hands must be in frame). Change here if the order needs to change.
 // Order follows the UX storyboard: read aloud -> follow the dot -> smile -> step back -> hold arms out.
 export const testSequence = (): TestName[] =>
-  FEATURES.eyesTest ? ['speech', 'eyes', 'face', 'arms'] : ['speech', 'face', 'arms']
+  FEATURES.eyesTest ? ['eyes', 'face', 'arms', 'speech'] : ['face', 'arms', 'speech']
 
 // Where the patient should be for each test.
 export const FRAMING: Record<TestName, 'close' | 'far'> = { face: 'close', eyes: 'close', speech: 'close', arms: 'far' }

@@ -26,23 +26,23 @@ describe('session state machine', () => {
     FEATURES.eyesTest = eyesDefault
   })
 
-  it('walks speech -> face -> arms (one step back, at the end) -> clear for healthy results', () => {
+  it('walks face -> arms (one step back) -> speech (last) -> clear for healthy results', () => {
     s().beginTests()
-    expect(s().phase).toBe('speech')
-    s().completeTest(result('speech', 0.05))
     expect(s().phase).toBe('face')
     s().completeTest(result('face', 0.05))
     expect(s().phase).toBe('arms')
     s().completeTest(result('arms', 0.05))
+    expect(s().phase).toBe('speech')
+    s().completeTest(result('speech', 0.05))
     expect(s().phase).toBe('clear')
   })
 
   it('does not score until every test has a usable result, whatever order they finish in', () => {
     s().beginTests()
-    s().completeTest(result('arms', 0.9))
-    expect(s().phase).toBe('speech')
     s().completeTest(result('speech', 0.9))
     expect(s().phase).toBe('face')
+    s().completeTest(result('face', 0.9))
+    expect(s().phase).toBe('arms')
   })
 
   it('goes to countdown when risk crosses the threshold', () => {
@@ -56,39 +56,39 @@ describe('session state machine', () => {
 
   it('stays on the same phase for a retry result', () => {
     s().beginTests()
-    s().completeTest(result('speech', 0, { needsRetry: true, confidence: 0 }))
-    expect(s().phase).toBe('speech')
+    s().completeTest(result('face', 0, { needsRetry: true, confidence: 0 }))
+    expect(s().phase).toBe('face')
   })
 
-  it('inserts the eyes test between speech and the smile (all three are close to the screen)', () => {
+  it('starts with the eyes test when enabled: eyes -> face -> arms -> speech', () => {
     FEATURES.eyesTest = true
     s().beginTests()
-    expect(s().phase).toBe('speech')
-    s().completeTest(result('speech', 0.05))
     expect(s().phase).toBe('eyes')
     s().completeTest(result('eyes', 0.05))
     expect(s().phase).toBe('face')
     s().completeTest(result('face', 0.05))
     expect(s().phase).toBe('arms')
     s().completeTest(result('arms', 0.05))
+    expect(s().phase).toBe('speech')
+    s().completeTest(result('speech', 0.05))
     expect(s().phase).toBe('clear')
   })
 
   describe('skipping', () => {
     it('moves past a test the patient could not complete', () => {
       s().beginTests()
-      s().skipTest('speech')
-      expect(s().phase).toBe('face')
-      expect(s().skipped).toEqual(['speech'])
+      s().skipTest('face')
+      expect(s().phase).toBe('arms')
+      expect(s().skipped).toEqual(['face'])
     })
 
     it('does not come back to a skipped test after a later retry', () => {
       s().beginTests()
-      s().skipTest('speech')
-      s().completeTest(result('face', 0, { needsRetry: true, confidence: 0 }))
-      expect(s().phase).toBe('face')
-      s().completeTest(result('face', 0.05))
+      s().skipTest('face')
+      s().completeTest(result('arms', 0, { needsRetry: true, confidence: 0 }))
       expect(s().phase).toBe('arms')
+      s().completeTest(result('arms', 0.05))
+      expect(s().phase).toBe('speech')
     })
 
     it('still scores the tests that did run, and can trigger on them alone', () => {

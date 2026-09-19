@@ -45,6 +45,7 @@ Status values: `not started` · `in progress` · `blocked` · `done (untested li
 - All thresholds/weights are uncalibrated (see spec files). Calibrate on teammate fixtures around hour ~20.
 
 ## Recent changes (newest first)
+- 2026-09-19 — frontend/ui — **test order is now Eyes → Face → Arms → Speech** (speech last; `testSequence()`, store + speechRunner tests updated; speech screen tells the patient to move back close). **Waveform fix:** the wave only read the consent-time mic monitor, which has no stream unless "Allow" was pressed this session, so it stayed flat while the recorder heard you; it now also plots the recorder's level (`useSpeechProgress.level`), whichever is louder.
 - 2026-09-19 — voice agent — merged the signed-URL backend, `useAgent` conversation hook, transcripts, and real speech/vision client tools while preserving the production speech recorder; live credentials and end-to-end behavior remain unverified.
 - 2026-09-19 — frontend/ui — resolved the duplicate `goHome` declaration introduced when the latest logo-navigation commits met on `main`; the logo keeps the full cancel/reset behavior and the merged frontend compiles again.
 - 2026-09-19 — vision/frontend — fixed camera checks becoming idle after bad framing or a pre-smile: face, eyes and arms now retry once automatically, then show a persistent **Try again** action; framing times out at 12 s so recovery begins before Skip appears.
