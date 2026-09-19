@@ -25,3 +25,7 @@ dist-ssr
 
 # MediaPipe wasm runtime is copied from node_modules by scripts/copy-mediapipe-wasm.mjs (never committed)
 public/mediapipe-wasm
+
+# Personal calibration recordings (landmark data of real people)
+recordings/*
+!recordings/README.md

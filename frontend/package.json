@@ -13,7 +13,8 @@
     "typecheck": "tsc -p tsconfig.app.json --noEmit",
     "test": "vitest run",
     "postinstall": "node scripts/copy-mediapipe-wasm.mjs",
-    "fetch-models": "node scripts/fetch-models.mjs"
+    "fetch-models": "node scripts/fetch-models.mjs",
+    "calibrate": "vitest run --config vitest.calibrate.config.ts"
   },
   "dependencies": {
     "@elevenlabs/react": "^1.15.2",

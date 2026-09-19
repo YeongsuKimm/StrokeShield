@@ -9,6 +9,7 @@
 // useSession.completeTest. Calling the same run twice returns the in-flight promise; a different run cancels the first.
 //
 // React entry point: `useTestRunner()` returns the same functions plus `running` for button state.
+import { recordRun } from '../calibration/recorder'
 import { useCaptureProgress, type RunnableTest } from './progressStore'
 import { useSession } from '../session/store'
 import type { TestResult } from '../contracts'
@@ -49,8 +50,17 @@ export interface RunnerDeps {
 
 const defaultDeps = (): RunnerDeps => ({
   source: getVisionEngine,
-  analyzeFace: analyzeFaceAdapter,
-  analyzeArms: analyzeArmsAdapter,
+  // Wrapped so `?record=1` can save the exact analyzer inputs (lib/calibration); recordRun is a no-op otherwise.
+  analyzeFace: (neutral, smile) => {
+    const result = analyzeFaceAdapter(neutral, smile)
+    recordRun({ kind: 'face', neutral, smile }, result)
+    return result
+  },
+  analyzeArms: (frames, aspectRatio) => {
+    const result = analyzeArmsAdapter(frames, aspectRatio)
+    recordRun({ kind: 'arms', frames, aspectRatio }, result)
+    return result
+  },
   completeTest: (r) => useSession.getState().completeTest(r),
   setHint: (h) => useSession.getState().setHint(h),
   publish: (running, p) => useCaptureProgress.getState().set(running, p),

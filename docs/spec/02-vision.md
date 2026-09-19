@@ -20,6 +20,9 @@ The three tests are built independently but feed ONE noisy-OR risk score (spec 0
 - **Config:** each test keeps thresholds in one exported const (`FACE_CONFIG`, `ARMS_CONFIG`, `EYES_CONFIG`) with a unit comment per value, all UNCALIBRATED until tuned on teammate recordings. Face-width confidence uses the same scale in face and eyes (0.12 → 0, 0.20 → 1 of frame width).
 - **Contract for the risk score:** eyes has max weight 0.3 (corroborates, can't alert alone); face and arms 0.6.
 
+## Calibration workflow
+Thresholds are tuned by **record → replay → tune**: `?record=1` saves the exact analyzer inputs of live runs (labelled with scenario/expected side), `pnpm calibrate` replays them offline against the anchors above and prints false alarms, misses, wrong sides and retry rate. Full guide: [../CALIBRATION.md](../CALIBRATION.md). Code: `frontend/src/lib/calibration/`.
+
 ## Positioning: close for the face, back for the arms
 The face needs to fill enough of the frame for reliable landmarks; the arms test needs the whole upper body **and both hands** in frame. One camera can't do both, so the session is ordered **Face → (Eyes) → Speech → Arms** (`testSequence()` in `config.ts`): the patient starts close to the screen (~50–70 cm / arm's length; better landmarks, and the mic is close for speech), then steps back **once** (~2 m / 6 ft) for the arms.
 

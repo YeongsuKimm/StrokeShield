@@ -3,6 +3,7 @@ import { CountdownModal } from './components/CountdownModal'
 import { CameraView } from './components/CameraView'
 import { Dashboard } from './components/Dashboard'
 import { DemoPanel } from './components/DemoPanel'
+import { RecordPanel } from './components/RecordPanel'
 import { api } from './lib/api'
 import type { HealthResponse } from './lib/contracts'
 import { useSession } from './lib/session/store'
@@ -76,6 +77,7 @@ export default function App() {
 
       {s.phase === 'countdown' && <CountdownModal />}
       {s.demoEnabled && <DemoPanel />}
+      <RecordPanel />
     </main>
   )
 }

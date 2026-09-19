@@ -81,5 +81,8 @@ The vision tests assume which side of the face/body is the patient's left/right;
 4. Use the **Run face test** / **Run arm test** buttons and check the results and captions make sense (step back for arms; ~2 m).
 Report what you found in chat and record any flag you flipped in `docs/STATUS.md`.
 
+## 9. Help calibrate (a few minutes each, whole team)
+The tests' thresholds are guesses until tuned on real people. Record ~20 short runs following [CALIBRATION.md](CALIBRATION.md) (`?record=1`), drop the files in `frontend/recordings/`, and run `pnpm calibrate` to see how the scoring does.
+
 ## Map of the docs
-[STATUS.md](STATUS.md) live board · [spec/00-overview.md](spec/00-overview.md) scope and decisions · [spec/01-architecture.md](spec/01-architecture.md) contracts and APIs · [spec/02-vision.md](spec/02-vision.md) · [spec/03-speech.md](spec/03-speech.md) · [spec/04-voice-agent.md](spec/04-voice-agent.md) · [spec/05-risk-and-alerts.md](spec/05-risk-and-alerts.md) · [spec/06-frontend-ux.md](spec/06-frontend-ux.md) · [spec/07-workflow.md](spec/07-workflow.md) timeline, demo script
+[STATUS.md](STATUS.md) live board · [CALIBRATION.md](CALIBRATION.md) recording + tuning · [spec/00-overview.md](spec/00-overview.md) scope and decisions · [spec/01-architecture.md](spec/01-architecture.md) contracts and APIs · [spec/02-vision.md](spec/02-vision.md) · [spec/03-speech.md](spec/03-speech.md) · [spec/04-voice-agent.md](spec/04-voice-agent.md) · [spec/05-risk-and-alerts.md](spec/05-risk-and-alerts.md) · [spec/06-frontend-ux.md](spec/06-frontend-ux.md) · [spec/07-workflow.md](spec/07-workflow.md) timeline, demo script
