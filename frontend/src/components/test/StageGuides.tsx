@@ -13,7 +13,7 @@ import type { ReactNode } from 'react'
 
 type GuideTone = 'waiting' | 'ok'
 
-const STROKE: Record<GuideTone, string> = { waiting: 'rgba(255,255,255,0.8)', ok: 'var(--color-ok)' }
+const STROKE: Record<GuideTone, string> = { waiting: 'rgba(255,255,255,0.8)', ok: 'var(--color-ok-stage)' }
 
 /** Viewfinder corner ticks around a box given in percentages of the stage. */
 function Ticks({ inset, color }: { inset: { x: number; y: number }; color: string }) {
@@ -38,10 +38,14 @@ function Ticks({ inset, color }: { inset: { x: number; y: number }; color: strin
 }
 
 function Layer({ children, label }: { children: ReactNode; label: string }) {
+  // The drawing is decorative (aria-hidden); the same words are available as text for screen readers.
   return (
-    <div className="pointer-events-none absolute inset-0" role="img" aria-label={label}>
-      {children}
-    </div>
+    <>
+      <div className="pointer-events-none absolute inset-0" aria-hidden>
+        {children}
+      </div>
+      <p className="sr-only">{label}</p>
+    </>
   )
 }
 

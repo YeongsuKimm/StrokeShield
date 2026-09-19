@@ -36,7 +36,12 @@ export function SiteHeader() {
 
   useEffect(() => {
     if (!open) return
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && collapse()
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      collapse()
+      // Collapsing remounts the menu, which would drop keyboard focus on the page body: put it back on the menu button.
+      requestAnimationFrame(() => wrapRef.current?.querySelector('button')?.focus())
+    }
     const onDown = (e: PointerEvent) => {
       if (!wrapRef.current?.contains(e.target as Node)) collapse()
     }
@@ -83,14 +88,17 @@ export function SiteHeader() {
   )
 
   return (
-    <header className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-start justify-between gap-4 p-5 sm:p-7">
+    <header className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-start justify-between gap-3 p-4 sm:gap-4 sm:p-7">
       <button
         type="button"
         onClick={goHome}
-        className="pointer-events-auto flex items-center gap-2.5 text-ink transition-opacity hover:opacity-70"
+        className="pointer-events-auto flex min-h-11 items-center gap-2.5 text-ink transition-opacity hover:opacity-70"
       >
-        <BrandMark />
-        <span className="font-serif text-2xl leading-none">StrokeShield</span>
+        {/* The mark is dropped on the narrowest phones so brand + menu fit a 320 px screen without sideways scrolling. */}
+        <span className="hidden min-[24rem]:block">
+          <BrandMark />
+        </span>
+        <span className="font-serif text-xl leading-none sm:text-2xl">StrokeShield</span>
         <span className="sr-only">Back to the start</span>
       </button>
 

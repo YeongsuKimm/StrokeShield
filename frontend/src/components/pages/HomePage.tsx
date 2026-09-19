@@ -1,4 +1,5 @@
-import type { CSSProperties } from 'react'
+import { useRef, type CSSProperties } from 'react'
+import { useFocusHeading } from '../../lib/a11y/useA11y'
 import { testSequence } from '../../lib/config'
 import { useSession } from '../../lib/session/store'
 import { useScrollHandoff } from '../../lib/useScrollHandoff'
@@ -18,6 +19,9 @@ export function HomePage() {
   // Only while idle: once a check has started, scrolling must never carry the patient off to the info page.
   const pull = useScrollHandoff(phase === 'idle', 'down', () => setRoute('info'))
   const steps = testSequence()
+  // Coming back here (the logo, or a finished check) lands on the heading; not on the very first page load.
+  const headingRef = useRef<HTMLHeadingElement>(null)
+  useFocusHeading(headingRef)
 
   return (
     <div style={{ transform: `translateY(${-pull * 28}px)`, opacity: 1 - pull * 0.25, transition: pull === 0 ? 'transform 300ms ease-out, opacity 300ms ease-out' : 'none' }} className="relative mx-auto flex min-h-[100dvh] w-full max-w-7xl flex-col justify-center px-4 pb-28 pt-24 sm:px-6 sm:pb-24 sm:pt-28 [@media(max-height:800px)]:sm:pb-20 [@media(max-height:800px)]:sm:pt-20">
@@ -46,7 +50,7 @@ export function HomePage() {
         >
           <MicroLabel>BE-FAST guide</MicroLabel>
 
-          <h1 className="mt-4 text-balance text-4xl font-semibold leading-[1.05] tracking-tight sm:text-6xl">
+          <h1 ref={headingRef} tabIndex={-1} className="mt-4 text-balance text-4xl outline-none font-semibold leading-[1.05] tracking-tight sm:text-6xl">
             A guided BE-FAST check, in about two minutes.
           </h1>
 
@@ -56,7 +60,7 @@ export function HomePage() {
           </p>
 
           <div className="mt-8 flex flex-wrap items-center gap-3">
-            <Button size="xl" icon="arrowRight" onClick={start} disabled={!consented}>
+            <Button size="xl" icon="arrowRight" onClick={start} disabled={!consented} aria-describedby={consented ? undefined : 'start-hint'}>
               Start the test
             </Button>
             <Button size="xl" tone="quiet" onClick={() => setRoute('info')}>
@@ -64,7 +68,7 @@ export function HomePage() {
             </Button>
           </div>
 
-          {!consented && <p className="mt-3 text-[0.9375rem] text-ink-3">Read and tick the consent box first.</p>}
+          {!consented && <p id="start-hint" className="mt-3 text-[0.9375rem] text-ink-3">Read and tick the consent box first.</p>}
 
           <ol className="mt-10 flex flex-wrap items-center gap-x-2 gap-y-3 border-t border-line pt-6">
             {steps.map((t, i) => (

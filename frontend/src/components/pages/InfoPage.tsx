@@ -1,3 +1,5 @@
+import { useRef } from 'react'
+import { useFocusHeading } from '../../lib/a11y/useA11y'
 import { useSession } from '../../lib/session/store'
 import { speechRunner } from '../../lib/speech/speechRunner'
 import { testRunner } from '../../lib/vision/useTestRunner'
@@ -14,6 +16,8 @@ const section = (id: string) => INFO_SECTIONS.find((s) => s.id === id)!
 /** The long scrollable document behind the home screen: what the checks are, why they matter, who to call. */
 export function InfoPage() {
   const setRoute = useSession((s) => s.setRoute)
+  const headingRef = useRef<HTMLHeadingElement>(null)
+  useFocusHeading(headingRef)
   const beginTests = useSession((s) => s.beginTests)
   // "Start the test" here means a NEW check. Without the reset, results, skips and any alert status from an earlier
   // run in this tab (reached via "Stroke resources" on the result screen) would carry into the new one.
@@ -38,6 +42,11 @@ export function InfoPage() {
         <div className="h-1.5 bg-accent transition-[width] duration-100 ease-out" style={{ width: `${pull * 100}%` }} />
       </div>
     <div style={{ transform: `translateY(${pull * 28}px)`, opacity: 1 - pull * 0.25, transition: pull === 0 ? 'transform 300ms ease-out, opacity 300ms ease-out' : 'none' }} className="mx-auto w-full max-w-5xl px-4 pb-32 pt-24 sm:px-6 sm:pt-28">
+
+      {/* The page's h1: the visible section titles below are h2s. Read out (and focused) when the page opens. */}
+      <h1 ref={headingRef} tabIndex={-1} className="sr-only">
+        How the BE-FAST check works, and who to call
+      </h1>
 
       <Button tone="quiet" icon="arrowDown" className="mb-12 [&>svg]:rotate-180" onClick={() => setRoute('home')}>
         Back to the check

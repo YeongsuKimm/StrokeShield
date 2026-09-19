@@ -128,7 +128,7 @@ export function PermissionsCard() {
       </ul>
 
       {/* Explicit, unchecked by default. Unticking withdraws consent and clears everything, so it is revocable. */}
-      <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-[var(--radius-control)] border border-line-strong p-3">
+      <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-[var(--radius-control)] border border-control-edge p-3">
         <input
           type="checkbox"
           checked={consented}
@@ -181,7 +181,7 @@ export function PermissionsCard() {
                 {again && (
                   <Button
                     tone="quiet"
-                    size="sm"
+                    size="md"
                     className="mt-2"
                     onClick={() => void grant(key)}
                     disabled={busy !== null || !consented || insecure}

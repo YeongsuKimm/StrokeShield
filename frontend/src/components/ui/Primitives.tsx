@@ -3,8 +3,13 @@
 import type { ReactNode } from 'react'
 import { Icon, type IconName } from './Icon'
 
-export function MicroLabel({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <p className={`label-micro text-ink-3 ${className}`}>{children}</p>
+/** `level` makes it a heading for assistive tech without changing how it looks (it stays a styled <p>). */
+export function MicroLabel({ children, className = '', level }: { children: ReactNode; className?: string; level?: 2 | 3 }) {
+  return (
+    <p className={`label-micro text-ink-3 ${className}`} role={level ? 'heading' : undefined} aria-level={level}>
+      {children}
+    </p>
+  )
 }
 
 /** The rule + label that opens every section of the info page (mirrors the storyboard's hand-drawn underlines). */
@@ -57,7 +62,7 @@ export function Meter({
   const fill = { neutral: 'bg-ink-3', ok: 'bg-ok', caution: 'bg-caution', danger: 'bg-danger', accent: 'bg-accent' }[tone]
   return (
     <div
-      className={`relative w-full overflow-hidden rounded-full bg-sunken ${height}`}
+      className={`relative w-full overflow-hidden rounded-full bg-sunken forced-colors:border forced-colors:border-[CanvasText] ${height}`}
       role="meter"
       aria-valuenow={Math.round(value * 100)}
       aria-valuemin={0}
@@ -65,7 +70,7 @@ export function Meter({
       aria-label={label}
     >
       <div
-        className={`h-full rounded-full transition-[width] duration-500 ease-out ${fill}`}
+        className={`h-full rounded-full transition-[width] duration-500 ease-out forced-colors:bg-[Highlight] ${fill}`}
         style={{ width: `${Math.max(0, Math.min(1, value)) * 100}%` }}
       />
       {mark !== undefined && (

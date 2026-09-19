@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { CountdownModal } from './components/CountdownModal'
 import { DemoPanel } from './components/DemoPanel'
@@ -22,6 +22,9 @@ import { useSession, isResultPhase } from './lib/session/store'
 import { ConversationProvider } from '@elevenlabs/react'
 import { useAgent } from './lib/agent/useAgent'
 import { VOICE_CONSENT_TEXT } from './lib/privacy/consentText'
+import { pageTitle } from './lib/a11y/pageTitle'
+import { markAppReady } from './lib/a11y/useA11y'
+import { testSequence } from './lib/config'
 
 function AgentControl() {
   const { start, end, status } = useAgent()
@@ -32,6 +35,7 @@ function AgentControl() {
   const setVoiceConsent = useSession((s) => s.setVoiceConsent)
   const [asking, setAsking] = useState(false)
   const [note, setNote] = useState<string | null>(null)
+  const startRef = useRef<HTMLButtonElement>(null)
   // A blocked microphone, no device or a failed signed-URL request must say so, not fail silently.
   const run = () => {
     setNote(null)
@@ -46,6 +50,17 @@ function AgentControl() {
     setVoiceConsent(true)
     run()
   }
+  // Escape closes the consent prompt and hands focus back to the button that opened it.
+  useEffect(() => {
+    if (!asking) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      setAsking(false)
+      startRef.current?.focus()
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [asking])
   // However the session ended (button, dropped socket, Clear my data), the opt-in ends with it.
   useEffect(() => {
     if (status === 'disconnected') setVoiceConsent(false)
@@ -58,15 +73,19 @@ function AgentControl() {
   return (
     // Top-centre from `sm` up. On a phone the header already fills the top edge (brand + menu), so the control
     // sits bottom-right instead (opposite the Call 911 button), with the status text kept for screen readers only.
-    <div className="fixed bottom-5 right-5 z-40 flex items-center gap-3 rounded-full border border-line bg-surface p-1.5 shadow-[var(--shadow-lift)] sm:bottom-auto sm:left-1/2 sm:right-auto sm:top-7 sm:-translate-x-1/2 sm:px-4 sm:py-2">
+    <div
+      className="fixed bottom-5 right-5 z-40 flex items-center gap-3 rounded-full border border-line bg-surface p-1.5 shadow-[var(--shadow-lift)] sm:bottom-auto sm:left-1/2 sm:right-auto sm:top-7 sm:-translate-x-1/2 sm:px-4 sm:py-2"
+    >
       <span className="sr-only text-[0.875rem] text-ink-2 sm:not-sr-only" role="status">
         {connected ? 'Guide is listening' : connecting ? 'Connecting…' : 'Voice guide'}
       </span>
       <button
+        ref={startRef}
         type="button"
         onClick={() => (connected ? finish() : voiceConsent ? run() : setAsking((v) => !v))}
         disabled={connecting}
-        className="rounded-full bg-ink px-4 py-2 text-[0.875rem] font-semibold text-paper transition-opacity hover:opacity-80 disabled:opacity-50"
+        aria-expanded={connected ? undefined : asking}
+        className="min-h-11 rounded-full bg-ink px-4 py-2 text-[0.875rem] font-semibold text-paper transition-opacity hover:opacity-80 disabled:opacity-50"
       >
         {connected ? 'End guide' : 'Start guide'}
       </button>
@@ -86,10 +105,10 @@ function AgentControl() {
         >
           <p className="text-[0.9375rem] leading-snug text-ink-2">{VOICE_CONSENT_TEXT}</p>
           <div className="mt-3 flex gap-2">
-            <button type="button" onClick={begin} className="rounded-full bg-ink px-4 py-2 text-[0.875rem] font-semibold text-paper hover:opacity-80">
+            <button type="button" onClick={begin} className="min-h-11 rounded-full bg-ink px-4 py-2 text-[0.875rem] font-semibold text-paper hover:opacity-80">
               Allow and start
             </button>
-            <button type="button" onClick={() => setAsking(false)} className="rounded-full border border-line-strong px-4 py-2 text-[0.875rem] font-semibold text-ink hover:bg-sunken">
+            <button type="button" onClick={() => setAsking(false)} className="min-h-11 rounded-full border border-control-edge px-4 py-2 text-[0.875rem] font-semibold text-ink hover:bg-sunken">
               Not now
             </button>
           </div>
@@ -170,6 +189,11 @@ function AppContent() {
   const phase = useSession((s) => s.phase)
   const route = useSession((s) => s.route)
   const demoEnabled = useSession((s) => s.demoEnabled)
+  // A unique <title> for every screen (WCAG 2.4.2); focus moves to each screen's heading (lib/a11y/useA11y.ts).
+  useEffect(() => {
+    document.title = pageTitle(route, phase, testSequence())
+  }, [route, phase])
+  useEffect(markAppReady, [])
   useAlertOnExpiry()
   useDemoHotkey()
 
@@ -182,6 +206,9 @@ function AppContent() {
 
   return (
     <div className="min-h-[100dvh]">
+      {/* While the countdown modal is up, EVERYTHING behind it is inert (not focusable, not read), so Tab cannot leave
+          the dialog for the page. The modal has its own Cancel and call-911 controls. */}
+      <div inert={phase === 'countdown'}>
       {/* Tailwind's own sr-only utility outranks the base-layer "visible on focus" rule, so the reveal is explicit. */}
       <a
         href="#main"
@@ -189,9 +216,11 @@ function AppContent() {
       >
         Skip to the main content
       </a>
+      {/* Second in tab order on every screen, right after the skip link: help is the first thing a keyboard user reaches.
+          It is fixed-position, so its place in the DOM does not change where it is drawn. */}
+      <EmergencyButton />
       <SiteHeader />
-      {/* While the countdown modal is up, nothing behind it should take focus (it is aria-modal). */}
-      <main id="main" className="overflow-x-clip" inert={phase === 'countdown'}>
+      <main id="main" tabIndex={-1} className="overflow-x-clip outline-none">
         <AnimatePresence
           mode="wait"
           initial={false}
@@ -223,13 +252,13 @@ function AppContent() {
       <footer className="mx-auto max-w-3xl px-4 pb-28 text-center sm:pb-24">
         <Disclaimer variant="short" className="text-[0.8125rem] leading-snug text-ink-3" />
       </footer>
-      <EmergencyButton />
-
-      {phase === 'countdown' && <CountdownModal />}
       {demoEnabled && <DemoPanel />}
       <RecordPanel />
       {isSpeechRecordSearch(globalThis.location?.search ?? '') && <SpeechRecordPanel />}
       <AgentControl />
+      </div>
+
+      {phase === 'countdown' && <CountdownModal />}
     </div>
   )
 }
