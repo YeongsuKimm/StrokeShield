@@ -1,4 +1,5 @@
 import { useRecorder } from '../lib/calibration/recorder'
+import { MIC_VALUES, NOISE_VALUES, type MicKind, type NoiseLevel } from '../lib/calibration/recording'
 import { downloadSpeechRun, useSpeechRecorder } from '../lib/speech/speechRecorder'
 import { findSpeechScenario, SPEECH_SCENARIOS } from '../lib/speech/speechScenarios'
 
@@ -10,6 +11,8 @@ export function SpeechRecordPanel() {
   const subject = useRecorder((s) => s.subject)
   const autoDownload = useRecorder((s) => s.autoDownload)
   const setAutoDownload = useRecorder((s) => s.setAutoDownload)
+  const c = useRecorder((s) => s.conditions)
+  const setConditions = useRecorder((s) => s.setConditions)
   const sel = findSpeechScenario(r.scenario)
   return (
     <div className="fixed bottom-4 left-4 z-20 w-80 space-y-2 rounded-lg border border-rose-500 bg-slate-900/95 p-3 text-sm shadow-xl">
@@ -25,6 +28,47 @@ export function SpeechRecordPanel() {
         </select>
         {sel && <span className="mt-1 block text-xs text-amber-200">{sel.instructions}</span>}
       </label>
+      <fieldset className="grid grid-cols-2 gap-2 rounded border border-slate-700 p-2">
+        <legend className="px-1 text-xs text-slate-300">Conditions (remembered)</legend>
+        <label className="text-xs">
+          Microphone
+          <select value={c.mic ?? ''} onChange={(e) => setConditions({ mic: (e.target.value || null) as MicKind | null })} className="mt-0.5 w-full rounded bg-slate-800 px-1 py-1">
+            <option value="">?</option>
+            {MIC_VALUES.map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="text-xs">
+          Background noise
+          <select value={c.noise ?? ''} onChange={(e) => setConditions({ noise: (e.target.value || null) as NoiseLevel | null })} className="mt-0.5 w-full rounded bg-slate-800 px-1 py-1">
+            <option value="">?</option>
+            {NOISE_VALUES.map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="text-xs">
+          Native English
+          <select
+            value={c.nativeEnglish === true ? 'yes' : c.nativeEnglish === false ? 'no' : ''}
+            onChange={(e) => setConditions({ nativeEnglish: e.target.value === 'yes' ? true : e.target.value === 'no' ? false : null })}
+            className="mt-0.5 w-full rounded bg-slate-800 px-1 py-1"
+          >
+            <option value="">?</option>
+            <option value="yes">yes</option>
+            <option value="no">no</option>
+          </select>
+        </label>
+        <label className="text-xs">
+          Mic / laptop model
+          <input value={c.device ?? ''} onChange={(e) => setConditions({ device: e.target.value.trim() ? e.target.value : null })} placeholder="e.g. ThinkPad X1" className="mt-0.5 w-full rounded bg-slate-800 px-1 py-1" />
+        </label>
+      </fieldset>
       <label className="flex items-center gap-2">
         <input type="checkbox" checked={autoDownload} onChange={(e) => setAutoDownload(e.target.checked)} />
         Auto-download each run (.wav + .json)

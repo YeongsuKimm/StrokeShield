@@ -115,6 +115,11 @@ export async function openBrowserMic(): Promise<MicCapture> {
 
     return {
       sampleRate: context.sampleRate,
+      trackSettings: () => {
+        const t = stream.getAudioTracks()[0]?.getSettings?.() ?? {}
+        const flag = (v: unknown): boolean | undefined => (typeof v === 'boolean' ? v : undefined) // newer Chrome can report strings such as 'all'
+        return { sampleRate: t.sampleRate ?? context.sampleRate, echoCancellation: flag(t.echoCancellation), noiseSuppression: flag(t.noiseSuppression), autoGainControl: flag(t.autoGainControl) }
+      },
       start: (onChunk, onError) => {
         if (workletNode) {
           node = workletNode

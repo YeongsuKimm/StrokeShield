@@ -15,9 +15,19 @@ export { MicError, RecordingCancelled } from './micErrors'
 /** A running microphone: after `start`, `onChunk` gets consecutive mono Float32 chunks at `sampleRate`. */
 export interface MicCapture {
   readonly sampleRate: number
+  /** Optional: what the browser actually applied to the mic track (`track.getSettings()`), for calibration `env`. */
+  trackSettings?: () => SpeechTrackSettings
   start: (onChunk: (chunk: Float32Array) => void, onError: (e: unknown) => void) => void
   /** Stop tracks and close the audio context. Must be safe to call more than once. */
   close: () => Promise<void> | void
+}
+
+/** Subset of `MediaTrackSettings` the calibration recorder stores as `env` (calibration only; undefined when the browser does not report it). */
+export interface SpeechTrackSettings {
+  sampleRate?: number
+  echoCancellation?: boolean
+  noiseSuppression?: boolean
+  autoGainControl?: boolean
 }
 
 export interface RecorderDeps {
@@ -40,6 +50,8 @@ export interface SpeechRecording {
   qc: SpeechQc
   /** Why recording ended (diagnostics / calibration). */
   stopReason: StopReason
+  /** Mic track settings at capture time, when the capture exposes them (calibration only). */
+  trackSettings?: SpeechTrackSettings
 }
 
 const defaultDeps: RecorderDeps = { openCapture: openBrowserMic, stallTimeoutMs: 3000 }
@@ -50,7 +62,9 @@ export async function recordSpeech(opts: RecordSpeechOptions = {}, deps: Recorde
   const cap = await deps.openCapture()
   try {
     if (signal?.aborted) throw new RecordingCancelled()
-    return await collect(cap, opts, deps.stallTimeoutMs)
+    const rec = await collect(cap, opts, deps.stallTimeoutMs)
+    const trackSettings = cap.trackSettings?.() // read before the tracks are stopped in `finally`
+    return trackSettings ? { ...rec, trackSettings } : rec
   } finally {
     // Always release the microphone, also on abort or error.
     try {

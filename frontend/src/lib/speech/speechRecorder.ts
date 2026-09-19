@@ -4,9 +4,32 @@
 import { create } from 'zustand'
 import { SPEECH_TARGET_PHRASE } from '../config'
 import type { TestResult } from '../contracts'
+import { browserEnvSources, collectSpeechEnv, conditionsFor, type EnvSources, type TrackSettingsLite } from '../calibration/deviceProfile'
 import { isRecordSearch, useRecorder } from '../calibration/recorder'
+import type { Conditions, RecordingEnv } from '../calibration/recording'
 import type { SpeechRecording } from './recorder'
-import { buildSidecar, speechBaseName, SPEECH_SCENARIOS } from './speechScenarios'
+import { buildSidecar, speechBaseName, SPEECH_SCENARIOS, type SpeechSidecar } from './speechScenarios'
+
+/** The sidecar the Python validator reads: the base schema plus optional structured `conditions` and auto-collected `env`. */
+export interface SpeechSidecarWithContext extends SpeechSidecar {
+  conditions: Conditions
+  env: RecordingEnv
+}
+
+/**
+ * `buildSidecar` plus the validation context. Every speech condition key is present (null when not entered) and `env` has
+ * the mic track settings (null when the recorder could not report them), so nothing downstream sees undefined holes.
+ */
+export function buildSpeechSidecar(
+  args: Parameters<typeof buildSidecar>[0] & { conditions?: Conditions; track?: TrackSettingsLite | null; envSources?: EnvSources },
+): SpeechSidecarWithContext {
+  const { conditions = {}, track, envSources, ...base } = args
+  return {
+    ...buildSidecar(base),
+    conditions: conditionsFor('speech', conditions),
+    env: collectSpeechEnv(envSources ?? browserEnvSources(), track),
+  }
+}
 
 export interface SavedSpeechRun {
   id: string
@@ -61,7 +84,9 @@ export function recordSpeechRun(rec: SpeechRecording, liveResult: TestResult): v
     const shared = useRecorder.getState()
     const st = useSpeechRecorder.getState()
     const createdAt = new Date().toISOString()
-    const sidecar = buildSidecar({
+    const sidecar = buildSpeechSidecar({
+      conditions: shared.conditions,
+      track: rec.trackSettings,
       subject: shared.subject,
       scenarioId: st.scenario,
       notes: shared.notes,
