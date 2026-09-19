@@ -390,7 +390,7 @@ export function createEyesCapture<F>(
         kind: 'capture',
         phase: 'hold',
         ms: EYE_PROTOCOL_TOTAL_MS,
-        caption: 'Follow the dot with your eyes — keep your head still',
+        caption: 'Follow the dot with your eyes. Keep your head still.',
         minCoverage: CAPTURE_TIMING.eyesMinCoverage,
         lossGraceMs: CAPTURE_TIMING.eyesLossGraceMs,
         lossFlag: EYE_MSG.lostEyes,

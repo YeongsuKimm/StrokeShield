@@ -56,12 +56,12 @@ export function HomePage() {
 
           <p className="mt-5 max-w-[44ch] text-pretty text-lg leading-relaxed text-ink-2">
             A voice guide walks you through {CHECK_COUNT_WORD[steps.length] ?? steps.length} short BE-FAST checks. If the checks
-            flag something, it can text your emergency contact with your location.
+            flag something, it can text a demo phone we set up ahead of time, with your location if you allow it.
           </p>
 
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <Button size="xl" icon="arrowRight" onClick={start} disabled={!consented} aria-describedby={consented ? undefined : 'start-hint'}>
-              Start the test
+              Start the check
             </Button>
             <Button size="xl" tone="quiet" onClick={() => setRoute('info')}>
               How it works

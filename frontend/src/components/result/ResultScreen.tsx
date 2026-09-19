@@ -23,12 +23,12 @@ function Banner({ band, risk, headingRef }: { band: ResultBand; risk: number; he
     high: {
       tone: 'bg-danger text-white',
       label: 'The checks flagged possible signs',
-      body: 'Several checks came back abnormal. This is not a diagnosis, but treat it as an emergency: call 911 now.',
+      body: 'One or more checks came back abnormal. This is not a diagnosis, but treat it as an emergency: call 911 now.',
     },
     caution: {
       tone: 'bg-caution text-white',
-      label: 'Something showed up',
-      body: 'The checks found something borderline. This tool cannot tell whether it means anything. If this is new, or you are worried, call 911 or get seen right away.',
+      label: 'One check was borderline',
+      body: 'This tool cannot tell whether it means anything. If this is new, or you are worried, call 911 or get seen right away.',
     },
     low: {
       tone: 'bg-ink text-white', // neutral, not green: green could reassure someone who then delays care
@@ -149,15 +149,15 @@ export function ResultScreen() {
           icon="phone"
           tone="danger"
           title="Call 911"
-          body="Ambulance now. Paramedics can start treatment before you reach hospital."
+          body="Ambulance now. Paramedics can start treatment before you reach the hospital."
           action="Dial now"
           href="tel:911"
         />
         <ActionCard
           icon="user"
-          title={band === 'low' ? 'Tell someone' : 'Contact someone close'}
-          body="Send the alert to your emergency contact, with your location and what the checks found."
-          action="Send the alert"
+          title="Text the demo contact"
+          body="Send a text to the demo phone we set up ahead of time, with your location if you allowed it and what the checks found. It does not reach emergency services."
+          action="Send the text"
           onClick={() => requestEmergency('user_request')}
         />
         <ActionCard

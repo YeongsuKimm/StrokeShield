@@ -42,6 +42,11 @@ function parseSeconds(text: string): number | undefined {
   return m ? Number(m[1]) : undefined
 }
 
+/** A server message is shown only when it is short plain prose; stack-trace-like or "TypeError: Failed to fetch" text never is. */
+function friendlyServerMessage(raw: string): boolean {
+  return raw.length > 0 && raw.length <= 80 && !/^\w*(Error|Exception)\b/.test(raw) && !/failed to fetch/i.test(raw)
+}
+
 export function describeAlertFailure(res: AlertResponse | undefined): AlertFailure {
   const raw = (res?.error ?? '').trim()
   const text = raw.toLowerCase()
@@ -58,7 +63,7 @@ export function describeAlertFailure(res: AlertResponse | undefined): AlertFailu
     return {
       category: 'rate_limited',
       title: 'An alert was already sent in the last 2 minutes',
-      detail: 'The server sends one text every 2 minutes, so your contact most likely already has it. You can send again after the wait.',
+      detail: 'The server sends one text every 2 minutes, so the demo phone most likely already has it. You can send again after the wait.',
       retryAfterS: SERVER_ALERT_COOLDOWN_S,
     }
   }
@@ -83,7 +88,7 @@ export function describeAlertFailure(res: AlertResponse | undefined): AlertFailu
     return {
       category: 'server',
       title: 'The alert server rejected the request',
-      detail: 'No text was sent. Try once more; if it fails again, use 911 or call your contact yourself.',
+      detail: 'No text was sent. Try once more; if it fails again, call 911 yourself.',
       retryAfterS: 0,
     }
   }
@@ -91,7 +96,7 @@ export function describeAlertFailure(res: AlertResponse | undefined): AlertFailu
     return {
       category: 'refused',
       title: 'The server declined to send the alert',
-      detail: 'The check results were below its alert level. Use "Send the alert" to ask for help yourself.',
+      detail: 'The check results were below its alert level. Use "Send the text" to ask for help yourself.',
       retryAfterS: 0,
     }
   }
@@ -99,14 +104,14 @@ export function describeAlertFailure(res: AlertResponse | undefined): AlertFailu
     return {
       category: 'not_configured',
       title: 'Alerts are not set up on this server',
-      detail: 'No text can be sent from here. Call 911 or your contact yourself.',
+      detail: 'No text can be sent from here. Call 911 yourself.',
       retryAfterS: 0,
     }
   }
   return {
     category: 'delivery',
     title: 'The text could not be delivered',
-    detail: raw ? `${raw}. No text was confirmed sent.` : 'No text was confirmed sent.',
+    detail: friendlyServerMessage(raw) ? `${raw}. No text was confirmed sent.` : 'No text was confirmed sent.',
     retryAfterS: 0,
   }
 }

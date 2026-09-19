@@ -32,7 +32,7 @@ export function EyeTest() {
     <TestScreen
       test="eyes"
       title={tracking ? 'Follow the dot' : 'Keep your head still'}
-      lede="Move your eyes only — let your head stay exactly where it is. The dot travels left, then right."
+      lede="Move only your eyes and keep your head where it is. The dot travels left, then right."
       footer={<VisionRetryButton test="eyes" run={testRunner.runEyes} skippable />}
     >
       <CameraView

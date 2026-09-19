@@ -16,7 +16,7 @@ export function pageTitle(route: 'home' | 'info', phase: string, sequence: reado
     case 'scoring':
       return `Working out your result · ${SUFFIX}`
     case 'countdown':
-      return `Contacting your emergency contact · ${SUFFIX}`
+      return `Texting the demo contact · ${SUFFIX}`
     case 'alerting':
       return `Sending the alert · ${SUFFIX}`
     case 'clear':

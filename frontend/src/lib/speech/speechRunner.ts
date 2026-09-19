@@ -28,7 +28,7 @@ export const SPEECH_HINTS = {
   tooLoud: 'That was too loud and distorted. Please speak a little softer, or move back from the microphone.',
   timeout: 'The analysis took too long, probably a slow connection. Please try again, or skip this step.',
   backend: "I couldn't reach the analysis service. The camera checks still work. Please try again, or skip this step.",
-  offline: "You seem to be offline, so I can't analyse your speech. Check the connection and try again, or skip this step.",
+  offline: "You seem to be offline, so I can't analyze your speech. Check the connection and try again, or skip this step.",
 } as const
 
 export interface SpeechRunnerDeps {

@@ -71,7 +71,7 @@ export function useAgent() {
 			)
 			if (phase === 'idle') {
 				sendUserMessage(
-					'The user has connected the voice guide but has not started the website test. Ask if anything feels urgent. If not, immediately tell them to click the Start the test button and wait for that click.',
+					'The user has connected the voice guide but has not started the website test. Ask if anything feels urgent. If not, immediately tell them to click the Start the check button and wait for that click.',
 				)
 				return
 			}
@@ -109,7 +109,7 @@ export function useAgent() {
 			}
 			if (phase === 'countdown') {
 				sendUserMessage(
-					'The website has started a countdown to text the user\'s emergency contact (a text message, not emergency services). Tell the user calmly, remind them they can say cancel, and that they can call 911 themselves at any time. Do not summarize test results instead of addressing this.',
+					'The website has started a countdown to text the demo phone (a text message, not emergency services). Tell the user calmly, remind them they can say cancel, and that they can call 911 themselves at any time. Do not summarize test results instead of addressing this.',
 				)
 				return
 			}
@@ -119,7 +119,7 @@ export function useAgent() {
 		const promptForAlertStatus = (status: string, dryRun: boolean) => {
 			if (status === 'failed') {
 				sendUserMessage(
-					'The text to the emergency contact did NOT go through. Tell the user plainly, and tell them to call 911 themselves now. The screen has a button to try sending again. Do not say help is on the way.',
+					'The text to the demo phone did NOT go through. Tell the user plainly, and tell them to call 911 themselves now. The screen has a button to try sending again. Do not say help is on the way.',
 				)
 			} else if (status === 'sent' && dryRun) {
 				sendUserMessage(

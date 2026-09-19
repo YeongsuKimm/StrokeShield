@@ -65,7 +65,7 @@ export const PROCESS_STEPS: ProcessStep[] = [
     name: 'Face',
     instruction: 'Hold a serious, neutral face, then smile as wide as you can and hold it.',
     looksFor: 'One corner of the mouth lifting less than the other.',
-    measured: 'Mouth-corner lift per side, corrected for head roll and normalised to the distance between the eyes.',
+    measured: 'Mouth-corner lift per side, corrected for head roll and normalized to the distance between the eyes.',
   },
   {
     letter: 'A',
@@ -79,7 +79,7 @@ export const PROCESS_STEPS: ProcessStep[] = [
     name: 'Speech',
     instruction: 'Read one fixed sentence out loud.',
     looksFor: 'Slurring, unusual pauses, a flattened pitch, words that come out wrong.',
-    measured: 'Transcript accuracy against the target sentence, articulation rate, pause structure, pitch variation and voice quality.',
+    measured: 'Articulation rate, pause structure, pitch variation and voice quality, plus phoneme accuracy against the target sentence when the optional phoneme model is on.',
   },
 ]
 
@@ -119,7 +119,7 @@ export const STATS: Stat[] = [
   {
     figure: '14 → 4',
     unit: 'percent',
-    caption: 'percent of strokes missed by FAST versus BE-FAST, in one published study. A finding about the clinical BE-FAST scale, not about this app.',
+    caption: 'of strokes missed by FAST versus BE-FAST, in one published study. A finding about the clinical BE-FAST scale, not about this app.',
     source: 'Aroor et al., Stroke (2017)',
   },
 ]
@@ -148,7 +148,7 @@ export const FAQS: Faq[] = [
   },
   {
     q: 'Does it really call an ambulance?',
-    a: 'In this demo the automatic text goes to one verified demo phone only, never to emergency services. The red button dials your own device’s emergency number directly, and it is always on screen.',
+    a: 'In this demo the automatic text goes to one pre-approved demo phone only, never to emergency services. The red button dials your own device’s emergency number directly, and it is always on screen.',
   },
   {
     q: 'What should I do while waiting for help?',
@@ -166,7 +166,7 @@ export interface Hotline {
 export const HOTLINES: Hotline[] = [
   {
     label: 'Emergency services',
-    detail: 'Any suspected stroke. Do not drive yourself — paramedics start treatment on the way.',
+    detail: 'Any suspected stroke. Do not drive yourself; paramedics start treatment on the way.',
     tel: '911',
     urgent: true,
   },

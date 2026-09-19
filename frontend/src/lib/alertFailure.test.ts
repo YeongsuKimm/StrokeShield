@@ -59,6 +59,10 @@ describe('describeAlertFailure (server ok:false messages)', () => {
     const d = describeAlertFailure(fail('Alert could not be sent'))
     expect(d.detail).toMatch(/No text was confirmed sent/)
   })
+  it.each(['TypeError: Failed to fetch', 'Error: boom', 'x'.repeat(120)])('never prints raw error text: %s', (raw) => {
+    const d = describeAlertFailure(fail(raw))
+    expect(d.detail).toBe('No text was confirmed sent.')
+  })
 })
 
 describe('helpers', () => {

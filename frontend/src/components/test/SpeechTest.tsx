@@ -32,7 +32,7 @@ export function SpeechTest() {
         ? 'Listening. Say the sentence now.'
         : 'Getting the microphone ready…'
       : stage === 'analyzing'
-        ? 'Analysing your speech…'
+        ? 'Analyzing your speech…'
         : verdict.muted
           ? 'Waiting for your microphone.'
           : 'Ready when you are.'
@@ -77,7 +77,7 @@ export function SpeechTest() {
             onClick={() => !running && void runSpeech()}
             aria-disabled={running}
           >
-            {stage === 'listening' ? 'Recording…' : stage === 'analyzing' ? 'Analysing…' : hint ? 'Try again' : 'Start recording'}
+            {stage === 'listening' ? 'Recording…' : stage === 'analyzing' ? 'Analyzing…' : hint ? 'Try again' : 'Start recording'}
           </Button>
         </div>
       </div>

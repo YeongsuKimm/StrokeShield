@@ -25,7 +25,7 @@ const updateAgent = (message: string) => sendAgentContextualUpdate?.(`App update
 const phaseFor = (test: 'speech' | 'eyes' | 'face' | 'arms') => {
   const phase = s().phase
   if (phase !== test) {
-    return `Please wait for the website. The user must click Start the test before the ${test} check can run.`
+    return `Please wait for the website. The user must click Start the check before the ${test} check can run.`
   }
   return undefined
 }

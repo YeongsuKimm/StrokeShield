@@ -36,7 +36,7 @@ export function AlertStatus() {
       <div className="mt-4 rounded-[var(--radius-control)] border-2 border-danger bg-surface px-5 py-5" role="alert">
         <p className="flex items-center gap-2 text-lg font-semibold text-danger">
           <Icon name="alert" size={20} />
-          The alert did not go through: {failure.title}
+          The text did not go through: {failure.title}
         </p>
         <p className="mt-2 text-[1rem] text-ink-2">{failure.detail}</p>
         <div className="mt-4 flex flex-col gap-3 sm:flex-row">
@@ -69,8 +69,7 @@ export function AlertStatus() {
       </p>
       {nothingSent && (
         <span className="text-[0.9375rem] text-ink-2">
-          The server is in dry-run mode and only logged the alert. No text message went out, so call 911 or your contact
-          yourself if this is real.
+          The server is in dry-run mode and only logged the alert. No text message went out, so call 911 yourself if this is real.
         </span>
       )}
     </div>

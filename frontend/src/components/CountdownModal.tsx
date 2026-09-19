@@ -11,7 +11,7 @@ import { Ring } from './ui/Primitives'
  * be impaired, and cancelling has to be the easiest thing on screen.
  *
  * The alert never dials emergency services — the backend only ever contacts DEMO_PHONE_NUMBER. The copy says
- * "emergency contact" rather than "911" so the demo never overstates what it does.
+ * "demo contact" rather than "911" so the demo never overstates what it does.
  */
 export function CountdownModal() {
   const alertReason = useSession((s) => s.alertReason)
@@ -57,7 +57,7 @@ export function CountdownModal() {
         </p>
 
         <h2 id="countdown-title" className="mt-4 text-balance text-3xl font-semibold leading-tight tracking-tight">
-          Contacting your emergency contact
+          Texting the demo contact
         </h2>
 
         {/* Sparse spoken countdown (start, every 5 s, last 3 s): the ring below is decorative and never read out. */}
