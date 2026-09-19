@@ -13,11 +13,11 @@ const capture = useCaptureProgress.getState().set
 afterEach(() => useCaptureProgress.setState({ running: null, retryPending: null, progress: null }))
 
 describe('face briefing and smile cue', () => {
-  it('the face briefing never asks for a smile up front', () => {
+  it('the face briefing never uses the word smile (naming it primes the agent to mention it)', () => {
     expect(FACE_BRIEFING).toMatch(/serious, neutral/i)
-    expect(FACE_BRIEFING).toMatch(/no smile/i)
-    expect(FACE_BRIEFING).toMatch(/do not mention smiling yet/i)
-    expect(FACE_BRIEFING).not.toMatch(/and smile|then smile/i)
+    expect(FACE_BRIEFING).toMatch(/lips gently closed/i)
+    expect(FACE_BRIEFING).not.toMatch(/smil/i)
+    expect(FACE_BRIEFING).toMatch(/no other facial instruction/i)
   })
 
   it('stays quiet while waiting and during the resting-face capture', () => {
