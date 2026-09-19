@@ -121,7 +121,7 @@ def test_endpoint_returns_only_the_documented_keys_and_no_secrets(monkeypatch):
         res = client.get("/api/preflight")
     assert res.status_code == 200
     body = res.json()
-    assert set(body) == {"alertChannel", "dryRun", "smtpConfigured", "gatewayValid", "agentConfigured", "phonemeReady", "secondOpinionEnabled"}
+    assert set(body) == {"alertChannel", "dryRun", "smtpConfigured", "gatewayValid", "agentConfigured", "agentConfiguredEs", "phonemeReady", "secondOpinionEnabled"}
     assert body["alertChannel"] == "email_sms" and body["dryRun"] is False and body["gatewayValid"] is True
     assert all(isinstance(v, (bool, str)) for v in body.values())
     for secret in SECRETS.values():

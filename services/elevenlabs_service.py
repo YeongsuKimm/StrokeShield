@@ -20,9 +20,15 @@ class ElevenLabsAPIError(RuntimeError):
 	"""Raised when ElevenLabs rejects a request."""
 
 
-async def get_signed_url() -> str:
+def agent_id_for(lang: str) -> str:
+	"""The agent for a UI language: the Spanish agent (ELEVENLABS_AGENT_ID_ES) for 'es', otherwise the English one."""
+	name = "ELEVENLABS_AGENT_ID_ES" if lang == "es" else "ELEVENLABS_AGENT_ID"
+	return os.getenv(name, "").strip()
+
+
+async def get_signed_url(lang: str = "en") -> str:
 	api_key = os.getenv("ELEVENLABS_API_KEY", "").strip()
-	agent_id = os.getenv("ELEVENLABS_AGENT_ID", "").strip()
+	agent_id = agent_id_for(lang)
 	if not api_key or not agent_id:
 		raise ElevenLabsConfigurationError("ElevenLabs agent is not configured")
 

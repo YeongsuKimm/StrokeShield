@@ -1,3 +1,5 @@
+from typing import Literal
+
 from fastapi import APIRouter, HTTPException
 
 from services.elevenlabs_service import (
@@ -10,9 +12,10 @@ router = APIRouter(prefix="/api")
 
 
 @router.get("/agent/signed-url")
-async def signed_url() -> dict[str, str]:
+async def signed_url(lang: Literal["en", "es"] = "en") -> dict[str, str]:
+    """A signed URL for the voice agent in the site's language (Spanish uses its own agent)."""
     try:
-        return {"signedUrl": await get_signed_url()}
+        return {"signedUrl": await get_signed_url(lang)}
     except ElevenLabsConfigurationError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except ElevenLabsAPIError as exc:

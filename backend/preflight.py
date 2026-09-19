@@ -35,6 +35,10 @@ def _agent_configured() -> bool:
     return bool(os.getenv("ELEVENLABS_API_KEY", "").strip() and os.getenv("ELEVENLABS_AGENT_ID", "").strip())
 
 
+def _agent_es_configured() -> bool:
+    return bool(os.getenv("ELEVENLABS_API_KEY", "").strip() and os.getenv("ELEVENLABS_AGENT_ID_ES", "").strip())
+
+
 def _gemini_key_present() -> bool:
     return bool(os.getenv("GEMINI_API_KEY", "").strip())
 
@@ -47,6 +51,7 @@ def snapshot() -> dict[str, bool | str]:
         "smtpConfigured": email_sms_service.smtp_config() is not None,
         "gatewayValid": settings.sms_gateway_address() is not None,
         "agentConfigured": _agent_configured(),
+        "agentConfiguredEs": _agent_es_configured(),
         "phonemeReady": _phoneme_ready(),
         "secondOpinionEnabled": settings.second_opinion_enabled() and _gemini_key_present(),
     }

@@ -92,6 +92,7 @@ Rule: **no destination number in `AlertRequest`.** Backend reads `DEMO_PHONE_NUM
 | `GET /api/preflight` | — | `{alertChannel, dryRun, smtpConfigured, gatewayValid, agentConfigured, phonemeReady, secondOpinionEnabled}` — booleans + the channel name only (never a secret, address or the phone number). NOT a contract type: `backend/preflight.py`, no `schemas.py`/`contracts.ts` mirror. The same checks are logged as `preflight:` warnings at startup. | Backend |
 | `GET /api/agent/signed-url` | — | `{signedUrl}` | Backend/Agent |
 | `POST /api/speech/analyze` | multipart: `audio` (wav), `target_phrase` | `TestResult` (+`transcript`, `metrics`) | Speech |
+| `GET /api/agent/signed-url?lang=en\|es` | none | `{signedUrl}` (Spanish uses `ELEVENLABS_AGENT_ID_ES`; 503 if unset) | Agent |
 | `POST /api/vision/second-opinion` | `{images:[{kind, jpegBase64}]}` | `VisionOpinion[]` | Vision |
 | `POST /api/alert` | `AlertRequest` | `AlertResponse` | Backend |
 
