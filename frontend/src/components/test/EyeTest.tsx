@@ -1,7 +1,6 @@
 import { useEffect } from 'react'
-import { useSession } from '../../lib/session/store'
 import { useCaptureProgress } from '../../lib/vision/progressStore'
-import { runVisionWithOneRetry } from '../../lib/vision/retry'
+import { isVisionScreenActive, runVisionWithOneRetry } from '../../lib/vision/retry'
 import { testRunner } from '../../lib/vision/useTestRunner'
 import { CameraView } from '../CameraView'
 import { EyeStimulus } from '../EyeStimulus'
@@ -21,9 +20,9 @@ export function EyeTest() {
   const running = useCaptureProgress((s) => s.running)
 
   useEffect(() => {
-    void runVisionWithOneRetry(testRunner.runEyes, () => useSession.getState().phase === 'eyes')
+    void runVisionWithOneRetry(testRunner.runEyes, () => isVisionScreenActive('eyes'))
     return () => {
-      if (useSession.getState().phase !== 'eyes') testRunner.cancel()
+      if (!isVisionScreenActive('eyes')) testRunner.cancel()
     }
   }, [])
 

@@ -97,7 +97,13 @@ export interface TestRunner {
 
 export function createTestRunner(overrides: Partial<RunnerDeps> = {}): TestRunner {
   const deps = { ...defaultDeps(), ...overrides }
-  let current: { token: symbol; test: RunnableTest; promise: Promise<TestResult>; cancel: () => void } | null = null
+  let current: {
+    token: symbol
+    test: RunnableTest
+    promise: Promise<TestResult>
+    cancel: () => void
+    cancelRequested: boolean
+  } | null = null
 
   async function execute(test: RunnableTest, cancelled: Promise<void>, controllerRef: { c?: CaptureController<unknown> }) {
     const source = deps.source()
@@ -109,6 +115,9 @@ export function createTestRunner(overrides: Partial<RunnerDeps> = {}): TestRunne
     try {
       // Face and eyes only need the face landmarker, arms only the pose landmarker (saves CPU/GPU).
       source.setDetectors(test === 'arms' ? { face: false, pose: true } : { face: true, pose: false })
+      // A camera stuck in 'error' (permission dismissed, GPU/inference failure) never recovers by itself while the
+      // screen holds it open, so every fresh attempt (auto-retry or Try again) must reopen it or it fails identically.
+      if (source.summary.status === 'error') source.restart?.()
       deps.publish(test, {
         test,
         phase: 'waiting',
@@ -173,7 +182,9 @@ export function createTestRunner(overrides: Partial<RunnerDeps> = {}): TestRunne
   }
 
   function start(test: RunnableTest): Promise<TestResult> {
-    if (current?.test === test) return current.promise
+    // Join an in-flight run of the same test, but never one that was already told to cancel: it would resolve
+    // 'Cancelled.' and the caller (retry press, agent tool) would get no fresh attempt.
+    if (current?.test === test && !current.cancelRequested) return current.promise
     const previous = current
     previous?.cancel()
 
@@ -184,7 +195,11 @@ export function createTestRunner(overrides: Partial<RunnerDeps> = {}): TestRunne
     const entry = {
       token,
       test,
-      cancel: cancelFn,
+      cancelRequested: false,
+      cancel: () => {
+        entry.cancelRequested = true
+        cancelFn()
+      },
       promise: (async () => {
         await previous?.promise.catch(() => undefined) // let the previous run release the camera first
         let result: TestResult

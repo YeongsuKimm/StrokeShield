@@ -1,4 +1,5 @@
 import type { TestResult } from '../contracts'
+import { useSession } from '../session/store'
 import { useCaptureProgress, type RunnableTest } from './progressStore'
 
 export const VISION_RETRY_DELAY_MS = 2000
@@ -28,6 +29,15 @@ export function visionActionState(s: {
 }
 
 export const showsRetryButton = (state: VisionActionState): boolean => state === 'try-again' || state === 'stuck'
+
+/**
+ * True while the patient is actually looking at this check's screen. The screen unmounts when the phase moves on OR when
+ * the info page is opened mid-test (route 'info', phase unchanged), so both must stop / prevent a capture.
+ */
+export const isVisionScreenActive = (test: RunnableTest): boolean => {
+  const { phase, route } = useSession.getState()
+  return phase === test && route === 'home'
+}
 
 const delay = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms))
 

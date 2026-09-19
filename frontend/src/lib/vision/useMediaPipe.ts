@@ -86,6 +86,8 @@ export interface FrameSource {
   /** Resolves when models + camera are ready, or with a reason on error/timeout. */
   waitUntilReady(timeoutMs: number): Promise<{ ok: true } | { ok: false; reason: string }>
   setDetectors(d: Partial<Detectors>): void
+  /** Optional: re-open the camera/models after an error (the runner calls it before a fresh attempt). */
+  restart?(): void
 }
 
 const EMPTY_SNAPSHOT: VisionSnapshot = { seq: 0, t: 0, face: null, pose: null, brightness: 0, aspect: 16 / 9 }

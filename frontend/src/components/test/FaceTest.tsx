@@ -1,7 +1,6 @@
 import { useEffect } from 'react'
-import { useSession } from '../../lib/session/store'
 import { useCaptureProgress } from '../../lib/vision/progressStore'
-import { runVisionWithOneRetry } from '../../lib/vision/retry'
+import { isVisionScreenActive, runVisionWithOneRetry } from '../../lib/vision/retry'
 import { testRunner } from '../../lib/vision/useTestRunner'
 import { CameraView } from '../CameraView'
 import { HeadGuide } from './StageGuides'
@@ -18,10 +17,11 @@ export function FaceTest() {
   const retryPending = useCaptureProgress((s) => s.retryPending === 'face')
 
   useEffect(() => {
-    void runVisionWithOneRetry(testRunner.runFace, () => useSession.getState().phase === 'face')
+    void runVisionWithOneRetry(testRunner.runFace, () => isVisionScreenActive('face'))
     return () => {
-      // Survives StrictMode's double-mount: only stop the run if the session has really moved off this check.
-      if (useSession.getState().phase !== 'face') testRunner.cancel()
+      // Survives StrictMode's double-mount: only stop the run if the patient has really left this check (next step,
+      // skip, or the info page, which unmounts the screen without changing the phase).
+      if (!isVisionScreenActive('face')) testRunner.cancel()
     }
   }, [])
 

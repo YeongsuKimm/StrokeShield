@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { TestResult } from '../contracts'
 import { useCaptureProgress } from './progressStore'
-import { runVisionWithOneRetry, VISION_RETRY_DELAY_MS } from './retry'
+import { useSession } from '../session/store'
+import { isVisionScreenActive, runVisionWithOneRetry, VISION_RETRY_DELAY_MS } from './retry'
 
 const result = (needsRetry = false, flag = ''): TestResult => ({
   test: 'face',
@@ -43,5 +44,27 @@ describe('runVisionWithOneRetry', () => {
     expect(final.needsRetry).toBe(true)
     expect(run).toHaveBeenCalledTimes(2)
     expect(useCaptureProgress.getState().retryPending).toBeNull()
+  })
+})
+
+describe('isVisionScreenActive (the info page must stop a check just like a phase change does)', () => {
+  it('is true only on the home route while the phase is that check', () => {
+    useSession.setState({ phase: 'face', route: 'home' })
+    expect(isVisionScreenActive('face')).toBe(true)
+    expect(isVisionScreenActive('arms')).toBe(false)
+    useSession.setState({ phase: 'face', route: 'info' }) // menu -> info page mid-test: the screen unmounts, phase unchanged
+    expect(isVisionScreenActive('face')).toBe(false)
+    useSession.setState({ phase: 'idle', route: 'home' })
+  })
+
+  it('a pending automatic retry does not start a hidden capture while the info page is open', async () => {
+    useSession.setState({ phase: 'face', route: 'home' })
+    const run = vi.fn<() => Promise<TestResult>>().mockResolvedValue(result(true, 'move closer'))
+    const wait = vi.fn<(ms: number) => Promise<void>>().mockImplementation(async () => {
+      useSession.setState({ route: 'info' }) // patient opens the info page during the 2 s pause
+    })
+    await runVisionWithOneRetry(run, () => isVisionScreenActive('face'), wait)
+    expect(run).toHaveBeenCalledTimes(1)
+    useSession.setState({ phase: 'idle', route: 'home' })
   })
 })

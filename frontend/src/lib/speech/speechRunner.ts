@@ -183,18 +183,55 @@ export function createSpeechRunner(overrides: Partial<SpeechRunnerDeps> = {}): S
   return {
     runSpeech,
     waitForUserResult,
-    cancel: () => current?.abort.abort(),
+    cancel: () => {
+      current?.abort.abort()
+      // An agent request still waiting for the button has no run to abort: release it, or the tool call hangs forever
+      // (and the agent's microphone stays muted) once the patient skips this step.
+      const waiting = userResultWaiters.splice(0)
+      if (waiting.length > 0) {
+        const cancelledResult = retryResult(SPEECH_HINTS.cancelled, deps.now(), 0)
+        for (const resolve of waiting) resolve(cancelledResult)
+      }
+    },
     get running() {
       return current !== null
     },
   }
 }
 
+/**
+ * Stop the speech run (and release any waiting agent tool) the moment the session leaves the speech step: Skip, Call 911,
+ * the logo, the info page, or the flow finishing. Otherwise a recording still in flight would later store its result and yank the
+ * session out of the countdown/result screen. Also clears the last retry hint so a new session does not open on it.
+ * Phases other than a *departure from* 'speech' are ignored, so the isolated `?record=speech` page is unaffected.
+ */
+export function cancelSpeechOnPhaseExit(
+  runner: Pick<SpeechRunner, 'cancel'>,
+  clearHint: () => void = () => useSpeechProgress.getState().set({ hint: undefined }),
+): () => void {
+  return useSession.subscribe((state, previous) => {
+    const leftStep = previous.phase === 'speech' && state.phase !== 'speech'
+    // The info page unmounts the speech screen without changing the phase; a hidden recording must stop too.
+    const leftPage = state.phase === 'speech' && previous.route === 'home' && state.route !== 'home'
+    if (leftStep || leftPage) {
+      runner.cancel()
+      clearHint()
+    }
+  })
+}
+
 let shared: SpeechRunner | undefined
+const sharedRunner = (): SpeechRunner => {
+  if (!shared) {
+    shared = createSpeechRunner()
+    cancelSpeechOnPhaseExit(shared)
+  }
+  return shared
+}
 /** The shared runner for non-React callers (ElevenLabs client tools). */
 export const speechRunner: SpeechRunner = {
-  runSpeech: () => (shared ??= createSpeechRunner()).runSpeech(),
-  waitForUserResult: () => (shared ??= createSpeechRunner()).waitForUserResult(),
+  runSpeech: () => sharedRunner().runSpeech(),
+  waitForUserResult: () => sharedRunner().waitForUserResult(),
   cancel: () => shared?.cancel(),
   get running() {
     return shared?.running ?? false

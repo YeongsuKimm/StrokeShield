@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import type { TestName, TestResult } from '../../lib/contracts'
 import { useSession } from '../../lib/session/store'
 import { useCaptureProgress } from '../../lib/vision/progressStore'
-import { runVisionWithOneRetry, showsRetryButton, VISION_STUCK_GRACE_MS, visionActionState } from '../../lib/vision/retry'
+import { isVisionScreenActive, runVisionWithOneRetry, showsRetryButton, VISION_STUCK_GRACE_MS, visionActionState } from '../../lib/vision/retry'
 import { Button } from '../ui/Button'
 
 interface Props {
@@ -36,7 +36,7 @@ export function VisionRetryButton({ test, run }: Props) {
 
   return (
     <div className="flex justify-center">
-      <Button icon="refresh" onClick={() => void runVisionWithOneRetry(run, () => useSession.getState().phase === test)}>
+      <Button icon="refresh" onClick={() => void runVisionWithOneRetry(run, () => isVisionScreenActive(test))}>
         Try again
       </Button>
     </div>

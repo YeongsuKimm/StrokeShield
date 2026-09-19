@@ -23,6 +23,12 @@ class FakeSource implements FrameSource {
   acquired = 0
   released = 0
   detectorCalls: Partial<Detectors>[] = []
+  restarts = 0
+  restart() {
+    this.restarts++
+    this.summary = READY
+    this.ready = { ok: true }
+  }
   private listeners = new Set<(s: VisionSnapshot) => void>()
   acquire() {
     this.acquired++
@@ -234,5 +240,33 @@ describe('createTestRunner', () => {
     expect(runner.running).toBe('arms')
     runner.cancel()
     expect((await c).flags[0]).toBe('Cancelled.')
+  })
+
+  it('cancel() followed at once by the same run starts a fresh capture, not the cancelled one', async () => {
+    const runner = make()
+    const first = runner.runFace()
+    await flush()
+    runner.cancel()
+    const second = runner.runFace() // e.g. a retry press or agent tool right after the screen cancelled
+    expect(second).not.toBe(first)
+    expect((await first).flags[0]).toBe('Cancelled.')
+    await flush()
+    pump(8000, (t) => ({ face: goodFace(t) }), () => false)
+    const r = await second
+    expect(r.flags[0]).not.toBe('Cancelled.')
+    expect(completeTest).toHaveBeenCalledTimes(1)
+    expect(runner.running).toBeNull()
+  })
+
+  it('a camera stuck in the error state is restarted by the next attempt (Try again can fix a transient camera error)', async () => {
+    src.summary = { ...READY, status: 'error', error: { kind: 'inference-failed', message: 'Face/pose detection keeps failing.' } }
+    src.ready = { ok: false, reason: 'Face/pose detection keeps failing.' }
+    const runner = make()
+    const p = runner.runFace()
+    await flush()
+    expect(src.restarts).toBe(1)
+    pump(8000, (t) => ({ face: goodFace(t) }), () => false)
+    const r = await p
+    expect(r.needsRetry).toBeFalsy()
   })
 })
