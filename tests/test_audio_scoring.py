@@ -94,7 +94,7 @@ def test_acoustic_only_confidence_is_capped_at_06():
 
 # ---------------------------------------------------------------- scoring monotonicity through the whole pipeline
 def test_slower_articulation_scores_higher():
-    sev = [run("raw", syllable_rate=r, f0_sd_st=3.5, seed=1).severity for r in (4.5, 3.4, 2.6, 2.0)]
+    sev = [run("raw", syllable_rate=r, f0_sd_st=3.5, seed=1).severity for r in (4.5, 3.4, 2.6, 1.6)]
     assert sev == sorted(sev) and sev[-1] > sev[0] + 0.3
 
 
@@ -138,6 +138,20 @@ def test_healthy_metrics_score_zero_and_all_abnormal_metrics_score_one():
     assert score_metrics(bad).severity == 1.0
 
 
+def test_first_clean_real_mic_metrics_do_not_false_alarm():
+    # Anonymous metrics from the first real-mic healthy fixed-phrase run. The audio and personal sidecar stay ignored.
+    metrics = {
+        "articulation_rate": 2.6403,
+        "longest_pause_s": 0.0,
+        "pause_ratio": 0.0,
+        "f0_sd_semitones": 1.9147,
+        "jitter_rap": 0.0101,
+        "shimmer_apq3": 0.0321,
+        "hnr_db": 8.9651,
+    }
+    assert score_metrics(metrics).severity <= 0.15
+
+
 def test_weights_are_renormalized_over_available_components():
     s = score_metrics(HEALTHY_METRICS)
     assert set(s.components) == {"rate", "pausing", "prosody", "voice_quality"}  # no intelligibility / articulation
@@ -174,7 +188,7 @@ def test_each_feature_is_monotone_in_its_component():
 
     for key, good, bad in (("articulation_rate", 4.6, 1.8), ("longest_pause_s", 0.1, 1.5), ("pause_ratio", 0.05, 0.6),
                            ("f0_sd_semitones", 3.0, 0.2), ("jitter_rap", 0.003, 0.04), ("shimmer_apq3", 0.02, 0.09),
-                           ("hnr_db", 20.0, 4.0), ("cer", 0.0, 0.6), ("per", 0.0, 0.7)):
+                           ("cer", 0.0, 0.6), ("per", 0.0, 0.7)):
         vals = np.linspace(good, bad, 7)
         scores = [sev(**{key: float(v)}) for v in vals]
         assert scores == sorted(scores), key

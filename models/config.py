@@ -23,7 +23,7 @@ WEIGHTS = {
     "rate": 0.20,  # articulation_rate
     "pausing": 0.15,  # longest_pause_s + pause_ratio
     "prosody": 0.10,  # f0_sd_semitones
-    "voice_quality": 0.20,  # jitter + shimmer + HNR
+    "voice_quality": 0.20,  # jitter RAP + shimmer APQ3 (running-speech HNR is reported, not scored)
 }  # unitless weights; renormalized over available components (they need not sum to 1 here)
 
 # (normal, abnormal) ramps; ramp() semantics: 0 at first value, 1 at second, linear between, clamped. Works when hi < lo.
@@ -31,17 +31,17 @@ RAMPS = {
     "cer": (0.10, 0.40),  # character error rate, 0..1
     "per": (0.25, 0.60),  # phoneme error rate, 0..1 (articulation component). Spec start was 0.15->0.50, but the real model gives 0.09-0.28 on CORRECT TTS speech, so normal speakers must not be penalised
     "gop_mean": (-1.5, -4.5),  # mean per-phone ln-posterior in [-10, 0] (models/phoneme.py), LOW is bad; correct TTS speech measured -0.7..-1.5, mumbled -5..-6
-    "articulation_rate": (4.0, 2.2),  # syllables/sec, LOW is bad
+    "articulation_rate": (2.6, 1.5),  # syllables/sec, LOW is bad; first real healthy fixed-phrase run measured 2.64
     "longest_pause_s": (0.4, 1.2),  # seconds
     "pause_ratio": (0.2, 0.5),  # fraction of utterance
-    "f0_sd_semitones": (2.5, 0.8),  # semitones, LOW is bad
+    "f0_sd_semitones": (2.0, 0.8),  # semitones, LOW is bad; first real healthy fixed-phrase run measured 1.91
     # Jitter/shimmer: the spec's LOCAL variants (1.0->3.5 %, 4->10 %) are sustained-vowel norms. On RUNNING speech, intonation
     # and loudness movement inflate local jitter/shimmer to ~0.9 % / ~9 % even for a perfectly steady voice (measured on
     # synthetic audio), so we SCORE the slope-tolerant RAP / APQ3 variants (3-point smoothed; ~0.57x local in the
     # synthetic sweep) and only REPORT local. Ramps below are the spec's, scaled by ~0.6.
     "jitter_rap": (0.006, 0.021),  # fraction (0.6 % -> 2.1 %)
     "shimmer_apq3": (0.022, 0.056),  # fraction (2.2 % -> 5.6 %)
-    "hnr_db": (18.0, 8.0),  # dB, LOW is bad
+    "hnr_db": (18.0, 8.0),  # dB, reported only: running-speech HNR false-alarmed on the first clean real-mic run
 }
 
 # The weighted sum of components (0..1) is itself mapped through this ramp before it is reported as severity.
