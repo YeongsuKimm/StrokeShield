@@ -12,9 +12,9 @@ import argparse
 import os
 import re
 import sys
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Mapping
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -71,7 +71,9 @@ def check_env(env: Mapping[str, str]) -> list[Check]:
 
 def check_twilio(client, env: Mapping[str, str]) -> list[Check]:
     """Read-only calls. `client` is a twilio.rest.Client (or a fake in tests)."""
-    from twilio.base.exceptions import TwilioRestException  # lazy: the script's env checks work without the network
+    from twilio.base.exceptions import (
+        TwilioRestException,  # lazy: the script's env checks work without the network
+    )
 
     g = lambda k: (env.get(k) or "").strip()  # noqa: E731
     sid, to, frm = g("TWILIO_ACCOUNT_SID"), g("DEMO_PHONE_NUMBER"), g("TWILIO_FROM_NUMBER")
