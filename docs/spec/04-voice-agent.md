@@ -12,13 +12,20 @@ Calm guide. It **speaks instructions, answers questions, asks last-known-well, a
 3. Frontend starts the session with a signed URL from `GET /api/agent/signed-url` (or `VITE_ELEVENLABS_AGENT_ID` if the agent is public). Start on a user gesture (button) — browsers block audio otherwise.
 4. Pass dynamic variables (e.g. `patient_name`) at session start.
 
+## Implementation status
+The backend signed-URL endpoint, frontend `useAgent` hook, transcript-ready session state, and client tools are
+implemented but have not been verified with live ElevenLabs credentials. The speech tool delegates to the shared
+`speechRunner`, so it uses the same recording, quality checks, backend analysis, result storage, and cancellation as
+the on-screen speech check. Muting the ElevenLabs conversation mic around speech capture and mounting `useAgent` in
+the application flow still need live integration verification.
+
 ## Client tools (implemented in `clientTools.ts`; all async, return a short string the agent can read)
 | Tool | Params | Behaviour |
 |---|---|---|
 | `start_face_test` | — | Waits for the face framing gate ("move closer/back" hints), then runs; store → `face` phase; resolves when done: `"Face test complete. Result recorded."` (no verdict wording) or `"Retry needed: smile not detected."` |
-| `start_arm_test` | — | Waits (up to 25 s) until the **arm framing gate** passes (patient stepped back, both hands visible), then 3-2-1 and 10 s measurement. If it times out: `"Retry needed: I couldn't see both hands."`. Progress hints are pushed with `sendContextualUpdate` |
-| `start_speech_test` | `phrase?` | Mutes agent mic, records, uploads, resolves with `"Speech recorded."` / retry text |
-| `start_eye_test` | — | **Stretch** (only when `FEATURES.eyesTest`): "Keep your head still and follow the dot with your eyes." Register in the dashboard only when the feature ships |
+| `start_arm_test` | — | Waits (up to 12 s) until the **arm framing gate** passes (patient stepped back, both hands visible), then 3-2-1 and 10 s measurement. If it times out, returns the runner's short retry reason. |
+| `start_speech_test` | `phrase?` | Runs the shared speech recorder/analyzer and resolves with completion or retry text. Conversation-mic muting remains to be verified live. |
+| `start_eye_test` | — | Runs the shipped eye-following check (`FEATURES.eyesTest`) and returns completion or retry text. |
 | `record_last_known_well` | `description: string` | Saves free text for the alert |
 | `get_session_status` | — | Returns phase + which tests are done (no scores) |
 | `call_emergency` | `reason: string` | **User-requested help.** Starts the 10 s countdown immediately (see 05) |
