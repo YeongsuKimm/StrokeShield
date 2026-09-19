@@ -15,7 +15,7 @@ Status values: `not started` · `in progress` · `blocked` · `done (untested li
 | Module | Owner | Status | Notes / next / blockers |
 |---|---|---|---|
 | Foundation (repo, contracts, state machine, risk fn, API skeleton) | — | done | Vite+React+TS frontend, FastAPI backend, shared contracts, tests green |
-| Alerts (Twilio call + SMS, demo-number guard, dry-run) | majesticcoder14 | done (untested live) | Only run against a fake Twilio client. Next: verify number in Twilio, real call+SMS with `DRY_RUN=false`; Dockerfile + Railway |
+| Alerts (Twilio call + SMS, demo-number guard, dry-run) | majesticcoder14 | done (untested live) | Dry-run succeeds and the demo destination is configured locally. Twilio SID, auth token, and sender number are still missing; next: add them to `.env`, verify the destination in Twilio, then run one consented call+SMS with `DRY_RUN=false`. |
 | Frontend / full UI + UX | leo + majesticcoder14 | done (untested live) | **Whole storyboard built**: home + consent panel, 4 test screens, info document, 3-band result, countdown, dashboard, demo panel. Vision failures now retry once automatically and then expose **Try again**, so a bad frame or pre-smile cannot strand the screen. Open: live camera pass, second-opinion consent checkbox |
 | Voice agent (ElevenLabs) | open | done (untested live) | Signed-URL endpoint, `useAgent`, transcript callbacks, and client tools are implemented. Next: configure the agent/API key and verify a live conversation end to end. |
 | Vision: framing gates | majesticcoder14 | done (untested live) | `checkFaceFraming` / `checkArmFraming` + tests, wired to live landmarks in the runtime, plus a yaw hint ("Look straight at the screen") |
@@ -45,6 +45,8 @@ Status values: `not started` · `in progress` · `blocked` · `done (untested li
 - All thresholds/weights are uncalibrated (see spec files). Calibrate on teammate fixtures around hour ~20.
 
 ## Recent changes (newest first)
+- 2026-09-19 — alerts — audited the Twilio path and ran a safe dry-run successfully; local `DEMO_PHONE_NUMBER` is present, but the account SID, auth token, and sender number must be configured before a live call/text test.
+- 2026-09-19 — vision/frontend — hardened failed-smile recovery: the automatic-retry pause is now explicit state, suppresses the manual button until it is truly needed, and tells a pre-smiling patient to relax before capture restarts.
 - 2026-09-19 — voice agent — merged the signed-URL backend, `useAgent` conversation hook, transcripts, and real speech/vision client tools while preserving the production speech recorder; live credentials and end-to-end behavior remain unverified.
 - 2026-09-19 — frontend/ui — resolved the duplicate `goHome` declaration introduced when the latest logo-navigation commits met on `main`; the logo keeps the full cancel/reset behavior and the merged frontend compiles again.
 - 2026-09-19 — vision/frontend — fixed camera checks becoming idle after bad framing or a pre-smile: face, eyes and arms now retry once automatically, then show a persistent **Try again** action; framing times out at 12 s so recovery begins before Skip appears.

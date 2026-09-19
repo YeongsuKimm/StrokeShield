@@ -1,4 +1,5 @@
 import type { TestResult } from '../contracts'
+import { useCaptureProgress, type RunnableTest } from './progressStore'
 
 export const VISION_RETRY_DELAY_MS = 2000
 
@@ -12,6 +13,13 @@ export async function runVisionWithOneRetry(
 ): Promise<TestResult> {
   const first = await run()
   if (!first.needsRetry || first.flags[0] === 'Cancelled.' || !isActive()) return first
-  await wait(VISION_RETRY_DELAY_MS)
-  return isActive() ? run() : first
+  const test = first.test as RunnableTest
+  useCaptureProgress.getState().setRetryPending(test)
+  try {
+    await wait(VISION_RETRY_DELAY_MS)
+    return isActive() ? run() : first
+  } finally {
+    // Do not clear a newer pending retry belonging to another check.
+    if (useCaptureProgress.getState().retryPending === test) useCaptureProgress.getState().setRetryPending(null)
+  }
 }

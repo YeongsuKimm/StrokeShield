@@ -11,8 +11,9 @@ interface Props {
 
 export function VisionRetryButton({ test, run }: Props) {
   const running = useCaptureProgress((s) => s.running)
+  const retryPending = useCaptureProgress((s) => s.retryPending)
   const failed = useSession((s) => s.results[test]?.needsRetry === true)
-  if (!failed || running !== null) return null
+  if (!failed || running !== null || retryPending !== null) return null
 
   return (
     <div className="flex justify-center">
