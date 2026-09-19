@@ -20,7 +20,7 @@ smile → raise arms → repeat a sentence → verdict. If risk is high (or they
 - Demo/simulation mode (force results without acting symptomatic).
 
 **Stretch (only after MVP is demo-stable)**
-- **Eyes test (BE-FAST)**: gaze-following test using iris landmarks; adds a fourth `eyes` result (`FEATURES.eyesTest`, spec 02).
+- ~~**Eyes test (BE-FAST)**~~ — promoted into the MVP and wired (see the decisions log); unverified on a live camera.
 - **Phoneme-level speech scoring**: wav2vec2 phoneme recognizer + Goodness-of-Pronunciation, behind `PHONEME_SCORING` (spec 03).
 - Claude vision second-opinion signal folded into the face/arm scores.
 - Passive continuous monitoring.
@@ -43,6 +43,11 @@ smile → raise arms → repeat a sentence → verdict. If risk is high (or they
 | Eyes / phonemes | Both are post-MVP stretches, flag-gated, off by default | Ship FAST first; keep the demo path safe |
 | Heavy-model hosting | Run backend on the demo laptop; Railway is the backup (feature flags off, no torch) | No image-size/memory limits; localhost needs no HTTPS |
 | Agent tooling | Claude Code + Codex/Gemini → `AGENTS.md` canonical | Shared spec |
+| Test order | **Speech → Eyes → Face → Arms** (`testSequence()`), from the UX storyboard | All but arms are close-up, so their order is a UX choice; arms must stay last (one step back) |
+| Eyes test | **Promoted out of stretch and turned ON** (`FEATURES.eyesTest = true`), wired end to end | Storyboard includes it; the analyzer and stimulus were already built and tested. Still unverified live — flip the flag off if it misbehaves on demo day |
+| Result bands | Three UI bands (`high` / `caution` / `low`) via `resultBand()`; the alert trigger stays the single `RISK_THRESHOLD` | The storyboard wants a "somewhat concerning" screen that offers self-help without raising an alarm |
+| Visual direction | Light clinical chrome, one deep-blue accent, red reserved for emergency, dark camera stage, no gradients | Reads as a medical instrument rather than a consumer app; the dark stage makes the viewfinder unmistakable |
+| Typography | **Tiempos** (titles) + **Avenir** (everything else), per the design brief. Both are commercial, so the CSS stacks lead with the real fonts and fall back to bundled **Newsreader** / **Nunito Sans** (`@fontsource-variable/*`, self-hosted, no CDN). Replaces the earlier Geist + Geist Mono choice | Brief asked for it. Avenir is on macOS/iOS already; Tiempos needs licensed files added under `public/fonts/` for the deployed site (see spec 06) |
 
 ## Assumptions (change if wrong)
 - One patient, one webcam, decent lighting, upper body visible from ~1–1.5 m.
