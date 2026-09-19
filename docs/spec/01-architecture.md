@@ -89,6 +89,7 @@ Rule: **no destination number in `AlertRequest`.** Backend reads `DEMO_PHONE_NUM
 | Method & path | Request | Response | Owner |
 |---|---|---|---|
 | `GET /api/health` | — | `{ok:true, dryRun, demoMode}` | Backend |
+| `GET /api/preflight` | — | `{alertChannel, dryRun, smtpConfigured, gatewayValid, agentConfigured, phonemeReady, secondOpinionEnabled}` — booleans + the channel name only (never a secret, address or the phone number). NOT a contract type: `backend/preflight.py`, no `schemas.py`/`contracts.ts` mirror. The same checks are logged as `preflight:` warnings at startup. | Backend |
 | `GET /api/agent/signed-url` | — | `{signedUrl}` | Backend/Agent |
 | `POST /api/speech/analyze` | multipart: `audio` (wav), `target_phrase` | `TestResult` (+`transcript`, `metrics`) | Speech |
 | `POST /api/vision/second-opinion` | `{images:[{kind, jpegBase64}]}` | `VisionOpinion[]` | Vision |
