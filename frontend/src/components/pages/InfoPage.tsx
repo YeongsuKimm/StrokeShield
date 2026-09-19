@@ -31,16 +31,11 @@ export function InfoPage() {
 
   return (
     <>
-      {/* Progress of the scroll-up hand-off: a bar across the top edge, plus a label once it is clearly under way.
+      {/* Progress of the scroll-up hand-off: a thin bar across the top edge (no text label).
           A sibling of the transformed page below, NOT a child: a transformed ancestor would turn `fixed` into
           "fixed to the page", and the bar would scroll away with the document instead of staying at the window's edge. */}
       <div className="pointer-events-none fixed inset-x-0 top-0 z-40" aria-hidden>
         <div className="h-1.5 bg-accent transition-[width] duration-100 ease-out" style={{ width: `${pull * 100}%` }} />
-        {pull > 0.08 && (
-          <p className="mx-auto mt-3 w-fit rounded-full bg-ink px-4 py-2 text-[0.9375rem] font-medium text-white">
-            Keep going to return to the check
-          </p>
-        )}
       </div>
     <div style={{ transform: `translateY(${pull * 28}px)`, opacity: 1 - pull * 0.25, transition: pull === 0 ? 'transform 300ms ease-out, opacity 300ms ease-out' : 'none' }} className="mx-auto w-full max-w-5xl px-4 pb-32 pt-24 sm:px-6 sm:pt-28">
 
@@ -179,6 +174,7 @@ export function InfoPage() {
             <li key={m.name} className="bg-surface p-7">
               <p className="text-lg font-semibold tracking-tight">{m.name}</p>
               <p className="mt-1 text-ink-2">{m.affiliation}</p>
+              <p className="mt-1 text-ink-2">{m.major}</p>
             </li>
           ))}
         </ul>

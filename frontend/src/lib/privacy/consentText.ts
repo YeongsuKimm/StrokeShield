@@ -4,31 +4,29 @@
 //
 // Do not say "HIPAA compliant", "fully private" or "secure": this is a demo designed to minimise data, nothing more.
 
-import { DISCLAIMER_LONG } from '../disclaimer'
-
 /** Shown as bullets in the consent panel. */
 export const CONSENT_POINTS: { label: string; text: string }[] = [
   // First on purpose: what this is (and is not) is read before anything about data.
-  { label: 'Not a diagnosis', text: DISCLAIMER_LONG },
+  { label: 'Not a diagnosis', text: 'This is a guide, not a medical device. It cannot diagnose or rule out a stroke.' },
   {
     label: 'Video',
-    text: 'Face and arm tracking run in this browser. Your video and face landmarks are not uploaded or stored.',
+    text: 'Face and arm tracking run here. Video and face landmarks are not uploaded or stored.',
   },
   {
     label: 'Speech',
-    text: 'The speech test sends one short recording to our server so it can be analysed. It is not sent to any other company, and we do not store it.',
+    text: 'One short speech recording goes to our server for analysis. We do not store it or send it elsewhere.',
   },
   {
     label: 'Voice guide',
-    text: 'Optional and off until you press Start guide. It streams your microphone audio to ElevenLabs, which may keep the recording and transcript under its own privacy policy.',
+    text: 'Optional. When on, your microphone streams to ElevenLabs, which may keep the recording and transcript.',
   },
   {
     label: 'Alert text',
-    text: 'If an alert is sent, the text has your location (only if you allowed it), what the checks flagged, and when you were last well if you told the guide. It is sent as an email to the text gateway of the demo phone, so it passes through Gmail and the carrier, and it goes to one demo phone only.',
+    text: 'An alert may include your location, flagged checks, and last-known-well time. It goes to one demo phone through Gmail and the carrier.',
   },
   {
     label: 'Your data',
-    text: 'We do not sell it or use it for ads. Nothing is saved in your browser. Clear my data wipes it all.',
+    text: 'We do not sell your data or use it for ads. Clear my data wipes browser data.',
   },
 ]
 
