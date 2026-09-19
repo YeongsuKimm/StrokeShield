@@ -65,7 +65,9 @@ def place_alert(req: AlertRequest) -> AlertResponse:
     if not (sid and token and sender):
         return AlertResponse(ok=False, dry_run=False, error="Twilio credentials are not configured")
 
-    from twilio.rest import Client  # imported lazily so tests/dry-run don't need credentials
+    from twilio.rest import (
+        Client,  # imported lazily so tests/dry-run don't need credentials
+    )
 
     client = Client(sid, token)
     try:

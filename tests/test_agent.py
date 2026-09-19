@@ -3,7 +3,6 @@ from fastapi.testclient import TestClient
 from backend.main import app
 from backend.routers import agent
 
-
 client = TestClient(app)
 
 

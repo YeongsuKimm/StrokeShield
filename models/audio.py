@@ -40,7 +40,7 @@ from models.speech_features import (
     trim_bounds,
     word_error_rate,
 )
-from models.transcribe import Transcript, Transcriber
+from models.transcribe import Transcriber, Transcript
 
 log = logging.getLogger("speech")
 
@@ -169,7 +169,9 @@ _RETRY_FOR_TERM = {
 def _phoneme_scores(samples: np.ndarray, target_phrase: str):
     """Agent B's wav2vec2 scorer, or None if the module/torch is missing or it declines. Never raises."""
     try:
-        from models import phoneme  # lazy: may not exist, and importing it may pull torch
+        from models import (
+            phoneme,  # lazy: may not exist, and importing it may pull torch
+        )
 
         return phoneme.score_phonemes(samples, C.SAMPLE_RATE, target_phrase)
     except Exception as exc:  # noqa: BLE001 - ImportError, missing torch, model load, inference errors

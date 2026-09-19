@@ -7,7 +7,7 @@ Client mistakes that no retry can fix (no file, too big, phrase too long) are 4x
 import asyncio
 import logging
 import time
-from typing import Callable
+from collections.abc import Callable
 
 from fastapi import APIRouter, File, Form, HTTPException, Request, Response, UploadFile
 from fastapi.concurrency import run_in_threadpool
@@ -100,7 +100,7 @@ async def analyze(
     phrase = target_phrase.strip() or TARGET_PHRASE
     try:
         result = await asyncio.wait_for(run_in_threadpool(analyze_speech, data, phrase), ANALYZE_TIMEOUT_S)
-    except asyncio.TimeoutError:
+    except TimeoutError:
         # The worker thread cannot be cancelled and finishes in the background; its result is discarded.
         logger.warning("speech analyze timed out after %.1fs (%d bytes)", ANALYZE_TIMEOUT_S, len(data))
         return _retry(FLAG_TIMEOUT, started_at)

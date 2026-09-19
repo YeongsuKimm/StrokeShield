@@ -9,7 +9,7 @@ import math
 import sys
 import time
 import types
-from functools import lru_cache
+from functools import cache
 from types import SimpleNamespace
 
 import numpy as np
@@ -18,12 +18,23 @@ from fastapi.testclient import TestClient
 
 import models
 from backend.main import app
-from backend.schemas import TestResult as SpeechResult  # aliased so pytest does not try to collect it
+from backend.schemas import (
+    TestResult as SpeechResult,  # aliased so pytest does not try to collect it
+)
 from models import config as C
 from models.audio import analyze_speech, compute_confidence, score_metrics
 from models.speech_features import ramp
 from models.transcribe import Transcript, Word
-from tests.audio_synth import SR, borderline, fast_healthy, healthy, impaired, quiet_healthy, synth_speech, to_wav_bytes
+from tests.audio_synth import (
+    SR,
+    borderline,
+    fast_healthy,
+    healthy,
+    impaired,
+    quiet_healthy,
+    synth_speech,
+    to_wav_bytes,
+)
 
 PHRASE = "You can't teach an old dog new tricks."
 HEALTHY_METRICS = {
@@ -32,7 +43,7 @@ HEALTHY_METRICS = {
 }
 
 
-@lru_cache(maxsize=None)
+@cache
 def wav(kind: str, **kw) -> bytes:
     fn = {"healthy": healthy, "fast": fast_healthy, "quiet": quiet_healthy, "borderline": borderline, "impaired": impaired, "raw": synth_speech}[kind]
     return fn(**dict(kw)).wav()

@@ -15,9 +15,10 @@ import csv
 import json
 import math
 import sys
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Sequence, TextIO
+from typing import TextIO
 
 from backend.schemas import TestResult
 from models import config
@@ -412,7 +413,9 @@ def write_csv(rows: Sequence[Row], path: Path) -> None:
 # ---------- CLI ----------
 
 def _default_analyzer() -> Analyzer:
-    from models.audio import analyze_speech  # lazy: keeps this module importable (and testable) without the DSP stack
+    from models.audio import (
+        analyze_speech,  # lazy: keeps this module importable (and testable) without the DSP stack
+    )
 
     return analyze_speech
 
