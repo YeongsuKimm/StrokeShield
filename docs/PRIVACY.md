@@ -1,5 +1,7 @@
 # StrokeShield: Privacy and Data Handling
 
+> **Update 2026-09-19 (after this audit was written):** the alert text now goes by **email-to-SMS** (Gmail SMTP to the carrier text gateway, `ALERT_CHANNEL=email_sms`), not Twilio, so rows and sections below that name Twilio describe the legacy channel; on the live path the text also passes through Google (Gmail) and the carrier and there is no Twilio message record. Also, the live ElevenLabs agent privacy settings were changed after this audit (audio recording off, saved audio deleted, retention 1 day, data-collection/evaluation emptied, file input off; zero-retention mode and the account-level training opt-out are still open), so the "`retention_days: -1`" statements below are historical. Re-run a read-only GET before quoting either.
+
 Audience: engineers and judges. Status: **designed to minimize data; not certified compliant with any regime.**
 Verified against the code and against the live ElevenLabs agent config on **2026-09-19**. Vendor terms change: re-check the linked pages before any public launch.
 StrokeShield is a hackathon demo, **not a medical device**, and not intended for real patients or for anyone under 18.

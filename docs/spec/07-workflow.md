@@ -39,6 +39,8 @@ Everyone: keep `docs/spec/*` updated when reality diverges. Cross-role hand-offs
 - Meets its spec's outputs (`TestResult` etc.), has pure-function tests, handles low-confidence/failure paths, thresholds in config, no secrets, works in demo mode.
 
 ## Demo script (~3 min)
+> Rehearsed version with exact clicks, fallbacks, pitch and Q&A: [../JUDGING.md](../JUDGING.md). The outline below predates the Eyes -> Face -> Arms -> Speech order and email-to-SMS.
+
 1. **Problem** (20 s): stroke = time-critical, most people can't self-assess; FAST is the standard.
 2. **Healthy run** (45 s): guided test (close for face + speech, one step back for arms), dashboard stays green, agent says nothing was flagged but the checks cannot rule out a stroke.
 3. **Symptom run** (75 s): teammate mimics droop/arm drop/slurring (or demo panel "Simulate stroke"); agent announces, countdown, the SMS with the map link arrives on your phone on stage.
@@ -53,6 +55,6 @@ Backup: pre-recorded video of the full flow; local run on laptop; demo panel to 
 | Wifi/HTTPS/camera issues on demo day | Run locally on `localhost`; hotspot backup; recorded video |
 | Detection false positive/negative live | Demo panel; calibrated thresholds; confidence gating |
 | Agent talks over speech recording | Mic mute + agent waits for tool result; rehearse |
-| Twilio trial limitations / SMS filtering | Upgrade + test early; toll-free sender |
+| Alert text delayed or never arrives (email-to-SMS is best-effort, Verizon only; legacy Twilio trial numbers are carrier-blocked) | Test with `python scripts/sms_check.py --send` early; second phone; DRY_RUN read-aloud fallback; see docs/JUDGING.md |
 | Scope creep | Stretch list in 00; freeze at hour 40 |
 | Claims of medical accuracy | Explicit "demo, not a medical device" in UI and pitch |

@@ -42,7 +42,7 @@ cannot cause the agent to discuss a previous test. The agent must re-check the l
 4. Face (patient close): "Please look at the camera with a serious, neutral face, lips gently closed, like a passport photo." → `start_face_test`. The agent must NOT ask for the smile until the app says the resting-face capture is complete (`lib/agent/faceCues.ts` sends that cue when the capture goes neutral → smile, once per pass, including after an automatic retry); then "Now smile as wide as you can and hold it." That cue is a user message, which ElevenLabs treats like spoken input: it **interrupts** the agent mid-sentence (checked against the live agent: an `interruption` event arrived within 0.5 s of a text message sent during the greeting), so only one voice speaks. Contextual updates do not interrupt.
 5. Arms (patient steps back): "Now please step back about three feet, until I can see both of your hands." → `start_arm_test` (tool result says when they're in position). Then: "Hold both arms straight out to your sides, palms up, for ten seconds."
 6. Speech (patient returns close): "Now come back close to the screen and repeat after me: 'You can't teach an old dog new tricks.'" → `start_speech_test`. The tool waits for the user's Start recording click.
-7. App computes risk. If triggered: agent says *"I'm seeing signs that need urgent attention. I'm contacting emergency services in ten seconds. Say cancel to stop."* If not: *"Nothing was flagged, but these checks can't rule out a stroke. If you have any symptoms, or they start or change, call 911."*
+7. App computes risk. If triggered: agent says *"I'm seeing signs that need urgent attention. I'm sending an alert text to the demo contact in ten seconds. Say cancel to stop."* If not: *"Nothing was flagged, but these checks can't rule out a stroke. If you have any symptoms, or they start or change, call 911."*
 8. **Any time**: user says "call 911 / call for help / I need an ambulance" (or confusion/"help me") → `call_emergency`. Never ask twice.
 
 ## System prompt essentials (paste into agent config, keep in `docs/agent-prompt.md` if edited)
@@ -58,7 +58,7 @@ cannot cause the agent to discuss a previous test. The agent must re-check the l
 - **Echo/overlap**: while the speech recorder runs (from the moment Start recording is pressed, even if the agent is mid-sentence or has not called the tool yet) `lib/agent/speechAudioGate.ts` sets agent playback volume to 0 and mutes the conversation mic, then restores both when the run ends or is cancelled. If the recording was unusable and no `start_speech_test` call is waiting, the agent is told to report it and ask for another try; otherwise the tool result / next-phase brief makes it speak again. Use headphones for the demo if the room is noisy.
 - **Interruption**: user can interrupt the agent; make tools idempotent (calling `start_face_test` twice restarts it).
 - **Latency**: keep instructions short; app shows on-screen captions of what the agent said as a backup.
-- **Failure**: if the WebSocket drops, the UI continues the flow with on-screen prompts + browser `speechSynthesis` fallback and a big manual "Call for help" button.
+- **Failure**: if the WebSocket drops, the UI continues the flow with on-screen prompts and the always-on "Call 911" `tel:` button. (A browser `speechSynthesis` fallback was planned but is NOT implemented.)
 - **Cost**: end the conversation on completion; don't leave it open.
 
 ## Stroke knowledge (only when asked)
