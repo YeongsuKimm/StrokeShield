@@ -1,0 +1,49 @@
+// The plain-language privacy copy shown before anything is captured (consent panel, voice-guide prompt, info FAQ).
+// Kept as data so the wording can be reviewed in one place. Every statement must stay TRUE to what the code and the
+// backend do (docs/spec/06 "Privacy"); if the data flow changes, change this in the same commit.
+//
+// Do not say "HIPAA compliant", "fully private" or "secure": this is a demo designed to minimise data, nothing more.
+
+/** Shown as bullets in the consent panel. */
+export const CONSENT_POINTS: { label: string; text: string }[] = [
+  {
+    label: 'Video',
+    text: 'Face and arm tracking run in this browser. Your video and face landmarks are not uploaded or stored.',
+  },
+  {
+    label: 'Speech',
+    text: 'The speech test sends one short recording to our server, and it may be transcribed by ElevenLabs, so it can be analysed. We do not store it.',
+  },
+  {
+    label: 'Voice guide',
+    text: 'Optional and off until you press Start guide. It streams your microphone audio to ElevenLabs.',
+  },
+  {
+    label: 'Alert text',
+    text: 'If an alert is sent, the text has your location (only if you allowed it), what the checks flagged, and when you were last well if you told the guide. In this demo it goes to one demo phone only.',
+  },
+  {
+    label: 'Your data',
+    text: 'We do not sell it or use it for ads. Nothing is saved in your browser. Clear my data wipes it all.',
+  },
+  {
+    label: 'Not medical',
+    text: 'This is a demo, not a medical device or a diagnosis. In an emergency call 911.',
+  },
+]
+
+export const CONSENT_CHECKBOX_LABEL = 'I have read this and agree to these uses.'
+
+/** Shown before the voice guide connects (a separate, per-feature opt-in). */
+export const VOICE_CONSENT_TEXT =
+  'The voice guide streams your microphone audio to ElevenLabs, a third party, while it is on, and ElevenLabs handles it under its own privacy policy. End guide stops it.'
+
+/**
+ * Second-opinion still frames (NOT wired yet: no capture code exists). When built, it must be a separate checkbox,
+ * UNCHECKED by default, next to this sentence, and nothing may be sent unless it is ticked.
+ */
+export const SECOND_OPINION_CONSENT_TEXT =
+  'Send two still photos to Google Gemini for a second opinion. On the free tier Google may use them to improve its products, and human reviewers may read them.'
+
+export const BROWSER_GRANT_NOTE =
+  'Your browser may still remember camera, microphone and location permission. Reset it from the lock icon in the address bar.'

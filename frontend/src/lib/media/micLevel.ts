@@ -87,6 +87,12 @@ class MicMonitor {
     this.publish({ level: 0, verdict: { muted: true, reason: 'no-mic' } })
   }
 
+  /** Stop the microphone for good: stops the tracks (the browser's recording indicator goes off), then detaches. */
+  release(): void {
+    this.stream?.getTracks().forEach((t) => t.stop())
+    this.detach()
+  }
+
   /** Mute/unmute the outgoing track (used while the agent speaks, and by the mute button). */
   setEnabled(enabled: boolean): void {
     this.stream?.getAudioTracks().forEach((t) => (t.enabled = enabled))

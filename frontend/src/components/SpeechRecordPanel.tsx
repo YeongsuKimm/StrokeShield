@@ -17,6 +17,7 @@ export function SpeechRecordPanel() {
   return (
     <div className="fixed bottom-4 left-4 z-20 w-80 space-y-2 rounded-lg border border-rose-500 bg-slate-900/95 p-3 text-sm shadow-xl">
       <p className="font-semibold text-rose-400">● Speech recording</p>
+      <p className="text-xs text-amber-200">Developer tool. Saves voice recordings as files on THIS device only (nothing is uploaded). Use an anonymous id, not a name.</p>
       <label className="block">
         Speech scenario
         <select value={r.scenario} onChange={(e) => r.setScenario(e.target.value)} className="mt-1 w-full rounded bg-slate-800 px-2 py-1">

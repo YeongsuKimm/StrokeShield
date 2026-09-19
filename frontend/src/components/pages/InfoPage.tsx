@@ -17,6 +17,8 @@ export function InfoPage() {
   // "Start the test" here means a NEW check. Without the reset, results, skips and any alert status from an earlier
   // run in this tab (reached via "Stroke resources" on the result screen) would carry into the new one.
   const start = () => {
+    // Nothing starts before consent: without it, send the visitor to the consent panel on the home screen instead.
+    if (!useSession.getState().consented) return setRoute('home')
     testRunner.cancel()
     speechRunner.cancel()
     useSession.getState().reset()

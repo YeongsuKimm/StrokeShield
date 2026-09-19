@@ -1,6 +1,7 @@
 import { resultBand, type ResultBand } from '../../lib/config'
 import { useSession } from '../../lib/session/store'
 import { Dashboard } from '../Dashboard'
+import { ClearDataButton } from '../pages/ClearDataButton'
 import { ProgressDots } from '../test/ProgressDots'
 import { Button } from '../ui/Button'
 import { Icon } from '../ui/Icon'
@@ -177,6 +178,7 @@ export function ResultScreen() {
           Run the check again
         </Button>
       </div>
+      <ClearDataButton className="mt-4" />
 
       <section className="mt-14">
         <MicroLabel className="mb-4">What the checks measured</MicroLabel>

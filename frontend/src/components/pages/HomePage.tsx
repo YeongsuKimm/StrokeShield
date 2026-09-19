@@ -13,6 +13,7 @@ export function HomePage() {
   const start = useSession((s) => s.beginTests)
   const setRoute = useSession((s) => s.setRoute)
   const phase = useSession((s) => s.phase)
+  const consented = useSession((s) => s.consented)
   // Only while idle: once a check has started, scrolling must never carry the patient off to the info page.
   const pull = useScrollHandoff(phase === 'idle', 'down', () => setRoute('info'))
   const steps = testSequence()
@@ -54,13 +55,15 @@ export function HomePage() {
           </p>
 
           <div className="mt-8 flex flex-wrap items-center gap-3">
-            <Button size="xl" icon="arrowRight" onClick={start}>
+            <Button size="xl" icon="arrowRight" onClick={start} disabled={!consented}>
               Start the test
             </Button>
             <Button size="xl" tone="quiet" onClick={() => setRoute('info')}>
               How it works
             </Button>
           </div>
+
+          {!consented && <p className="mt-3 text-[0.9375rem] text-ink-3">Read and tick the consent box first.</p>}
 
           <ol className="mt-10 flex flex-wrap items-center gap-x-2 gap-y-3 border-t border-line pt-6">
             {steps.map((t, i) => (

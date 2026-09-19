@@ -9,6 +9,7 @@
 // * NOT verifiable without a browser/camera: GPU delegate, model loading, blendshape names, yaw sign, left/right.
 import { useEffect, useSyncExternalStore } from 'react'
 import type { FaceLandmarker, PoseLandmarker } from '@mediapipe/tasks-vision'
+import { useSession } from '../session/store'
 import type { FaceFrame, PoseFrame } from './landmarks'
 import {
   CAMERA_ERROR_TEXT,
@@ -429,7 +430,9 @@ export const getVisionEngine = (): VisionEngine => (shared ??= new VisionEngine(
  */
 export function useMediaPipe(): { engine: VisionEngine; summary: VisionSummary } {
   const engine = getVisionEngine()
-  useEffect(() => engine.acquire(), [engine])
+  // Consent gate: the camera only opens once the visitor has ticked the consent box, and closes if they withdraw it.
+  const consented = useSession((s) => s.consented)
+  useEffect(() => (consented ? engine.acquire() : undefined), [engine, consented])
   const summary = useSyncExternalStore(engine.subscribeSummary, () => engine.summary)
   return { engine, summary }
 }

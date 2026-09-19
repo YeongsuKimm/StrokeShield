@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSession } from '../../lib/session/store'
-import { speechRunner } from '../../lib/speech/speechRunner'
-import { testRunner } from '../../lib/vision/useTestRunner'
+import { clearAllLocalData } from '../../lib/privacy/clearData'
 import { setPendingAnchor } from '../../lib/anchorTarget'
 import { DrilldownMenu } from '../ui/DrilldownMenu'
 import { buildMenu } from './menuTree'
@@ -49,11 +48,10 @@ export function SiteHeader() {
     }
   }, [open, collapse])
 
-  // The logo is a true "start over": stop anything running, clear the session, and land on the home screen.
+  // The logo is a true "start over": stop the camera, microphone and voice guide, wipe everything held about the visitor
+  // (also their consent, so the next visit asks again), and land on the home screen.
   const goHome = useCallback(() => {
-    testRunner.cancel()
-    speechRunner.cancel()
-    useSession.getState().reset()
+    void clearAllLocalData()
     setRoute('home')
     collapse()
   }, [setRoute, collapse])

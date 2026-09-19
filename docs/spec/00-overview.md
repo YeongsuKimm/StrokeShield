@@ -31,6 +31,7 @@ smile → raise arms → repeat a sentence → verdict. If risk is high (or they
 ## Decisions log
 | Decision | Choice | Why |
 |---|---|---|
+| Privacy | Explicit unchecked-by-default consent before any capture; voice guide and (future) second opinion are separate opt-ins; "Clear my data" wipes memory and browser storage; CSP via `frontend/vercel.json`; wording is "designed to minimize data", never a compliance claim | Owner wants the app very privacy-compliant; details in spec 06 "Privacy" |
 | Stack | Vite+React+TS frontend, FastAPI backend | Matches existing scaffold; Python gives us librosa/Parselmouth for speech DSP |
 | Vision | Hybrid: in-browser MediaPipe (real time) + Gemini vision second opinion on still frames (free tier) | Real-time + no video upload for the core path; second opinion adds robustness. Gemini, not Claude: the event allows only free/public APIs and Gemini has a free tier |
 | Speech | Fixed-phrase repetition; ElevenLabs Scribe transcript + acoustic/temporal heuristics | Most explainable, best accuracy achievable without training data |

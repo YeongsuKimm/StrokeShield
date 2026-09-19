@@ -20,6 +20,7 @@ export function RecordPanel() {
   return (
     <div className="fixed right-4 top-4 z-20 w-80 space-y-2 rounded-lg border border-rose-500 bg-slate-900/95 p-3 text-sm shadow-xl">
       <p className="font-semibold text-rose-400">● Recording mode</p>
+      <p className="text-xs text-amber-200">Developer tool. Saves face and arm landmark data as files on THIS device only (nothing is uploaded). Use an anonymous id, not a name.</p>
       <label className="block">
         Your name / id (anonymous is fine)
         <input value={r.subject} onChange={(e) => r.setSubject(e.target.value)} placeholder="e.g. sam" className="mt-1 w-full rounded bg-slate-800 px-2 py-1" />
