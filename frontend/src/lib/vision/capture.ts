@@ -286,7 +286,7 @@ export function createFaceCapture<F>(
 ): CaptureController<F> {
   return new CaptureController<F>({
     test: 'face',
-    introCaption: 'Relax your face. Smile when prompted.',
+    introCaption: 'Make your face serious. Smile when prompted.',
     waitCaption: 'Look at the camera',
     waitTimeoutFlag: "I couldn't see your face clearly. Let's try again.",
     steps: [
