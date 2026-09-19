@@ -3,6 +3,7 @@ import { useFocusHeading } from '../../lib/a11y/useA11y'
 import { resultBand, type ResultBand } from '../../lib/config'
 import { useSession } from '../../lib/session/store'
 import { Dashboard } from '../Dashboard'
+import { AlertStatus } from './AlertStatus'
 import { ClearDataButton } from '../pages/ClearDataButton'
 import { ProgressDots } from '../test/ProgressDots'
 import { Button } from '../ui/Button'
@@ -115,8 +116,6 @@ function ActionCard({
 export function ResultScreen() {
   const risk = useSession((s) => s.risk)
   const phase = useSession((s) => s.phase)
-  const alertStatus = useSession((s) => s.alertStatus)
-  const alertResponse = useSession((s) => s.alertResponse)
   const requestEmergency = useSession((s) => s.requestEmergency)
   const setRoute = useSession((s) => s.setRoute)
   const reset = useSession((s) => s.reset)
@@ -138,25 +137,7 @@ export function ResultScreen() {
       <Banner band={band} risk={value} headingRef={headingRef} />
 
       {/* What actually happened on the alert path. */}
-      {alertStatus !== 'none' && (
-        <div
-          className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-[var(--radius-control)] border border-line bg-surface px-5 py-4"
-          role="status"
-        >
-          <Icon
-            name={alertStatus === 'sent' ? 'check' : alertStatus === 'failed' ? 'alert' : 'clock'}
-            size={18}
-            className={alertStatus === 'sent' ? 'text-ok' : alertStatus === 'failed' ? 'text-danger' : 'text-ink-3'}
-          />
-          <p className="font-medium">
-            {alertStatus === 'sending' && 'Contacting the demo number…'}
-            {alertStatus === 'sent' && 'Alert sent to the demo number.'}
-            {alertStatus === 'failed' && 'The alert did not go through.'}
-          </p>
-          {alertResponse?.dryRun && <span className="label-micro rounded-full bg-sunken px-2.5 py-1 text-ink-2">Dry run · nothing sent</span>}
-          {alertResponse?.error && <span className="text-[0.9375rem] text-danger">{alertResponse.error}</span>}
-        </div>
-      )}
+      <AlertStatus />
 
       {/* Actions. The high band keeps them too: a cancelled countdown still needs a way to get help. */}
       <div className="mt-6 grid gap-4 sm:grid-cols-3">

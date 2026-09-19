@@ -107,15 +107,29 @@ export function useAgent() {
 				)
 				return
 			}
-			if (phase === 'countdown' || phase === 'alerting') {
+			if (phase === 'countdown') {
 				sendUserMessage(
-					'The website has started the emergency process. Tell the user calmly that emergency help is being contacted and remind them they can say cancel during the countdown. Do not summarize test results instead of addressing the emergency.',
+					'The website has started a countdown to text the user\'s emergency contact (a text message, not emergency services). Tell the user calmly, remind them they can say cancel, and that they can call 911 themselves at any time. Do not summarize test results instead of addressing this.',
 				)
 				return
+			}
+			if (phase === 'alerting') return // the outcome (sent / demo / failed) is announced from the alert status below
+		}
+		// Honest outcome of the text: never let the guide claim help was contacted when nothing went out.
+		const promptForAlertStatus = (status: string, dryRun: boolean) => {
+			if (status === 'failed') {
+				sendUserMessage(
+					'The text to the emergency contact did NOT go through. Tell the user plainly, and tell them to call 911 themselves now. The screen has a button to try sending again. Do not say help is on the way.',
+				)
+			} else if (status === 'sent' && dryRun) {
+				sendUserMessage(
+					'This is demo mode: no text message was actually sent. Say so plainly, and that in a real emergency they should call 911.',
+				)
 			}
 		}
 		const unsubscribe = useSession.subscribe((state, previous) => {
 			if (state.phase !== previous.phase) promptForPhase(state.phase)
+			if (state.alertStatus !== previous.alertStatus) promptForAlertStatus(state.alertStatus, state.alertResponse?.dryRun === true)
 		})
 		if (status === 'connected') promptForPhase(useSession.getState().phase)
 		return () => {

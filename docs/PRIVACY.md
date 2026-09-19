@@ -111,7 +111,7 @@ It does **not** disclose the voice guide, transcripts, location, the SMS provide
 
 **Backend / infra**
 12. **Second opinion on the free Gemini tier conflicts with Google's own "do not submit personal information" rule.** Use a paid, billing-enabled key, or keep the feature off for the public demo (human decision).
-13. Run uvicorn with **`--no-access-log`** (or scrub IPs) and check Railway/Vercel log retention; there is no Dockerfile in the repo yet, so add this when it is written.
+13. Run uvicorn with **`--no-access-log`** (or scrub IPs) and check Railway/Vercel log retention; the root `Dockerfile` now runs uvicorn with `--no-access-log --proxy-headers` (see docs/DEPLOY.md); Railway/Vercel platform log retention is still a dashboard check.
 14. Twilio: consider **Message Body Redaction**, deleting demo messages after the event, and dropping the exact-location link or rounding coordinates. SMS content stays minimal (already true: no diagnosis, no score breakdown).
 15. `patient.name` is accepted by the contract and rendered into the SMS but nothing sets it; either remove it later (contracts change needs sign-off) or keep it off the UI.
 16. Do not implement ElevenLabs Scribe for the speech clip without `enable_logging=false` (enterprise) or an explicit consent line; today no clip goes to ElevenLabs.
