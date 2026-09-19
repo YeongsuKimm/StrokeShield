@@ -6,10 +6,11 @@
 // Frames are collected only while framing is acceptable. Framing lost for too long / too much of a segment, or never
 // OK within waitTimeoutMs => a `needsRetry` result with a spoken-style first flag (never a guess).
 //
-// EXTENSION POINT (eyes, FEATURES.eyesTest): add `createEyesCapture(analyze)` here (wait -> stimulus segments) using the
-// same CaptureController; the eyes agent owns analyzeEyes(frames) + EyeStimulus. Not wired on purpose.
+//   EYES : wait for framing OK (face gate + tighter yaw limit) -> one window the length of the dot sequence -> analyze
+// `createEyesCapture` is wired (FEATURES.eyesTest); the UI renders EyeStimulus while that window runs.
 import { FRAMING_LIMITS } from '../config'
 import type { TestName, TestResult } from '../contracts'
+import { EYE_PROTOCOL_TOTAL_MS } from './eyeProtocol'
 import type { Framing } from './framing'
 
 /** Protocol timings (ms unless noted). From spec 02; framing hold/timeout come from FRAMING_LIMITS. */
@@ -288,6 +289,30 @@ export function createArmsCapture<F>(
         phase: 'hold',
         ms: CAPTURE_TIMING.armsHoldMs,
         caption: 'Hold both arms straight out to your sides, palms up',
+      },
+    ],
+    analyze: ([frames]) => analyze(frames),
+    ...opts,
+  })
+}
+
+/**
+ * EYES protocol (BE-FAST stretch, FEATURES.eyesTest). One capture window the length of the whole dot sequence
+ * (EYE_PROTOCOL_TOTAL_MS); the on-screen stimulus runs alongside it and the caller labels each frame with the dot
+ * target afterwards via `labelEyeFrames`. Same framing gate as the face test, plus the tighter EYES_CONFIG yaw limit,
+ * because the head must stay still while only the eyes move.
+ */
+export function createEyesCapture<F>(analyze: (frames: F[]) => TestResult, opts: CaptureOptions<F> = {}): CaptureController<F> {
+  return new CaptureController<F>({
+    test: 'eyes',
+    waitCaption: 'Look straight at the camera',
+    waitTimeoutFlag: "I couldn't see your eyes clearly. Let's try again.",
+    steps: [
+      {
+        kind: 'capture',
+        phase: 'hold',
+        ms: EYE_PROTOCOL_TOTAL_MS,
+        caption: 'Follow the dot with your eyes — keep your head still',
       },
     ],
     analyze: ([frames]) => analyze(frames),

@@ -14,8 +14,18 @@ import { useCaptureProgress, type RunnableTest } from './progressStore'
 import { useSession } from '../session/store'
 import type { TestResult } from '../contracts'
 import { analyzeArms } from './arms'
+import { analyzeEyes, EYES_CONFIG } from './eyes'
+import { labelEyeFrames } from './eyeProtocol'
 import { analyzeFace, FACE_CONFIG, type FaceCaptureFrame } from './face'
-import { CaptureController, createArmsCapture, createFaceCapture, retryResult, withYawGate, type CaptureProgress } from './capture'
+import {
+  CaptureController,
+  createArmsCapture,
+  createEyesCapture,
+  createFaceCapture,
+  retryResult,
+  withYawGate,
+  type CaptureProgress,
+} from './capture'
 import { checkArmFraming, checkFaceFraming, type Framing } from './framing'
 import type { PoseFrame } from './landmarks'
 import { getVisionEngine, type FrameSource, type VisionSnapshot } from './useMediaPipe'
@@ -24,11 +34,14 @@ import { getVisionEngine, type FrameSource, type VisionSnapshot } from './useMed
 // The only place that knows the analyzers' call signatures. If analyzeFace/analyzeArms change, fix ONE line here.
 export type FaceAnalyzer = (neutral: FaceCaptureFrame[], smile: FaceCaptureFrame[]) => TestResult
 export type ArmsAnalyzer = (frames: PoseFrame[], aspectRatio: number) => TestResult
+export type EyesAnalyzer = (frames: FaceCaptureFrame[], aspectRatio: number) => TestResult
 const analyzeFaceAdapter: FaceAnalyzer = (neutral, smile) => analyzeFace(neutral, smile)
 const analyzeArmsAdapter: ArmsAnalyzer = (frames, aspectRatio) => analyzeArms(frames, { aspectRatio })
-// EXTENSION POINT (eyes, FEATURES.eyesTest, currently NOT wired): add analyzeEyesAdapter + `runEyes` next to runFace/runArms,
-// a `createEyesCapture` in capture.ts, and render <EyeStimulus/> while the eyes phase is active. Use
-// withYawGate(framing, yaw, EYES_CONFIG.maxYawDeg) for the eyes framing gate.
+// Eyes: the capture window is exactly EYE_PROTOCOL_TOTAL_MS long and <EyeStimulus/> starts with it, so the first
+// collected frame marks the protocol start and labelEyeFrames can derive which way the dot was pointing per frame.
+// The sync error is one camera frame against 1–2 s dot segments.
+const analyzeEyesAdapter: EyesAnalyzer = (frames, aspect) =>
+  analyzeEyes(labelEyeFrames(frames, frames[0]?.t ?? 0), { aspect })
 // --------------------------------------------------------------------------------------------------------------------
 
 const READY_TIMEOUT_MS = 60_000 // camera permission + model load
@@ -41,11 +54,13 @@ export interface RunnerDeps {
   source: () => FrameSource
   analyzeFace: FaceAnalyzer
   analyzeArms: ArmsAnalyzer
+  analyzeEyes: EyesAnalyzer
   completeTest: (r: TestResult) => void
   setHint: (h?: string) => void
   publish: (running: RunnableTest | null, p: CaptureProgress | null) => void
   now: () => number
   faceYawLimitDeg: number
+  eyesYawLimitDeg: number
 }
 
 const defaultDeps = (): RunnerDeps => ({
@@ -61,16 +76,19 @@ const defaultDeps = (): RunnerDeps => ({
     recordRun({ kind: 'arms', frames, aspectRatio }, result)
     return result
   },
+  analyzeEyes: (frames, aspectRatio) => analyzeEyesAdapter(frames, aspectRatio),
   completeTest: (r) => useSession.getState().completeTest(r),
   setHint: (h) => useSession.getState().setHint(h),
   publish: (running, p) => useCaptureProgress.getState().set(running, p),
   now: () => performance.now(),
   faceYawLimitDeg: FACE_CONFIG.yawFullDeg,
+  eyesYawLimitDeg: EYES_CONFIG.maxYawDeg,
 })
 
 export interface TestRunner {
   runFace: () => Promise<TestResult>
   runArms: () => Promise<TestResult>
+  runEyes: () => Promise<TestResult>
   cancel: () => void
   readonly running: RunnableTest | null
 }
@@ -87,8 +105,8 @@ export function createTestRunner(overrides: Partial<RunnerDeps> = {}): TestRunne
     let unsub = () => {}
     let heartbeat: ReturnType<typeof setInterval> | undefined
     try {
-      // Face test only needs the face landmarker, arms only the pose landmarker (saves CPU/GPU).
-      source.setDetectors(test === 'face' ? { face: true, pose: false } : { face: false, pose: true })
+      // Face and eyes only need the face landmarker, arms only the pose landmarker (saves CPU/GPU).
+      source.setDetectors(test === 'arms' ? { face: false, pose: true } : { face: true, pose: false })
       deps.publish(test, {
         test,
         phase: 'waiting',
@@ -107,7 +125,9 @@ export function createTestRunner(overrides: Partial<RunnerDeps> = {}): TestRunne
           ? createFaceCapture<FaceCaptureFrame>((n, s) => deps.analyzeFace(n, s), {
               missingFrame: (t) => ({ landmarks: [], blendshapes: {}, t, brightness: source.latest.brightness, aspect: source.latest.aspect }),
             })
-          : createArmsCapture<PoseFrame>((f) => deps.analyzeArms(f, source.latest.aspect))
+          : test === 'eyes'
+            ? createEyesCapture<FaceCaptureFrame>((f) => deps.analyzeEyes(f, source.latest.aspect))
+            : createArmsCapture<PoseFrame>((f) => deps.analyzeArms(f, source.latest.aspect))
       ) as CaptureController<unknown>
       controllerRef.c = controller
 
@@ -119,7 +139,8 @@ export function createTestRunner(overrides: Partial<RunnerDeps> = {}): TestRunne
         const step = (snap: VisionSnapshot | null) => {
           const now = snap ? snap.t : deps.now()
           if (snap) lastFrameAt = now
-          const { framing, frame } = snap ? inputFor(test, snap, deps.faceYawLimitDeg) : { framing: NO_CAMERA, frame: null }
+          const yawLimit = test === 'eyes' ? deps.eyesYawLimitDeg : deps.faceYawLimitDeg
+          const { framing, frame } = snap ? inputFor(test, snap, yawLimit) : { framing: NO_CAMERA, frame: null }
           const p = controller.tick(now, { framing, frame })
           const key = `${p.phase}|${p.framingOk}|${p.hint}|${p.secondsLeft}`
           if (key !== lastKey || now - lastPublish >= PUBLISH_MS) {
@@ -183,6 +204,7 @@ export function createTestRunner(overrides: Partial<RunnerDeps> = {}): TestRunne
   return {
     runFace: () => start('face'),
     runArms: () => start('arms'),
+    runEyes: () => start('eyes'),
     cancel: () => current?.cancel(),
     get running() {
       return current?.test ?? null
@@ -195,15 +217,14 @@ const NO_CAMERA: Framing = { ok: false, hint: "I can't get the camera image." }
 function inputFor(
   test: RunnableTest,
   snap: VisionSnapshot,
-  faceYawLimitDeg: number,
+  yawLimitDeg: number,
 ): { framing: Framing; frame: FaceCaptureFrame | PoseFrame | null } {
-  if (test === 'face') {
-    const face = snap.face
-    // brightness (0..255) and aspect (video w/h) ride along on every face frame, as analyzeFace expects.
-    const frame: FaceCaptureFrame | null = face ? { ...face, brightness: snap.brightness, aspect: snap.aspect } : null
-    return { framing: withYawGate(checkFaceFraming(face?.landmarks ?? null), face?.yawDeg, faceYawLimitDeg), frame }
-  }
-  return { framing: checkArmFraming(snap.pose?.landmarks ?? null), frame: snap.pose }
+  if (test === 'arms') return { framing: checkArmFraming(snap.pose?.landmarks ?? null), frame: snap.pose }
+  // Face and eyes share the close-up face gate; only the yaw limit differs (eyes need a stiller head).
+  const face = snap.face
+  // brightness (0..255) and aspect (video w/h) ride along on every face frame, as analyzeFace expects.
+  const frame: FaceCaptureFrame | null = face ? { ...face, brightness: snap.brightness, aspect: snap.aspect } : null
+  return { framing: withYawGate(checkFaceFraming(face?.landmarks ?? null), face?.yawDeg, yawLimitDeg), frame }
 }
 
 let shared: TestRunner | undefined
@@ -211,14 +232,23 @@ let shared: TestRunner | undefined
 export const testRunner: TestRunner = {
   runFace: () => (shared ??= createTestRunner()).runFace(),
   runArms: () => (shared ??= createTestRunner()).runArms(),
+  runEyes: () => (shared ??= createTestRunner()).runEyes(),
   cancel: () => shared?.cancel(),
   get running() {
     return shared?.running ?? null
   },
 }
 
-/** React hook: same functions plus `running` ('face' | 'arms' | null) for button state. */
-export function useTestRunner(): Pick<TestRunner, 'runFace' | 'runArms' | 'cancel'> & { running: RunnableTest | null } {
+/** React hook: same functions plus `running` ('face' | 'arms' | 'eyes' | null) for button state. */
+export function useTestRunner(): Pick<TestRunner, 'runFace' | 'runArms' | 'runEyes' | 'cancel'> & {
+  running: RunnableTest | null
+} {
   const running = useCaptureProgress((s) => s.running)
-  return { runFace: testRunner.runFace, runArms: testRunner.runArms, cancel: testRunner.cancel, running }
+  return {
+    runFace: testRunner.runFace,
+    runArms: testRunner.runArms,
+    runEyes: testRunner.runEyes,
+    cancel: testRunner.cancel,
+    running,
+  }
 }

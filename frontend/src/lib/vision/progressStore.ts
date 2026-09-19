@@ -2,7 +2,7 @@
 import { create } from 'zustand'
 import type { CaptureProgress } from './capture'
 
-export type RunnableTest = 'face' | 'arms'
+export type RunnableTest = 'face' | 'arms' | 'eyes'
 
 interface CaptureUiState {
   /** Which test is running right now (null when idle). */
