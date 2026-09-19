@@ -17,7 +17,7 @@ Status values: `not started` · `in progress` · `blocked` · `done (untested li
 | Foundation (repo, contracts, state machine, risk fn, API skeleton) | — | done | Vite+React+TS frontend, FastAPI backend, shared contracts, tests green |
 | Alerts (Twilio call + SMS, demo-number guard, dry-run) | majesticcoder14 | done (untested live) | Only run against a fake Twilio client. Next: verify number in Twilio, real call+SMS with `DRY_RUN=false`; Dockerfile + Railway |
 | Frontend / full UI + UX | leo + majesticcoder14 | done (untested live) | **Whole storyboard built**: home + consent panel, 4 test screens, info document, 3-band result, countdown, dashboard, demo panel. Vision failures now retry once automatically and then expose **Try again**, so a bad frame or pre-smile cannot strand the screen. Open: live camera pass, second-opinion consent checkbox |
-| Voice agent (ElevenLabs) | open | not started | Client tool stubs exist. Next: create the agent in the dashboard, `useAgent.ts`, signed URL endpoint |
+| Voice agent (ElevenLabs) | open | done (untested live) | Signed-URL endpoint, `useAgent`, transcript callbacks, and client tools are implemented. Next: configure the agent/API key and verify a live conversation end to end. |
 | Vision: framing gates | majesticcoder14 | done (untested live) | `checkFaceFraming` / `checkArmFraming` + tests, wired to live landmarks in the runtime, plus a yaw hint ("Look straight at the screen") |
 | Vision: face + arm metrics | majesticcoder14 | done (untested live) | `analyzeFace` / `analyzeArms` implemented + synthetic-fixture tests; thresholds UNCALIBRATED, left/right mapping ASSUMED. **Do not reimplement.** Open: verify left/right on a real camera (`?debug=1`), then calibrate on teammate recordings (spec 02) |
 | Vision: MediaPipe runtime (`useMediaPipe`, capture controller, test runner) | majesticcoder14 | done (untested live) | Webcam → landmarks → capture timing → test runner. Invalid captures retry once after showing the reason for 2 s, then expose **Try again**; bad framing times out at 12 s. Models committed in `frontend/public/models/`; wasm copied on `pnpm install`. Open: run the `?debug=1` live checks (GETTING-STARTED §8) |
@@ -26,7 +26,7 @@ Status values: `not started` · `in progress` · `blocked` · `done (untested li
 | Speech: core analysis (DSP features, scoring, QC) | majesticcoder14 | in progress | First clean real-mic run exposed a false positive (severity 0.67): rate/prosody ramps were too strict and running-speech HNR was invalid. Corrected with an anonymous metric regression; **next: repeat healthy + mimicked runs across people**. Thresholds remain uncalibrated. |
 | Speech: browser recorder + panels (`lib/speech/*`) | open | done (untested live) | 16 kHz WAV capture, auto-stop, `speechRunner.runSpeech()`, isolated `?record=speech` scenarios. Never run on a real mic: see the manual checklist in the recorder report / GETTING-STARTED |
 | Speech: endpoint + calibration CLI | majesticcoder14 | done | `/api/speech/analyze` hardened (5 MB, 10 s, retry-not-500); `python -m models.calibrate` |
-| Speech: ElevenLabs Scribe transcript + voice agent | open | ON HOLD | Plug-in point exists (`transcriber` arg). Agent must mute its mic during `runSpeech()` and call `speechRunner.runSpeech()` from `start_speech_test` |
+| Speech: ElevenLabs Scribe transcript + voice agent | open | done (untested live) | Agent client tools call the real speech and vision runners; verify agent mic muting and live transcript behavior with configured ElevenLabs credentials. |
 | Eyes test (BE-FAST) — now in the MVP | majesticcoder14 + leo | done (untested live), **wired + flag ON** | `createEyesCapture` + `runEyes` + `EyeTest` screen now drive `analyzeEyes`/`EyeStimulus`; `FEATURES.eyesTest = true` and the order is Speech → Eyes → Face → Arms. Open: agent tool `start_eye_test`, **live verify of the left/right mapping (`?debug=1`)**, calibrate. Flip the flag off if it misbehaves |
 | Phoneme scoring (wav2vec2 via PyTorch, optional) | majesticcoder14 | done (TTS-verified only) | `models/phoneme.py`; `pip install -r requirements-ml.txt` + `python -m models.phoneme --download` (378 MB); enable with `PHONEME_SCORING=true`; warmed at backend startup. Real-speech behavior unverified |
 | Stretch: Claude vision second opinion | open | stub | `models/vision.py` returns `unclear` |
@@ -34,7 +34,7 @@ Status values: `not started` · `in progress` · `blocked` · `done (untested li
 
 ## Open decisions / blockers
 - Verify demo phone number in Twilio; confirm the trial number can text it.
-- ElevenLabs agent + Anthropic key not created yet.
+- ElevenLabs agent credentials still need to be configured and verified live.
 - Backup demo teammate for the patient role: TBD.
 - **Decision needed:** speech max risk weight is 0.5, so a clear speech-only deficit (0.45) does NOT alert while a clear face/arm deficit does. Raise `MAX_WEIGHTS.speech` to 0.6 for "any one FAST sign alerts"? Revisit once speech is calibrated (spec 05, `consistency.test.ts`).
 - **Speech risks to watch:** noisy rooms/accents/cheap mics raise severity (10 dB SNR TTS scored 0.32) and could false-alarm; phoneme model has no declared licence (credit it in the pitch); it needs ~1.4 GB RAM on the demo laptop; real-mic capture (AudioWorklet, 16 kHz, echo-cancellation off) is untested.
@@ -45,6 +45,7 @@ Status values: `not started` · `in progress` · `blocked` · `done (untested li
 - All thresholds/weights are uncalibrated (see spec files). Calibrate on teammate fixtures around hour ~20.
 
 ## Recent changes (newest first)
+- 2026-09-19 — voice agent — merged the signed-URL backend, `useAgent` conversation hook, transcripts, and real speech/vision client tools while preserving the production speech recorder; live credentials and end-to-end behavior remain unverified.
 - 2026-09-19 — frontend/ui — resolved the duplicate `goHome` declaration introduced when the latest logo-navigation commits met on `main`; the logo keeps the full cancel/reset behavior and the merged frontend compiles again.
 - 2026-09-19 — vision/frontend — fixed camera checks becoming idle after bad framing or a pre-smile: face, eyes and arms now retry once automatically, then show a persistent **Try again** action; framing times out at 12 s so recovery begins before Skip appears.
 - 2026-09-19 — frontend/ui — mouse cursor is 2x the default size site-wide (`index.css`): SVG arrow, pointing hand over anything clickable, I-beam in text fields; falls back to system cursors if unsupported.

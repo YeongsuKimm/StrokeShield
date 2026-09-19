@@ -2,15 +2,28 @@
 // Tool names/params must match the tools registered in the ElevenLabs dashboard exactly.
 // Each tool is async and returns a short string the agent can read. NEVER include a verdict.
 import { useSession } from '../session/store'
+import { speechRunner } from '../speech/speechRunner'
+import { testRunner } from '../vision/useTestRunner'
+import type { TestResult } from '../contracts'
 
 const s = () => useSession.getState()
+const summarize = (result: TestResult, complete: string): string =>
+  result.needsRetry ? `Retry needed: ${result.flags[0] || 'capture was unclear'}` : complete
 
 export const clientTools = {
-  // TODO: resolve when the face test finishes (await the vision module), return retry text if needsRetry.
-  start_face_test: async (): Promise<string> => 'Face test not implemented yet.',
-  start_arm_test: async (): Promise<string> => 'Arm test not implemented yet.',
-  start_speech_test: async (): Promise<string> => 'Speech test not implemented yet.',
-
+  start_face_test: async (): Promise<string> => {
+    return summarize(await testRunner.runFace(), 'Face test complete. Result recorded.')
+  },
+  start_arm_test: async (): Promise<string> => {
+    return summarize(await testRunner.runArms(), 'Arm test complete. Result recorded.')
+  },
+  start_eye_test: async (): Promise<string> => {
+    return summarize(await testRunner.runEyes(), 'Eye test complete. Result recorded.')
+  },
+  start_speech_test: async (_params: { phrase?: string } = {}): Promise<string> => {
+    // The shared runner owns recording, QC, upload, result storage, cancellation, and the canonical target phrase.
+    return summarize(await speechRunner.runSpeech(), 'Speech test complete. Result recorded.')
+  },
   record_last_known_well: async ({ description }: { description: string }): Promise<string> => {
     s().setLastKnownWell(description)
     return 'Noted.'
