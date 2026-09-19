@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { FRAMING_LIMITS } from '../config'
 import type { TestName, TestResult } from '../contracts'
-import { CAPTURE_TIMING as T, createArmsCapture, createFaceCapture, withYawGate, type CaptureController, type CaptureProgress } from './capture'
+import { EYE_MSG } from './eyeAdvice'
+import { EYE_PROTOCOL_TOTAL_MS } from './eyeProtocol'
+import { CAPTURE_TIMING as T, createArmsCapture, createEyesCapture, createFaceCapture, withYawGate, type CaptureController, type CaptureProgress } from './capture'
 
 interface Fr {
   t: number
@@ -300,5 +302,80 @@ describe('intro card (face / eyes)', () => {
   it('no intro when introMs is omitted (retries)', () => {
     const c = createFaceCapture<Fr>(() => okResult('face'))
     expect(c.tick(0, { framing: OK, frame: frame(0) }).phase).toBe('waiting')
+  })
+})
+
+describe('EYES capture (tolerant window)', () => {
+  const HINT_YAW = { ok: false, hint: 'Look straight at the screen.' }
+  const run = (framing: (t: number) => { ok: boolean; hint: string }, captureOk?: (t: number) => boolean, frames?: (t: number) => Fr | null) => {
+    let got: { frames: Fr[]; start: number } | undefined
+    const c = createEyesCapture<Fr>((f, info) => {
+      got = { frames: f, start: info.segmentStarts[0] }
+      return okResult('eyes')
+    })
+    let t = 0
+    for (; t <= 30_000 && !c.finished; t += STEP) {
+      c.tick(t, { framing: framing(t), frame: frames ? frames(t) : { t }, captureOk: captureOk?.(t) })
+    }
+    return { c, got: () => got }
+  }
+
+  it('reports the moment the window opened so labels do not depend on the first collected frame', () => {
+    const { c, got } = run(() => OK)
+    expect(c.finished).toBe(true)
+    expect(got()!.start).toBeGreaterThan(FRAMING_LIMITS.holdOkMs - 1)
+    expect(got()!.frames.length).toBeGreaterThan(EYE_PROTOCOL_TOTAL_MS / STEP - 5)
+  })
+
+  it('a head turn (yaw gate false) inside the window does not fail the run when frames are still ok to keep', () => {
+    // pre-start the gate is satisfied; from 1 s into the window it flips to "look straight" for 4 s straight
+    const { c, got } = run(
+      (t) => {
+        return t > 4000 + FRAMING_LIMITS.holdOkMs + 1000 && t < 4000 + FRAMING_LIMITS.holdOkMs + 5000 ? HINT_YAW : OK
+      },
+      () => true,
+    )
+    expect(c.result?.needsRetry).toBeUndefined()
+    expect(got()!.frames.length).toBeGreaterThan(100)
+  })
+
+  it('without captureOk the same yaw flip would have failed the 3 s grace (face behaviour is unchanged)', () => {
+    const f = createFaceCapture<Fr>(() => okResult('face'))
+    let t = 0
+    for (; t < 3000 && !f.finished; t += STEP) f.tick(t, { framing: OK, frame: { t } })
+    for (; t < 9000 && !f.finished; t += STEP) f.tick(t, { framing: HINT_YAW, frame: { t } })
+    expect(f.result?.needsRetry).toBe(true)
+  })
+
+  it('a 2 s dropout inside the window is tolerated (the analyzer scores what was usable)', () => {
+    const { c } = run(
+      (t) => (t > 6500 && t < 8500 ? BAD : OK),
+      undefined,
+      (t) => (t > 6500 && t < 8500 ? null : { t }),
+    )
+    expect(c.result?.needsRetry).toBeUndefined()
+  })
+
+  it('nothing usable for 5 s inside the window -> retry with the actionable "lost your eyes" message', () => {
+    const { c } = run(
+      (t) => (t > 3000 ? BAD : OK), // the window opens at ~1.5 s and ends at ~8.5 s
+      undefined,
+      (t) => (t > 3000 ? null : { t }),
+    )
+    expect(c.result?.needsRetry).toBe(true)
+    expect(c.result?.flags[0]).toBe(EYE_MSG.lostEyes)
+  })
+
+  it('framing never OK: the timeout message follows the last hint (too far / too close / look straight / no face)', () => {
+    const wait = (hint: string) => {
+      const c = createEyesCapture<Fr>(() => okResult('eyes'))
+      for (let t = 0; t <= FRAMING_LIMITS.waitTimeoutMs + 100 && !c.finished; t += STEP) c.tick(t, { framing: { ok: false, hint }, frame: null })
+      return c.result?.flags[0]
+    }
+    expect(wait('Move a little closer to the screen.')).toBe(EYE_MSG.tooFar)
+    expect(wait('Move back a little.')).toBe(EYE_MSG.tooClose)
+    expect(wait('Center your face in the view.')).toBe(EYE_MSG.offCenter)
+    expect(wait('Look straight at the screen.')).toBe(EYE_MSG.lookStraight)
+    expect(wait("I can't see your face. Look at the camera.")).toBe(EYE_MSG.lostEyes)
   })
 })

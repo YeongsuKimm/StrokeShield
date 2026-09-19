@@ -10,6 +10,7 @@
 // `createEyesCapture` is wired (FEATURES.eyesTest); the UI renders EyeStimulus while that window runs.
 import { FRAMING_LIMITS } from '../config'
 import type { TestName, TestResult } from '../contracts'
+import { EYE_MSG, eyeWaitTimeoutMessage } from './eyeAdvice'
 import { EYE_PROTOCOL_TOTAL_MS } from './eyeProtocol'
 import type { Framing } from './framing'
 
@@ -25,6 +26,10 @@ export const CAPTURE_TIMING = {
   minCoverage: 0.6, // fraction of a capture segment's time that framing must have been OK, else retry
   maxDtMs: 250, // a single gap between ticks counts for at most this much coverage time
   introMs: 4000, // face / eyes: how long the instruction card is shown, alone, before anything is measured
+  // EYES only (UNCALIBRATED): the analyzer, not the controller, decides whether enough of the 7 s window was usable
+  // (partial protocol), so the controller only bails out when almost nothing was seen.
+  eyesLossGraceMs: 5000, // framing bad continuously this long inside the window => retry (window is 7 s)
+  eyesMinCoverage: 0.25, // fraction of the window that must have had a usable face at all
 } as const
 
 export type CapturePhase = 'intro' | 'waiting' | 'cue' | 'neutral' | 'smile' | 'hold' | 'done' | 'cancelled'
@@ -47,19 +52,41 @@ export interface CaptureInput<F> {
   framing: Framing
   /** The latest frame, or null when no face/pose was detected. */
   frame: F | null
+  /**
+   * Whether the frame counts while a capture step runs, when that differs from the pre-start `framing` verdict (eyes:
+   * the yaw gate applies before the dot starts, but inside the window turned-head frames are kept and rejected by the
+   * analyzer, so a brief turn cannot fail the whole run). Defaults to `framing.ok`.
+   */
+  captureOk?: boolean
+}
+
+/** Info the controller hands to `analyze` besides the frames. */
+export interface CaptureInfo {
+  /** Timestamp (same clock as the ticks) at which each capture step began, in step order. */
+  segmentStarts: number[]
 }
 
 type Step =
   | { kind: 'cue'; phase: CapturePhase; ms: number; caption: string }
-  | { kind: 'capture'; phase: CapturePhase; ms: number; caption: string }
+  | {
+      kind: 'capture'
+      phase: CapturePhase
+      ms: number
+      caption: string
+      /** Overrides of CAPTURE_TIMING for this step (eyes tolerates far more loss; the analyzer judges the rest). */
+      minCoverage?: number
+      lossGraceMs?: number
+      lossFlag?: string
+      coverageFlag?: string
+    }
 
 interface ControllerConfig<F> {
   test: TestName
   steps: Step[] // the steps AFTER the implicit initial framing wait
   waitCaption: string
-  waitTimeoutFlag: string // spoken-style reason when framing never became OK
+  waitTimeoutFlag: string | ((lastHint: string) => string) // spoken-style reason when framing never became OK
   /** Called with the frames of each 'capture' step, in order. Must not throw (if it does we return a retry result). */
-  analyze: (segments: F[][]) => TestResult
+  analyze: (segments: F[][], info: CaptureInfo) => TestResult
   /** Frame to store when nothing was detected during a capture (e.g. an empty-landmarks face frame). Omit to skip. */
   missingFrame?: (t: number) => F
   /** Epoch clock for result.startedAt (injected in tests). */
@@ -96,6 +123,7 @@ export class CaptureController<F> {
   private okMs = 0
   private totalMs = 0
   private segments: F[][] = []
+  private segmentStarts: number[] = []
   private startedAtEpoch = 0
   private lastFraming: Framing = { ok: false, hint: '' }
   private final: TestResult | undefined
@@ -153,7 +181,10 @@ export class CaptureController<F> {
       this.okSince ??= now
       if (now - this.okSince >= FRAMING_LIMITS.holdOkMs) return this.enterStep(now, 0)
     } else this.okSince = undefined
-    if (now - this.waitStart >= FRAMING_LIMITS.waitTimeoutMs) this.fail(now, this.cfg.waitTimeoutFlag)
+    if (now - this.waitStart >= FRAMING_LIMITS.waitTimeoutMs) {
+      const flag = this.cfg.waitTimeoutFlag
+      this.fail(now, typeof flag === 'function' ? flag(this.lastFraming.hint) : flag)
+    }
   }
 
   private tickCue(now: number, { framing }: CaptureInput<F>, step: Step): void {
@@ -168,23 +199,25 @@ export class CaptureController<F> {
     if (now - this.stepStart >= step.ms) this.enterStep(now, this.stepIdx + 1)
   }
 
-  private tickCapture(now: number, { framing, frame }: CaptureInput<F>, step: Step, dt: number): void {
+  private tickCapture(now: number, { framing, frame, captureOk }: CaptureInput<F>, step: Step, dt: number): void {
     const seg = this.segments[this.segments.length - 1]
-    if (framing.ok && frame) {
+    const grace = (step.kind === 'capture' && step.lossGraceMs) || CAPTURE_TIMING.framingLossGraceMs
+    const minCoverage = (step.kind === 'capture' && step.minCoverage) || CAPTURE_TIMING.minCoverage
+    if ((captureOk ?? framing.ok) && frame) {
       seg.push(frame)
       this.okMs += dt
       this.lostSince = undefined
     } else {
       this.lostSince ??= now
       if (!frame && this.cfg.missingFrame) seg.push(this.cfg.missingFrame(now))
-      if (now - this.lostSince > CAPTURE_TIMING.framingLossGraceMs) {
-        return this.fail(now, "I lost sight of you. Let's try that again.")
+      if (now - this.lostSince > grace) {
+        return this.fail(now, (step.kind === 'capture' && step.lossFlag) || "I lost sight of you. Let's try that again.")
       }
     }
     this.totalMs += dt
     if (now - this.stepStart < step.ms) return
-    if (this.totalMs > 0 && this.okMs / this.totalMs < CAPTURE_TIMING.minCoverage) {
-      return this.fail(now, "I couldn't see you steadily enough. Let's try that again.")
+    if (this.totalMs > 0 && this.okMs / this.totalMs < minCoverage) {
+      return this.fail(now, (step.kind === 'capture' && step.coverageFlag) || "I couldn't see you steadily enough. Let's try that again.")
     }
     this.enterStep(now, this.stepIdx + 1)
   }
@@ -198,14 +231,17 @@ export class CaptureController<F> {
     this.lostSince = undefined
     this.okMs = 0
     this.totalMs = 0
-    if (step.kind === 'capture') this.segments.push([])
+    if (step.kind === 'capture') {
+      this.segments.push([])
+      this.segmentStarts.push(now)
+    }
   }
 
   private complete(now: number): void {
     const duration = this.elapsed(now)
     let res: TestResult
     try {
-      res = this.cfg.analyze(this.segments)
+      res = this.cfg.analyze(this.segments, { segmentStarts: this.segmentStarts })
     } catch (e) {
       console.debug('[capture] analyze threw', e)
       res = retryResult(this.cfg.test, "Something went wrong measuring that. Let's try again.", this.startedAtEpoch, duration)
@@ -324,24 +360,35 @@ export function createArmsCapture<F>(
 /**
  * EYES protocol (BE-FAST stretch, FEATURES.eyesTest). One capture window the length of the whole dot sequence
  * (EYE_PROTOCOL_TOTAL_MS); the on-screen stimulus runs alongside it and the caller labels each frame with the dot
- * target afterwards via `labelEyeFrames`. Same framing gate as the face test, plus the tighter EYES_CONFIG yaw limit,
- * because the head must stay still while only the eyes move.
+ * target afterwards via `labelEyeFrames`, anchored at `info.segmentStarts[0]` (the moment the window, and so the dot,
+ * began: NOT the first collected frame, which can be later when the first frames were unusable).
+ * Same framing gate as the face test before the dot starts, plus the EYES_CONFIG yaw limit because the head must stay
+ * still. INSIDE the window the yaw gate is not applied (callers pass `captureOk`), loss tolerances are much looser
+ * (CAPTURE_TIMING.eyes*) and frames lost to a missing face are recorded as empty frames, so the analyzer can score the
+ * usable segments (partial protocol) or name the specific cause instead of the whole run failing on a brief dropout.
  */
-export function createEyesCapture<F>(analyze: (frames: F[]) => TestResult, opts: CaptureOptions<F> = {}): CaptureController<F> {
+export function createEyesCapture<F>(
+  analyze: (frames: F[], info: CaptureInfo) => TestResult,
+  opts: CaptureOptions<F> = {},
+): CaptureController<F> {
   return new CaptureController<F>({
     test: 'eyes',
     introCaption: 'Keep your head still. Follow the dot with your eyes only.',
     waitCaption: 'Look straight at the camera',
-    waitTimeoutFlag: "I couldn't see your eyes clearly. Let's try again.",
+    waitTimeoutFlag: eyeWaitTimeoutMessage,
     steps: [
       {
         kind: 'capture',
         phase: 'hold',
         ms: EYE_PROTOCOL_TOTAL_MS,
         caption: 'Follow the dot with your eyes — keep your head still',
+        minCoverage: CAPTURE_TIMING.eyesMinCoverage,
+        lossGraceMs: CAPTURE_TIMING.eyesLossGraceMs,
+        lossFlag: EYE_MSG.lostEyes,
+        coverageFlag: EYE_MSG.lostEyes,
       },
     ],
-    analyze: ([frames]) => analyze(frames),
+    analyze: ([frames], info) => analyze(frames, info),
     ...opts,
   })
 }
