@@ -4,14 +4,19 @@ import { CameraView } from './components/CameraView'
 import { Dashboard } from './components/Dashboard'
 import { DemoPanel } from './components/DemoPanel'
 import { RecordPanel } from './components/RecordPanel'
+import { SpeechPanel } from './components/SpeechPanel'
+import { SpeechRecordPanel } from './components/SpeechRecordPanel'
 import { api } from './lib/api'
+import { isRecordSearch } from './lib/calibration/recorder'
 import type { HealthResponse } from './lib/contracts'
 import { useSession } from './lib/session/store'
+import { useSpeechRunner } from './lib/speech/speechRunner'
 import { useTestRunner } from './lib/vision/useTestRunner'
 
 export default function App() {
   const s = useSession()
   const [health, setHealth] = useState<HealthResponse | null>(null)
+  const speech = useSpeechRunner()
   const runner = useTestRunner() // TEMP manual test buttons; remove with the block below once the voice agent drives the tests
 
   useEffect(() => {
@@ -67,8 +72,11 @@ export default function App() {
           <div className="flex flex-wrap gap-2">
             <button disabled={runner.running !== null} onClick={() => void runner.runFace()} className="rounded bg-sky-600 px-4 py-2 disabled:opacity-40">Run face test</button>
             <button disabled={runner.running !== null} onClick={() => void runner.runArms()} className="rounded bg-sky-600 px-4 py-2 disabled:opacity-40">Run arm test</button>
+            <button disabled={speech.running} onClick={() => void speech.runSpeech()} className="rounded bg-sky-600 px-4 py-2 disabled:opacity-40">Run speech test</button>
+            {speech.running && <button onClick={speech.cancel} className="rounded bg-slate-700 px-4 py-2">Cancel speech</button>}
             {runner.running && <button onClick={runner.cancel} className="rounded bg-slate-700 px-4 py-2">Cancel test</button>}
           </div>
+          <SpeechPanel />
         </section>
         <Dashboard />
       </div>
@@ -78,6 +86,7 @@ export default function App() {
       {s.phase === 'countdown' && <CountdownModal />}
       {s.demoEnabled && <DemoPanel />}
       <RecordPanel />
+      {isRecordSearch(globalThis.location?.search ?? '') && <SpeechRecordPanel />}
     </main>
   )
 }
