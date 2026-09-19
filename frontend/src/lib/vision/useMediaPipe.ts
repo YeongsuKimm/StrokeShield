@@ -18,10 +18,12 @@ import {
   buildFaceFrame,
   buildPoseFrame,
   classifyCameraError,
+  faceRegion,
   meanLuminance,
   nextTimestamp,
   type CameraErrorKind,
 } from './frameUtils'
+import { faceBox, poseBox, selectSubject, SubjectTracker, type SubjectInfo } from './subject'
 
 const BASE = import.meta.env?.BASE_URL ?? '/'
 export const WASM_BASE = `${BASE}mediapipe-wasm`
@@ -35,6 +37,11 @@ const BRIGHTNESS_EVERY_N_FRAMES = 4
 const BRIGHTNESS_SIZE = { w: 32, h: 18 }
 const MAX_CONSECUTIVE_FAILURES = 15
 const STOP_DELAY_MS = 500 // survive React StrictMode's mount/unmount/mount
+const MODEL_LOAD_TIMEOUT_MS = 45_000 // wasm/model fetch that never settles (offline, blocked file) => a clean error, not a hang
+const NUM_SUBJECTS = 2 // ask the landmarkers for two faces/bodies so a bystander can be told apart and ignored (subject.ts)
+const LOAD_TIMEOUT = new Error('model load timed out')
+export const MODEL_LOAD_FAILED_TEXT =
+  'The face/pose models could not load. Check the connection and reload; you can also skip this check.'
 
 export type VisionStatus = 'idle' | 'starting' | 'ready' | 'error'
 export type VisionErrorKind = CameraErrorKind | 'model-load-failed' | 'inference-failed'
@@ -54,6 +61,8 @@ export interface VisionSnapshot {
   brightness: number
   /** video.videoWidth / video.videoHeight (needed for true angles: landmarks are normalized per axis). */
   aspect: number
+  /** Who is in view (the frame above is always the ONE tracked subject). Omitted by fake sources in tests. */
+  subject?: SubjectInfo
 }
 
 /** Low-rate summary for React state (<= 5 Hz). */
@@ -134,6 +143,9 @@ export class VisionEngine implements FrameSource {
   private summaryListeners = new Set<() => void>()
   private summaryTimer: ReturnType<typeof setTimeout> | undefined
   private lastSummaryEmit = 0
+  private faceTracker = new SubjectTracker()
+  private poseTracker = new SubjectTracker()
+  private region: { sx: number; sy: number; sw: number; sh: number } | null = null
 
   /** The single shared <video> (muted, playsInline). CameraView mounts it into the page. */
   get video(): HTMLVideoElement {
@@ -199,40 +211,41 @@ export class VisionEngine implements FrameSource {
     })
   }
 
-  /** Start camera + models. Safe to call repeatedly; use `restart()` after an error. */
+  /**
+   * Start camera + models. Safe to call repeatedly; use `restart()` after an error. Every await is followed by a generation
+   * check and each step only ever releases what THIS run created, so a stale start (stop()/restart() while it was still
+   * loading) can never close the hardware or models of the run that replaced it.
+   */
   async start(): Promise<void> {
     if (this.summary.status === 'starting' || this.summary.status === 'ready') return
     const gen = ++this.gen
     this.setSummary({ status: 'starting', error: null }, true)
     try {
-      await this.openCamera()
+      if (!(await this.openCamera(gen))) return
     } catch (e) {
       if (gen !== this.gen) return
       const kind = classifyCameraError(e)
       console.debug('[vision] camera failed', kind, e)
+      this.releaseHardware()
       this.setSummary({ status: 'error', error: { kind, message: CAMERA_ERROR_TEXT[kind] } }, true)
       return
     }
-    if (gen !== this.gen) return this.releaseHardware()
     try {
-      await this.loadModels('GPU')
+      const loaded = await this.withTimeout(this.loadModels('GPU', gen), gen)
+      if (!loaded) return
     } catch (e) {
-      if (gen !== this.gen) return this.releaseHardware()
+      if (gen !== this.gen && e !== LOAD_TIMEOUT) return
       console.debug('[vision] model load failed', e)
-      this.setSummary(
-        {
-          status: 'error',
-          error: { kind: 'model-load-failed', message: 'Could not load the face/pose models. Check public/models and reload.' },
-        },
-        true,
-      )
+      this.releaseHardware()
+      this.setSummary({ status: 'error', error: { kind: 'model-load-failed', message: MODEL_LOAD_FAILED_TEXT } }, true)
       return
     }
-    if (gen !== this.gen) return this.releaseHardware()
     this.failures = 0
+    this.lastVideoTime = -1
     this.fpsSince = performance.now()
     this.fpsCount = 0
     this.setSummary({ status: 'ready', error: null }, true)
+    cancelAnimationFrame(this.raf)
     this.raf = requestAnimationFrame(this.loop)
   }
 
@@ -250,6 +263,10 @@ export class VisionEngine implements FrameSource {
     this.releaseHardware()
     this.latest = EMPTY_SNAPSHOT
     this.lastVideoTime = -1
+    this.rebuilding = false
+    this.region = null
+    this.faceTracker.reset()
+    this.poseTracker.reset()
     this.setSummary({ ...INITIAL_SUMMARY }, true)
   }
 
@@ -265,19 +282,24 @@ export class VisionEngine implements FrameSource {
     this.pose = undefined
   }
 
-  private async openCamera(): Promise<void> {
+  /** Resolves false when this run was superseded (its stream is stopped here); throws on a real camera failure. */
+  private async openCamera(gen: number): Promise<boolean> {
     if (!navigator.mediaDevices?.getUserMedia) throw Object.assign(new Error('no mediaDevices'), { name: 'TypeError' })
-    this.stream = await navigator.mediaDevices.getUserMedia({
+    const stream = await navigator.mediaDevices.getUserMedia({
       video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
       audio: false,
     })
+    if (gen !== this.gen) {
+      stream.getTracks().forEach((t) => t.stop())
+      return false
+    }
+    this.stream = stream
     const v = this.video
-    v.srcObject = this.stream
+    v.srcObject = stream
     await v.play()
+    if (gen !== this.gen) return false // stop() already released this.stream
     // Permission revoked mid-test, camera unplugged or taken by another app: the frames just freeze, so say so and
     // offer "Try the camera again" / skip instead of leaving a dead picture. (`stop()` detaches its own tracks first.)
-    const stream = this.stream
-    const gen = this.gen
     this.unwatchTracks?.()
     this.unwatchTracks = watchTracksEnded(stream, () => {
       if (gen !== this.gen || this.stream !== stream) return
@@ -285,29 +307,60 @@ export class VisionEngine implements FrameSource {
       cancelAnimationFrame(this.raf)
       this.setSummary({ status: 'error', error: { kind: 'unknown', message: CAMERA_ENDED_TEXT } }, true)
     })
+    return true
   }
 
-  /** GPU first, CPU fallback. */
-  private async loadModels(preferred: 'GPU' | 'CPU'): Promise<void> {
+  /** Reject a load that never settles; the late result is discarded (its generation is invalidated, so it closes itself). */
+  private withTimeout(p: Promise<boolean>, gen: number): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        if (gen !== this.gen) return resolve(false) // superseded meanwhile: not this run's problem any more
+        this.gen++ // invalidate the pending load: it will close whatever it eventually creates
+        reject(LOAD_TIMEOUT)
+      }, MODEL_LOAD_TIMEOUT_MS)
+      p.then(
+        (v) => {
+          clearTimeout(timer)
+          resolve(v)
+        },
+        (e) => {
+          clearTimeout(timer)
+          reject(e)
+        },
+      )
+    })
+  }
+
+  /**
+   * GPU first, CPU fallback (also used for the mid-run CPU rebuild). Resolves false when superseded while loading: the
+   * freshly created landmarkers are closed and NOT installed.
+   */
+  private async loadModels(preferred: 'GPU' | 'CPU', gen: number): Promise<boolean> {
     const mp = await import('@mediapipe/tasks-vision')
     const fileset = await mp.FilesetResolver.forVisionTasks(WASM_BASE)
     const order: ('GPU' | 'CPU')[] = preferred === 'GPU' ? ['GPU', 'CPU'] : ['CPU']
     let lastErr: unknown
     for (const delegate of order) {
       let face: FaceLandmarker | undefined
+      let pose: PoseLandmarker | undefined
       try {
         face = await mp.FaceLandmarker.createFromOptions(fileset, {
           baseOptions: { modelAssetPath: FACE_MODEL, delegate },
           runningMode: 'VIDEO',
-          numFaces: 1,
+          numFaces: NUM_SUBJECTS,
           outputFaceBlendshapes: true,
           outputFacialTransformationMatrixes: true,
         })
-        const pose = await mp.PoseLandmarker.createFromOptions(fileset, {
+        pose = await mp.PoseLandmarker.createFromOptions(fileset, {
           baseOptions: { modelAssetPath: POSE_MODEL, delegate },
           runningMode: 'VIDEO',
-          numPoses: 1,
+          numPoses: NUM_SUBJECTS,
         })
+        if (gen !== this.gen) {
+          face.close()
+          pose.close()
+          return false
+        }
         this.face?.close()
         this.pose?.close()
         this.face = face
@@ -318,10 +371,11 @@ export class VisionEngine implements FrameSource {
         }
         this.setSummary({ delegate })
         console.debug('[vision] models ready, delegate =', delegate)
-        return
+        return true
       } catch (e) {
         lastErr = e
         face?.close()
+        pose?.close()
         console.debug('[vision] landmarker init failed with', delegate, e)
       }
     }
@@ -341,9 +395,23 @@ export class VisionEngine implements FrameSource {
 
     let face: FaceFrame | null = null
     let pose: PoseFrame | null = null
+    let subject: SubjectInfo | undefined
     try {
-      if (this.detectors.face) face = buildFaceFrame(this.face.detectForVideo(v, ts), ts)
-      if (this.detectors.pose) pose = buildPoseFrame(this.pose.detectForVideo(v, ts), ts)
+      // Several people: pick ONE subject (largest/most central, then sticky) and read landmarks, blendshapes and the yaw
+      // matrix at that one index. Bystanders are counted for the "one person at a time" hint, never measured.
+      if (this.detectors.face) {
+        const res = this.face.detectForVideo(v, ts)
+        const sel = selectSubject(this.faceTracker, res.faceLandmarks, faceBox, ts)
+        face = sel.index === null ? null : buildFaceFrame(res, ts, sel.index)
+        subject = { bystanders: sel.bystanders, ambiguous: sel.ambiguous, epoch: sel.epoch }
+        this.region = face ? faceRegion(faceBox(face.landmarks), v.videoWidth, v.videoHeight) : null
+      }
+      if (this.detectors.pose) {
+        const res = this.pose.detectForVideo(v, ts)
+        const sel = selectSubject(this.poseTracker, res.landmarks, poseBox, ts)
+        pose = sel.index === null ? null : buildPoseFrame(res, ts, sel.index)
+        subject ??= { bystanders: sel.bystanders, ambiguous: sel.ambiguous, epoch: sel.epoch }
+      }
       this.failures = 0
     } catch (e) {
       this.onDetectFailure(e)
@@ -352,7 +420,7 @@ export class VisionEngine implements FrameSource {
 
     this.seq++
     const brightness = this.seq % BRIGHTNESS_EVERY_N_FRAMES === 1 ? this.measureBrightness(v) : this.latest.brightness
-    this.latest = { seq: this.seq, t: ts, face, pose, brightness, aspect: v.videoWidth / v.videoHeight }
+    this.latest = { seq: this.seq, t: ts, face, pose, brightness, aspect: v.videoWidth / v.videoHeight, subject }
     for (const fn of this.frameListeners) {
       try {
         fn(this.latest)
@@ -382,15 +450,16 @@ export class VisionEngine implements FrameSource {
       // The GPU delegate initialised but doesn't actually run: rebuild on CPU once.
       this.rebuilding = true
       const gen = this.gen
-      this.loadModels('CPU')
-        .then(() => {
-          if (gen === this.gen) this.failures = 0
+      this.loadModels('CPU', gen)
+        .then((installed) => {
+          if (installed && gen === this.gen) this.failures = 0
         })
-        .catch(() => undefined)
+        .catch((err) => console.debug('[vision] CPU rebuild failed', err))
         .finally(() => {
           this.rebuilding = false
         })
-    } else if (this.failures >= MAX_CONSECUTIVE_FAILURES) {
+    } else if (this.failures >= MAX_CONSECUTIVE_FAILURES && !this.rebuilding) {
+      cancelAnimationFrame(this.raf) // stop hammering a dead detector; "Try the camera again" restarts everything
       this.setSummary({ status: 'error', error: { kind: 'inference-failed', message: 'Face/pose detection keeps failing.' } }, true)
     }
   }
@@ -404,7 +473,10 @@ export class VisionEngine implements FrameSource {
       }
       const ctx = this.brightnessCanvas.getContext('2d', { willReadFrequently: true })
       if (!ctx) return this.latest.brightness
-      ctx.drawImage(v, 0, 0, BRIGHTNESS_SIZE.w, BRIGHTNESS_SIZE.h)
+      // The subject's face when it is known (backlight: bright window, dark face), else the whole frame.
+      const r = this.region
+      if (r) ctx.drawImage(v, r.sx, r.sy, r.sw, r.sh, 0, 0, BRIGHTNESS_SIZE.w, BRIGHTNESS_SIZE.h)
+      else ctx.drawImage(v, 0, 0, BRIGHTNESS_SIZE.w, BRIGHTNESS_SIZE.h)
       return meanLuminance(ctx.getImageData(0, 0, BRIGHTNESS_SIZE.w, BRIGHTNESS_SIZE.h).data)
     } catch {
       return this.latest.brightness

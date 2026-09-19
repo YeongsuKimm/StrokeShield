@@ -22,6 +22,7 @@ export const CAPTURE_TIMING = {
   faceSmileMs: 5000,
   armsCueSeconds: 3,
   armsHoldMs: 10_000,
+  holdBreakGraceMs: 400, // framing may be bad this long (one missed detection, a blink of the landmarker) without restarting the hold
   framingLossGraceMs: 3000, // framing bad continuously this long during a capture => retry (time to re-adjust)
   minCoverage: 0.6, // fraction of a capture segment's time that framing must have been OK, else retry
   maxDtMs: 250, // a single gap between ticks counts for at most this much coverage time
@@ -118,6 +119,7 @@ export class CaptureController<F> {
   private lastTick = 0
   private waitStart = 0
   private okSince: number | undefined
+  private badSince: number | undefined
   private stepStart = 0
   private lostSince: number | undefined
   private okMs = 0
@@ -178,9 +180,15 @@ export class CaptureController<F> {
 
   private tickWaiting(now: number, { framing }: CaptureInput<F>): void {
     if (framing.ok) {
+      this.badSince = undefined
       this.okSince ??= now
       if (now - this.okSince >= FRAMING_LIMITS.holdOkMs) return this.enterStep(now, 0)
-    } else this.okSince = undefined
+    } else {
+      // A single dropped detection or a face-width reading flickering around a limit must not restart the 1.5 s hold
+      // forever (on a 10-15 fps camera that would exhaust the 12 s wait); only a sustained bad stretch does.
+      this.badSince ??= now
+      if (now - this.badSince > CAPTURE_TIMING.holdBreakGraceMs) this.okSince = undefined
+    }
     if (now - this.waitStart >= FRAMING_LIMITS.waitTimeoutMs) {
       const flag = this.cfg.waitTimeoutFlag
       this.fail(now, typeof flag === 'function' ? flag(this.lastFraming.hint) : flag)
@@ -193,6 +201,7 @@ export class CaptureController<F> {
       this.stepIdx = -1
       this.phase = 'waiting'
       this.okSince = undefined
+      this.badSince = undefined
       this.waitStart = now
       return
     }
