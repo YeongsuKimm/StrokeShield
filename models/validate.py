@@ -29,9 +29,10 @@ import re
 import subprocess
 import sys
 from collections import Counter
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable, Mapping, Sequence, TextIO
+from typing import Any, TextIO
 
 from backend.schemas import TestResult
 from models import calibrate as cal
@@ -486,7 +487,7 @@ def write_freeze(path: Path | None = None, now: dt.datetime | None = None, commi
     path = path or FREEZE_PATH
     cfg = freeze_config()
     payload = {
-        "frozenAt": (now or dt.datetime.now(dt.timezone.utc)).isoformat(timespec="seconds"),
+        "frozenAt": (now or dt.datetime.now(dt.UTC)).isoformat(timespec="seconds"),
         "gitCommit": commit if commit is not None else git_commit(),
         "hash": freeze_hash(cfg),
         "config": cfg,
@@ -730,7 +731,9 @@ def render_public(ctx: ReportContext) -> str:
 # ---------- CLI ----------
 
 def _default_analyzer() -> Analyzer:
-    from models.audio import analyze_speech  # lazy: keeps this module importable (and testable) without the DSP stack
+    from models.audio import (
+        analyze_speech,  # lazy: keeps this module importable (and testable) without the DSP stack
+    )
 
     return analyze_speech
 

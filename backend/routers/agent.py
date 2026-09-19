@@ -1,6 +1,10 @@
 from fastapi import APIRouter, HTTPException
 
-from services.elevenlabs_service import ElevenLabsAPIError, ElevenLabsConfigurationError, get_signed_url
+from services.elevenlabs_service import (
+    ElevenLabsAPIError,
+    ElevenLabsConfigurationError,
+    get_signed_url,
+)
 
 router = APIRouter(prefix="/api")
 

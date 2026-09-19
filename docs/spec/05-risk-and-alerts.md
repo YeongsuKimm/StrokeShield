@@ -28,10 +28,10 @@ Rules:
 ## `/api/alert` (backend)
 1. Validate body against `AlertRequest`. Ignore/forbid any phone-number fields.
 2. If `reason == "risk_threshold"`, recompute risk from `risk.contributions` and confirm `risk ≥ threshold` (sanity check; don't trust the client blindly).
-3. `to = DEMO_PHONE_NUMBER` from env; if unset/invalid → 500 with clear error.
-4. If `DRY_RUN=true`: log the message that *would* be sent and return `{dryRun:true}`.
-5. Else Twilio: send **one SMS only**. The app does not create an automated voice call.
-6. Rate limit: at most 1 alert per 2 minutes (in-memory) to prevent accidental call storms.
+3. `to = DEMO_PHONE_NUMBER` from env; if unset/invalid → HTTP 200 `{ok:false, error}` (never a 500).
+4. If dry-run (the default; only an explicit `DRY_RUN=false|0|no|off` arms real sending, so a typo stays dry): log the message *length* (no PII) and return `{dryRun:true}`.
+5. Else Twilio: send **one SMS only**. The app does not create an automated voice call. Free-text fields are clipped to 120 chars. Twilio failures return `{ok:false, error:"SMS could not be sent (Twilio error <code>)"}`: the raw Twilio message (which can echo numbers/SID) is logged type+code only and never returned.
+6. Rate limit: at most 1 alert per 2 minutes (in-memory) to prevent accidental SMS storms (a lock makes concurrent alerts safe; a failed send does not start the window).
 
 ### SMS
 `StrokeShield ALERT: possible stroke. Symptoms: {symptoms}. Last known well: {lkw}. Location: https://maps.google.com/?q={lat},{lng} (±{acc} m). Risk {risk:.0%}. Demo message.`
@@ -50,4 +50,4 @@ Setup runbook and a read-only readiness check: [../SMS-SETUP.md](../SMS-SETUP.md
 - [ ] `DEMO_PHONE_NUMBER` is a teammate's number, with their consent.
 - [ ] No code path can dial a request-supplied or hardcoded emergency number.
 - [ ] `DRY_RUN=false` only on the demo deployment; default `true` everywhere else.
-- [ ] Judges are told the call is a simulated emergency alert to a demo number.
+- [ ] Judges are told the SMS is a simulated emergency alert to a demo number.

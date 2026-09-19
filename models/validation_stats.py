@@ -10,9 +10,13 @@ from __future__ import annotations
 
 import hashlib
 import math
-from typing import Any, Mapping, Sequence
+from collections.abc import Mapping, Sequence
+from typing import Any
 
-from models.calibrate import auc, cohens_d  # noqa: F401  (re-exported: P(deficit > healthy) with ties 0.5; pooled-sd Cohen's d)
+from models.calibrate import (  # noqa: F401  (re-exported: P(deficit > healthy) with ties 0.5; pooled-sd Cohen's d)
+    auc,
+    cohens_d,
+)
 
 Z_TWO_SIDED_95 = 1.96
 Z_ONE_SIDED_95 = 1.645

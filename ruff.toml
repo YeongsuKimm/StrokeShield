@@ -1,0 +1,13 @@
+# Pinned lint scope. Without this file, ruff >= 0.16 applies a much broader default rule set
+# (style/preview rules like RUF046, BLE001, S110) that the codebase was never written against.
+target-version = "py311"
+extend-exclude = ["frontend", "recordings"]
+
+[lint]
+select = ["E4", "E7", "E9", "F", "I", "B", "UP"]
+# B905: adding strict= to zip() would change runtime behaviour on length mismatch.
+ignore = ["B905"]
+
+[lint.flake8-bugbear]
+# FastAPI's File()/Form()/Depends() in argument defaults are the framework idiom.
+extend-immutable-calls = ["fastapi.File", "fastapi.Form", "fastapi.Depends"]
