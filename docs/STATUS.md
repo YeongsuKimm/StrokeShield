@@ -45,6 +45,7 @@ Status values: `not started` · `in progress` · `blocked` · `done (untested li
 - All thresholds/weights are uncalibrated (see spec files). Calibrate on teammate fixtures around hour ~20.
 
 ## Recent changes (newest first)
+- 2026-09-19 — voice-agent — made tool completion messages test-neutral and strengthened authoritative phase invalidation so late arms/face/eyes results cannot drive speech-step guidance.
 - 2026-09-19 — voice-agent/ui — restored the visible top-center Start guide control and replaced the oversized custom cursor with standard browser cursors.
 - 2026-09-19 — voice-agent/config — synced the latest main branch with Eyes → Face → Arms → Speech, guarded agent tools, and button-only speech recording.
 - 2026-09-19 — frontend/ui — info "BE-FAST in four checks" now follows the new test order (Eyes 01, Face 02, Arms 03, Speech 04; Time stays 05; the menu's process list follows). Stat digits roll 0.3 s longer. Scroll-UP back to the check now needs 170 px of wheel travel (130 px swipe) vs 110 px down, so a stray upward scroll is less likely to eject you from the info page.

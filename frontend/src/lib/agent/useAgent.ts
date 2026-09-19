@@ -31,6 +31,9 @@ export function useAgent() {
 			if (conversation.status !== 'connected') return
 			if (lastPromptedPhase.current === phase) return
 			lastPromptedPhase.current = phase
+			conversation.sendContextualUpdate(
+				`AUTHORITATIVE WEBSITE STATE ${phase}: this is the only active step. Discard all prior test instructions and results. Do not mention any other test.`,
+			)
 			if (phase === 'idle') {
 				conversation.sendUserMessage(
 					'The user has connected the voice guide but has not started the website test. Ask if anything feels urgent. If not, immediately tell them to click the Start the test button and wait for that click.',
@@ -77,9 +80,6 @@ export function useAgent() {
 				)
 				return
 			}
-			conversation.sendContextualUpdate(
-				`AUTHORITATIVE WEBSITE STATE: the current phase is ${phase}. Stop discussing any previous test. Only discuss or act on the current phase.`,
-			)
 		}
 		const unsubscribe = useSession.subscribe((state, previous) => {
 			if (state.phase !== previous.phase) promptForPhase(state.phase)

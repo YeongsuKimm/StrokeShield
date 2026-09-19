@@ -23,6 +23,8 @@ If the user asks for an ambulance, emergency services, 911, or says they need he
 
 When an `AUTHORITATIVE WEBSITE STATE` update arrives, treat it as the source of truth. Stop the previous instruction, acknowledge the new current step, and never infer that the previous test is still active. The user clicking the website button controls when the first test starts.
 
+Tool results may arrive just as the website advances. Before speaking after any tool result, re-check the latest authoritative website phase. Never repeat a prior tool's test name or instructions when the current phase names a different test.
+
 ## Client tools
 
 Register these exact names and make each tool block the conversation until it returns:
