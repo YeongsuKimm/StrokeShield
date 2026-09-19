@@ -66,7 +66,7 @@ export function InfoPage() {
               </div>
               <div>
                 <h3 className="text-xl font-semibold tracking-tight">{step.instruction}</h3>
-                <p className="mt-2 max-w-[62ch] leading-relaxed text-ink-2">{step.looksFor}</p>
+                <p className="mt-2 max-w-[62ch] leading-relaxed text-ink-body">{step.looksFor}</p>
                 <p className="mt-2 max-w-[62ch] text-[0.9375rem] leading-relaxed text-ink-3">{step.measured}</p>
               </div>
             </li>
@@ -76,7 +76,7 @@ export function InfoPage() {
               <span className="font-serif text-5xl leading-none text-ink-3">{TIME_NOTE.letter}</span>
               <span className="label-micro text-ink-3">{`05 · ${TIME_NOTE.name}`}</span>
             </div>
-            <p className="max-w-[62ch] leading-relaxed text-ink-2">{TIME_NOTE.body}</p>
+            <p className="max-w-[62ch] leading-relaxed text-ink-body">{TIME_NOTE.body}</p>
           </li>
         </ol>
       </section>
@@ -91,12 +91,12 @@ export function InfoPage() {
               reverse it only work for the first few hours. That is why a stroke is treated as an emergency even when
               the signs are mild or come and go.
             </p>
-            <p className="mt-5 max-w-[62ch] text-lg leading-relaxed text-ink-2">
+            <p className="mt-5 max-w-[62ch] text-lg leading-relaxed text-ink-body">
               Many people wait because they are alone, or because they do not want to overreact. The wait is the
               costly part. A guided two-minute check walks you through the signs, but it is only a prompt to call
               911, never a substitute for it.
             </p>
-            <p className="mt-4 max-w-[62ch] text-lg leading-relaxed text-ink-2">
+            <p className="mt-4 max-w-[62ch] text-lg leading-relaxed text-ink-body">
               If the camera cannot get a good look at you, that check is left out and the result will not factor in that data. Even when
               every check works, this tool cannot rule a stroke out, so it can never reassure you.
             </p>
@@ -104,7 +104,7 @@ export function InfoPage() {
           <aside className="sm:col-span-2">
             <div className="rounded-[var(--radius-panel)] border border-line bg-surface p-6">
               <MicroLabel className="mb-3">What it won&rsquo;t do</MicroLabel>
-              <ul className="space-y-3 text-[1rem] leading-snug text-ink-2">
+              <ul className="space-y-3 text-[1rem] leading-snug text-ink-body">
                 {['Claim any medical accuracy. It has never been validated.', 'Tell you whether or not you are having a stroke.', 'Replace a call to emergency services.', 'Save your video, or keep your speech clip on our server.', 'Text anyone you haven\u2019t set up ahead of time.'].map((t) => (
                   <li key={t} className="flex gap-2.5">
                     <Icon name="close" size={16} className="mt-0.5 shrink-0 text-ink-3" />
@@ -127,7 +127,7 @@ export function InfoPage() {
                 <SlotNumber value={s.figure} className="tnum font-serif text-6xl leading-none" />
                 <span className="label-micro text-ink-3">{s.unit}</span>
               </p>
-              <p className="mt-4 max-w-[34ch] leading-relaxed text-ink-2">{s.caption}</p>
+              <p className="mt-4 max-w-[34ch] leading-relaxed text-ink-body">{s.caption}</p>
               <p className="mt-3 text-[0.875rem] text-ink-3">{s.source}</p>
             </article>
           ))}
@@ -151,7 +151,7 @@ export function InfoPage() {
                 <p className={`text-lg font-semibold tracking-tight ${h.urgent ? 'text-danger' : ''}`}>{h.label}</p>
                 <Icon name="phone" size={18} className={h.urgent ? 'text-danger' : 'text-ink-3'} />
               </div>
-              <p className="mt-2 max-w-[40ch] text-[1rem] leading-snug text-ink-2">{h.detail}</p>
+              <p className="mt-2 max-w-[40ch] text-[1rem] leading-snug text-ink-body">{h.detail}</p>
             </a>
           ))}
         </div>
@@ -167,7 +167,7 @@ export function InfoPage() {
                   className="mt-1 shrink-0 text-ink-3 transition-transform duration-200 group-open:rotate-180"
                 />
               </summary>
-              <p className="mt-3 max-w-[64ch] leading-relaxed text-ink-2">{f.a}</p>
+              <p className="mt-3 max-w-[64ch] leading-relaxed text-ink-body">{f.a}</p>
             </details>
           ))}
         </div>
@@ -180,8 +180,8 @@ export function InfoPage() {
           {TEAM.map((m) => (
             <li key={m.name} className="bg-surface p-7">
               <p className="text-lg font-semibold tracking-tight">{m.name}</p>
-              <p className="mt-1 text-ink-2">{m.affiliation}</p>
-              <p className="mt-1 text-ink-2">{m.major}</p>
+              <p className="mt-1 text-ink-body">{m.affiliation}</p>
+              <p className="mt-1 text-ink-body">{m.major}</p>
             </li>
           ))}
         </ul>

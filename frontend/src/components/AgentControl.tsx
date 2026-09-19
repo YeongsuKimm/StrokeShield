@@ -56,7 +56,7 @@ function AgentControl() {
     // Top-centre from `sm` up. On a phone the header already fills the top edge (brand + menu), so the control
     // sits bottom-right instead (opposite the Call 911 button), with the status text kept for screen readers only.
     <div className="fixed bottom-5 right-5 z-40 flex items-center gap-3 rounded-full border border-line bg-surface p-1.5 shadow-[var(--shadow-lift)] sm:bottom-auto sm:left-1/2 sm:right-auto sm:top-7 sm:-translate-x-1/2 sm:px-4 sm:py-2">
-      <span className="sr-only text-[0.875rem] text-ink-2 sm:not-sr-only" role="status">
+      <span className="sr-only text-[0.875rem] text-ink sm:not-sr-only" role="status">
         {connected ? 'Guide is listening' : connecting ? 'Connecting…' : 'Voice guide'}
       </span>
       <button

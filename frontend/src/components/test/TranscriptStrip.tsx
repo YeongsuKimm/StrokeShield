@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useSession } from '../../lib/session/store'
-import { smartQuotes } from '../../lib/typography'
+import { smartQuotes, stripToneTags } from '../../lib/typography'
 import { Icon } from '../ui/Icon'
 
 /**
@@ -45,12 +45,17 @@ export function TranscriptStrip() {
           </p>
         ) : (
           <div className="space-y-1.5">
-            {transcript.map((line) => (
-              <p key={line.id} className="text-[1rem] leading-snug">
-                <span className="label-micro mr-2 text-ink-3">{line.speaker === 'agent' ? 'Assistant' : 'You'}</span>
-                <span className={line.speaker === 'agent' ? 'text-ink' : 'text-ink-2'}>{smartQuotes(line.text)}</span>
-              </p>
-            ))}
+            {transcript.map((line) => {
+              const text = stripToneTags(line.text)
+              if (!text) return null // a line that was only a tone tag has nothing to show
+              const agent = line.speaker === 'agent'
+              return (
+                <p key={line.id} className="text-[1rem] leading-snug">
+                  <span className={`label-micro mr-2 ${agent ? 'text-danger' : 'text-accent'}`}>{agent ? 'Assistant' : 'You'}</span>
+                  <span className={agent ? 'text-ink' : 'text-ink-2'}>{smartQuotes(text)}</span>
+                </p>
+              )
+            })}
           </div>
         )}
       </div>
