@@ -106,17 +106,18 @@ export function CameraView({ guide, overlay, hideGuideWhileCapturing = true }: P
         {hint && (
           <div className="absolute inset-x-3 top-3 flex justify-center">
             <p
-              className="rounded-full bg-stage/85 px-4 py-2 text-center text-[1rem] font-medium text-caution-wash backdrop-blur-sm"
+              className="flex max-w-full items-center gap-2.5 rounded-full bg-caution px-5 py-3 text-center text-xl font-bold text-white shadow-[var(--shadow-lift)] sm:text-2xl"
               role="status"
             >
+              <Icon name="alert" size={22} className="shrink-0" />
               {hint}
             </p>
           </div>
         )}
         {!hint && framingOk && !capturing && (
           <div className="absolute inset-x-3 top-3 flex justify-center">
-            <p className="flex items-center gap-2 rounded-full bg-ok/90 px-4 py-2 text-[1rem] font-medium text-white backdrop-blur-sm">
-              <Icon name="check" size={16} />
+            <p className="flex items-center gap-2.5 rounded-full bg-ok px-5 py-3 text-xl font-bold text-white shadow-[var(--shadow-lift)] sm:text-2xl">
+              <Icon name="check" size={22} />
               Hold it right there
             </p>
           </div>
@@ -139,9 +140,15 @@ export function CameraView({ guide, overlay, hideGuideWhileCapturing = true }: P
         {/* Instruction caption + capture ring, bottom. Suppressed while merely waiting for position: the hint pill
             above and the page heading already say the same thing, and three copies of it is noise. */}
         {progress?.caption && progress.phase !== 'waiting' && (
-          <div className="absolute inset-x-3 bottom-3 flex items-center justify-center gap-3 rounded-[var(--radius-control)] bg-stage/85 px-4 py-3 backdrop-blur-sm">
-            {timed && <Ring fraction={progress.fraction} label={String(progress.secondsLeft)} tone="#8fc2f5" />}
-            <p className="text-lg font-semibold text-stage-ink" role="status">
+          // The action prompt: big, solid and unmissable. Phases where the patient must DO something (smile, hold the
+          // arms, follow the dot) get the accent colour; "relax" stays calm.
+          <div
+            className={`absolute inset-x-3 bottom-3 flex items-center justify-center gap-4 rounded-[var(--radius-panel)] px-5 py-4 shadow-[var(--shadow-lift)] ${
+              progress.phase === 'neutral' ? 'bg-stage/95 text-stage-ink' : 'bg-accent text-white'
+            }`}
+          >
+            {timed && <Ring fraction={progress.fraction} label={String(progress.secondsLeft)} size={56} stroke={5} tone="#ffffff" />}
+            <p className="text-balance text-center text-2xl font-bold leading-tight sm:text-3xl" role="status">
               {progress.caption}
             </p>
           </div>

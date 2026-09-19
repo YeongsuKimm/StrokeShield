@@ -46,7 +46,7 @@ export function EyeStimulus({ onTargetChange, onDone, mirrored = false }: Props)
 
   return (
     <div
-      className="relative h-64 w-full overflow-hidden rounded-2xl bg-black"
+      className="relative h-64 w-full overflow-hidden rounded-2xl bg-black/40"
       role="img"
       aria-label="Follow the dot with your eyes"
     >

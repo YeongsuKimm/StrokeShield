@@ -91,39 +91,3 @@ export function BodyGuide({ tone = 'waiting' }: { tone?: GuideTone }) {
     </Layer>
   )
 }
-
-/** The two reference figures from the storyboard: what "arms out, palms up" should look like. */
-export function ArmPoseFigure({ view }: { view: 'front' | 'angle' }) {
-  return (
-    <svg viewBox="0 0 100 80" className="h-full w-full" role="img" aria-label={`Arms held out, ${view} view`}>
-      <rect width="100" height="80" rx="10" fill="var(--color-stage-2)" />
-      <g
-        fill="none"
-        stroke="var(--color-stage-ink)"
-        strokeWidth={2.6}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        opacity={0.92}
-      >
-        {view === 'front' ? (
-          <>
-            <circle cx="50" cy="24" r="7.5" />
-            <path d="M50 32v24" />
-            <path d="M50 38 30 36M50 38l20-2" />
-            {/* open palms, turned up */}
-            <path d="M30 36c-3 0-5-1.5-5-3.4M70 36c3 0 5-1.5 5-3.4" />
-            <path d="M50 56 42 72M50 56l8 16" />
-          </>
-        ) : (
-          <>
-            <circle cx="42" cy="24" r="7.5" />
-            <path d="M42 32v24" />
-            <path d="M42 38 25 43M42 38l21-8" />
-            <path d="M25 43c-2.8.8-5-.2-5.6-2M63 30c2.8-1 5-.3 5.8 1.5" />
-            <path d="M42 56 35 72M42 56l7 16" />
-          </>
-        )}
-      </g>
-    </svg>
-  )
-}

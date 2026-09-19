@@ -1,5 +1,6 @@
 // Live microphone level, used for the "you're muted" warning the storyboard asks for on every test screen and for
 // the speech waveform. One shared AnalyserNode: the stream is opened once at consent and reused.
+import { rmsToBar } from '../speech/levelMeter'
 import { useEffect, useState } from 'react'
 
 /** Peak below this (0..1, linear) counts as silence. Roughly -46 dBFS: quiet room breathing stays under it. */
@@ -121,7 +122,7 @@ class MicMonitor {
 
     // Smooth upward fast, downward slow: the bars follow speech without flickering.
     const level = peak > this.state.level ? peak : this.state.level * 0.86 + peak * 0.14
-    this.history.push(Math.min(1, level * 6)) // * 6: speech peaks near 0.15, so this fills the bar height
+    this.history.push(rmsToBar(level)) // dB scale: raw-mic speech is quiet, a linear scale drew a near-flat wave
     this.history.shift()
 
     // React only needs ~15 Hz and only when something actually changed.

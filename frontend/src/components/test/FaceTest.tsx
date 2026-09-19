@@ -25,16 +25,22 @@ export function FaceTest() {
     }
   }, [])
 
-  const smiling = running === 'face' && progress?.phase === 'smile'
+  const phase = running === 'face' ? progress?.phase : undefined
+  const smiling = phase === 'smile'
+  const relaxing = phase === 'neutral'
 
   return (
     <TestScreen
       test="face"
-      title={retryPending ? 'Relax your face' : smiling ? 'Smile — hold it' : 'Smile as wide as you can'}
+      title={retryPending || relaxing ? 'Relax your face' : smiling ? 'Now smile big. Hold it.' : 'Smile as wide as you can'}
       lede={
         retryPending
           ? 'Let your mouth rest completely. I will restart the check in a moment.'
-          : 'Fit your face inside the outline. I will count you in, then ask you to relax first and smile after.'
+          : relaxing
+            ? 'Let your mouth rest. Take your time; a big smile is next.'
+            : smiling
+              ? 'As wide as you comfortably can, and keep it there.'
+              : 'Fit your face inside the outline. I will ask you to relax first, then smile.'
       }
       footer={<VisionRetryButton test="face" run={testRunner.runFace} />}
     >

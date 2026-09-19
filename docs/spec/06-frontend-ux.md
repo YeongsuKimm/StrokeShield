@@ -25,7 +25,7 @@ Routing is `store.route` plus `store.phase` — no router library. `App.tsx` pic
   hero and "Start the test". Sustained downward input opens the info document and **commits** (no half-scrolled state). The gesture lives in
   `lib/useScrollHandoff.ts` and is shared with the info page, which uses it in the other direction: **scrolling up
   past the top of the info page returns to the check**, alongside the "Back to the check" button (kept, since the
-  gesture is only a shortcut). 110 px of wheel travel down / 170 px up (`HANDOFF_BUFFER_PX`; the way back asks for more, so a stray upward scroll can't eject the reader), a swipe (90 / 130 px), or ↓/PageDown/End (↑/PageUp/Home
+  gesture is only a shortcut). 143 px of wheel travel down / 221 px up (`HANDOFF_BUFFER_PX`; the way back asks for more, so a stray upward scroll can't eject the reader), a swipe (117 / 169 px), or ↓/PageDown/End (↑/PageUp/Home
   on info), counted only within 160 px of the relevant page edge. Travel fades slowly (0.97 per 100 ms) so a
   one-notch-a-second mouse wheel still adds up; a lone flick does not fire it; a 700 ms cooldown after each hand-off
   stops trackpad inertia bouncing you straight back. The home direction only listens while `phase === 'idle'`. The
@@ -90,8 +90,7 @@ result screen says and offers.
   (`store.hint`). The stage ring is the framing indicator. The bottom caption is suppressed while merely waiting for
   position, since the hint pill and the page heading already say it.
 - The camera view shows a "stand here" guide: `HeadGuide` for the close-up checks (sized as a % of frame WIDTH, to
-  match the face-width gate) and `BodyGuide` for arms (anchored to frame height), plus two reference figures of the
-  arms-out pose.
+  match the face-width gate) and `BodyGuide` for arms (anchored to frame height), plus two reference pictures (`public/images/arms-stand.jpg`, `arms-raise.jpg`) beside the camera.
 - **Skip hatch:** after `SKIP_OFFER_MS` (15 s) on any check, a "Skip this check" card appears, **pinned to the bottom-right of the window** (`position: fixed`), so it is
   visible however short the screen while staying clear of the centred controls (Start recording, camera captions) and
   the bottom-left Call 911 button. It is a bordered accent-blue card with a large button and a spring-in entrance,

@@ -251,7 +251,7 @@ describe('createTestRunner', () => {
     expect(second).not.toBe(first)
     expect((await first).flags[0]).toBe('Cancelled.')
     await flush()
-    pump(8000, (t) => ({ face: goodFace(t) }), () => false)
+    pump(12_000, (t) => ({ face: goodFace(t) }), () => false)
     const r = await second
     expect(r.flags[0]).not.toBe('Cancelled.')
     expect(completeTest).toHaveBeenCalledTimes(1)
@@ -265,7 +265,7 @@ describe('createTestRunner', () => {
     const p = runner.runFace()
     await flush()
     expect(src.restarts).toBe(1)
-    pump(8000, (t) => ({ face: goodFace(t) }), () => false)
+    pump(12_000, (t) => ({ face: goodFace(t) }), () => false)
     const r = await p
     expect(r.needsRetry).toBeFalsy()
   })
