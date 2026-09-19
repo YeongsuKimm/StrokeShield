@@ -27,7 +27,7 @@ export const FRAMING_LIMITS = {
   minVisibility: 0.5,
   edgeMargin: 0.02, // landmarks closer to the frame edge than this count as out of frame
   holdOkMs: 1500, // framing must stay OK this long before a test starts
-  waitTimeoutMs: 25_000, // give up waiting for the patient to get into position
+  waitTimeoutMs: 12_000, // retry bad framing before the 15 s skip hatch appears
 }
 
 // Max contribution of each signal to the noisy-OR risk score.

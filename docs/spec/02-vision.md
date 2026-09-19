@@ -31,14 +31,14 @@ Before each test, run a **framing gate** (`frontend/src/lib/vision/framing.ts`, 
 - `checkFaceFraming(faceLandmarks)` — face width within 18–60 % of the frame and not touching an edge. Hints: "Move a little closer to the screen." / "Move back a little." / "Center your face in the view."
 - `checkArmFraming(poseLandmarks)` — both shoulders, elbows **and wrists** visible (≥ 0.5) and inside the frame; shoulder width ≥ 9 % of frame width (not too far). Hints: "Step back until I can see both hands and both shoulders." / "Move a little closer."
 - Thresholds are in `FRAMING_LIMITS` (uncalibrated; tune in the actual demo room).
-- The test starts only after framing has been OK for `holdOkMs` (1.5 s) continuously. If it never gets OK within `waitTimeoutMs` (25 s), the tool returns a retry result ("couldn't see both hands") rather than scoring garbage.
+- The test starts only after framing has been OK for `holdOkMs` (1.5 s) continuously. If it never gets OK within `waitTimeoutMs` (12 s), the tool returns a retry result ("couldn't see both hands") rather than scoring garbage. The UI leaves that reason visible for 2 s and automatically starts one fresh attempt; after a second failed attempt it offers a visible **Try again** button.
 - The current hint goes into the store (`setHint`) as an on-screen caption, and the agent tool result / `sendContextualUpdate` lets the assistant say it aloud.
 - Once framing is OK for the arms test: caption "Get ready… 3, 2, 1, raise your arms," then the 10 s measurement.
 
 Demo-room checklist: ~2.5 m of clear floor behind the patient's start position, camera at about chest/face height, tape a mark on the floor for the "far" spot, good front lighting. Test the room before the demo; wide-angle webcams help.
 
 ## Face test ("Show me a big smile")
-Protocol (~8 s): (1) "Relax your face" — 1.5 s **neutral** capture. (2) "Now smile as big as you can and hold" — 3 s **smile** capture. Retry once if smile not detected.
+Protocol (~8 s): (1) "Relax your face" — 1.5 s **neutral** capture. (2) "Now smile as big as you can and hold" — 3 s **smile** capture. Retry once if smile is not detected or the neutral capture starts with a smile; after the automatic retry, the UI offers **Try again** rather than leaving the camera screen idle.
 
 Landmarks (Face Mesh): mouth corners `61`, `291`; nose tip `1`; eye outer corners `33`, `263`; inner corners `133`, `362`; chin `152`; lids `159/145` and `386/374`; brows `105`, `334`.
 

@@ -87,7 +87,9 @@ result screen says and offers.
   Call 911 button, and the page gains bottom padding so controls can scroll clear of it. A skipped test is
   excluded from progression and contributes nothing to the score. A framing gate that never passes can never trap
   the patient.
-- Low-confidence result → automatic "let's try that again" (max 1 retry), never a silent pass.
+- Low-confidence or invalid vision capture → keep the reason visible for 2 s, then automatically retry once. If the
+  second attempt also fails, leave a visible **Try again** button under the camera; never leave an idle camera screen
+  with Skip as the only action. The framing timeout is 12 s so the automatic retry begins before the 15 s skip hatch.
 - Large tap targets, high contrast, accessible captions (patient may be impaired). Visible focus rings everywhere,
   including on the dark stage.
 - No blocking spinners > 3 s without status text.
