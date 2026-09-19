@@ -62,7 +62,7 @@ def test_happy_path_maps_opinions_back_by_index_and_sends_key_only_in_the_header
     (req,) = rec.requests
     assert req.headers["x-goog-api-key"] == "test-key"
     assert "test-key" not in str(req.url) and "test-key" not in req.content.decode()
-    assert str(req.url).endswith("/models/gemini-2.5-flash:generateContent")
+    assert str(req.url).endswith("/models/gemini-3.6-flash:generateContent")
     body = json.loads(req.content)
     parts = body["contents"][0]["parts"]
     assert sum("inline_data" in p for p in parts) == 2
@@ -75,10 +75,11 @@ def test_prompt_never_asks_for_a_diagnosis_and_pins_the_left_right_convention():
 
 
 def test_model_can_be_overridden_and_a_malformed_one_is_ignored(monkeypatch):
-    monkeypatch.setenv("GEMINI_MODEL", "gemini-3.8-flash")
+    monkeypatch.setenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
     rec = Recorder(ok(reply([item(0)])))
     second_opinion([img()], transport=rec.transport)
-    assert str(rec.requests[0].url).endswith("/models/gemini-3.8-flash:generateContent")
+    assert str(rec.requests[0].url).endswith("/models/gemini-3.5-flash-lite:generateContent")
+    # this model rejects thinkingBudget with HTTP 400 (checked live), so the field must not be sent to it
     assert "thinkingConfig" not in json.loads(rec.requests[0].content)["generationConfig"]
 
     monkeypatch.setenv("GEMINI_MODEL", "../../evil?x=1")

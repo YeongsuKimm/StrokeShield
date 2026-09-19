@@ -20,7 +20,10 @@ from backend.schemas import VisionImage, VisionOpinion
 log = logging.getLogger("vision")
 
 API_ROOT = "https://generativelanguage.googleapis.com/v1beta"
-DEFAULT_MODEL = "gemini-2.5-flash"  # on the free tier; override with GEMINI_MODEL (e.g. a newer Flash)
+DEFAULT_MODEL = "gemini-3.6-flash"  # free tier; gemini-2.5-flash is closed to new keys. Override with GEMINI_MODEL
+# Models verified to accept thinkingBudget=0 (answer directly: thinking only adds latency here). Others, e.g.
+# gemini-3.5-flash-lite, reject the field with HTTP 400, so it is sent only to these.
+_NO_THINKING_MODELS = ("gemini-2.5-flash", "gemini-3.6-flash", "gemini-3.8-flash")
 TIMEOUT_S = 5.0  # spec 01: the session proceeds without it after 5 s
 MAX_IMAGE_BYTES = 1_500_000  # the client sends <= 512 px JPEGs (~50 KB); anything this big is not ours
 _MODEL_ID = re.compile(r"^[A-Za-z0-9._-]+$")
@@ -84,8 +87,8 @@ def build_request(model: str, frames: list[tuple[int, str, bytes]]) -> dict:
         "responseMimeType": "application/json",
         "responseSchema": _RESPONSE_SCHEMA,
     }
-    if model.startswith("gemini-2.5-flash"):
-        config["thinkingConfig"] = {"thinkingBudget": 0}  # answer directly: thinking only adds latency here
+    if model.startswith(_NO_THINKING_MODELS):
+        config["thinkingConfig"] = {"thinkingBudget": 0}
     return {"contents": [{"role": "user", "parts": parts}], "generationConfig": config}
 
 
