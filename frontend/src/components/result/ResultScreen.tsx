@@ -1,12 +1,16 @@
 import { resultBand, type ResultBand } from '../../lib/config'
 import { useSession } from '../../lib/session/store'
-import { Dashboard } from '../Dashboard'
+import { lazyChunk } from '../../lib/resilience/lazyChunk'
+import { LazyBoundary } from '../LazyBoundary'
 import { ClearDataButton } from '../pages/ClearDataButton'
 import { ProgressDots } from '../test/ProgressDots'
 import { Button } from '../ui/Button'
 import { Icon } from '../ui/Icon'
 import { Disclaimer } from '../ui/Disclaimer'
 import { MicroLabel } from '../ui/Primitives'
+
+// The detail dashboard is below the fold and never needed to act: it loads after the verdict and Call 911 are on screen.
+const Dashboard = lazyChunk(() => import('../Dashboard').then((m) => ({ default: m.Dashboard })))
 
 /** Nearby emergency departments, via a plain maps search — no API key, works offline-of-our-backend. */
 const HOSPITAL_SEARCH = 'https://www.google.com/maps/search/emergency+room+near+me'
@@ -142,6 +146,24 @@ export function ResultScreen() {
         </div>
       )}
 
+      {/* A failed alert must never be quiet: say so plainly, keep Call 911 the biggest thing on screen, offer a retry. */}
+      {alertStatus === 'failed' && (
+        <div className="mt-4 rounded-[var(--radius-panel)] border-2 border-danger bg-danger-wash p-6" role="alert" data-testid="alert-failed">
+          <p className="text-xl font-semibold text-danger">The text to your emergency contact did NOT go out.</p>
+          <p className="mt-1.5 text-[1rem] text-ink-2">
+            {alertResponse?.error ?? 'Something went wrong.'} If this is an emergency, do not wait: call 911 yourself.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <Button as="a" href="tel:911" tone="danger" size="xl" icon="phone">
+              Call 911 now
+            </Button>
+            <Button tone="quiet" size="xl" icon="refresh" onClick={() => requestEmergency('user_request')}>
+              Try sending the text again
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Actions. The high band keeps them too: a cancelled countdown still needs a way to get help. */}
       <div className="mt-6 grid gap-4 sm:grid-cols-3">
         <ActionCard
@@ -180,7 +202,9 @@ export function ResultScreen() {
 
       <section className="mt-14">
         <MicroLabel className="mb-4">What the checks measured</MicroLabel>
-        <Dashboard />
+        <LazyBoundary what="The details" reset={Dashboard.reset}>
+          <Dashboard />
+        </LazyBoundary>
       </section>
     </div>
   )

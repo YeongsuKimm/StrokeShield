@@ -12,6 +12,7 @@
 import { api } from '../api'
 import { SPEECH_TARGET_PHRASE } from '../config'
 import type { TestResult } from '../contracts'
+import { isApiError } from '../resilience/apiErrors'
 import { useSession } from '../session/store'
 import { MIC_ERROR_TEXT, MicError, RecordingCancelled } from './micErrors'
 import { recordSpeech, type RecordSpeechOptions, type SpeechRecording } from './recorder'
@@ -23,8 +24,9 @@ export const SPEECH_HINTS = {
   noSpeech: "I didn't hear anything. Please try again and say the sentence clearly.",
   tooQuiet: "I couldn't hear you, please speak louder.",
   tooLoud: 'That was too loud and distorted. Please speak a little softer, or move back from the microphone.',
-  timeout: 'The analysis took too long. Please try again.',
-  backend: "I couldn't reach the analysis service. Please try again.",
+  timeout: 'The analysis took too long, probably a slow connection. Please try again, or skip this step.',
+  backend: "I couldn't reach the analysis service. The camera checks still work. Please try again, or skip this step.",
+  offline: "You seem to be offline, so I can't analyse your speech. Check the connection and try again, or skip this step.",
 } as const
 
 export interface SpeechRunnerDeps {
@@ -72,6 +74,13 @@ const retryResult = (reason: string, startedAt: number, durationMs: number): Tes
 })
 
 const isAbortError = (e: unknown) => (e as { name?: string } | null)?.name === 'AbortError'
+/** Spoken-style hint for a failed analysis call: says whether it was the wifi, a slow server, or something else. */
+const analyzeFailureHint = (e: unknown): string =>
+  isAbortError(e) || (isApiError(e) && e.kind === 'timeout')
+    ? SPEECH_HINTS.timeout
+    : isApiError(e) && e.kind === 'offline'
+      ? SPEECH_HINTS.offline
+      : SPEECH_HINTS.backend
 const looksLikeResult = (r: unknown): r is TestResult =>
   !!r && typeof (r as TestResult).severity === 'number' && typeof (r as TestResult).confidence === 'number' && Array.isArray((r as TestResult).flags)
 
@@ -122,7 +131,7 @@ export function createSpeechRunner(overrides: Partial<SpeechRunnerDeps> = {}): S
     } catch (e) {
       if (abort.signal.aborted) return cancelled()
       console.debug('[speech] analyze failed', e)
-      result = retryResult(isAbortError(e) ? SPEECH_HINTS.timeout : SPEECH_HINTS.backend, startedAt, deps.now() - startedAt)
+      result = retryResult(analyzeFailureHint(e), startedAt, deps.now() - startedAt)
     }
     safeRecorded(rec, result)
     return done(result)

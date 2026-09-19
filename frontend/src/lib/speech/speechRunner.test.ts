@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { MIN_CONFIDENCE, SPEECH_TARGET_PHRASE } from '../config'
 import type { TestResult } from '../contracts'
 import { useSession } from '../session/store'
+import { ApiError } from '../resilience/apiErrors'
 import { MicError, RecordingCancelled } from './micErrors'
 import type { RecordSpeechOptions, SpeechRecording } from './recorder'
 import { useSpeechProgress } from './speechProgressStore'
@@ -134,6 +135,20 @@ describe('createSpeechRunner', () => {
     h.analyze.mockRejectedValue(new DOMException('This operation was aborted', 'AbortError'))
     const r = await createSpeechRunner(h.deps).runSpeech()
     expectRetry(r, SPEECH_HINTS.timeout)
+  })
+
+  it('typed API failures say whether it was the wifi or a slow server, and point at Skip', async () => {
+    for (const [kind, hint] of [
+      ['timeout', SPEECH_HINTS.timeout],
+      ['offline', SPEECH_HINTS.offline],
+      ['server', SPEECH_HINTS.backend],
+    ] as const) {
+      const h = harness()
+      h.analyze.mockRejectedValue(new ApiError(kind, 'x'))
+      expectRetry(await createSpeechRunner(h.deps).runSpeech(), hint)
+    }
+    expect(SPEECH_HINTS.backend).toMatch(/skip/i)
+    expect(SPEECH_HINTS.timeout).toMatch(/skip/i)
   })
 
   it('malformed backend response is treated as a backend failure', async () => {

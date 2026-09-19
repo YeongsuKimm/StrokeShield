@@ -4,35 +4,18 @@ import { testSequence } from '../lib/config'
 import { useSession } from '../lib/session/store'
 import { speechRunner } from '../lib/speech/speechRunner'
 import { testRunner } from '../lib/vision/useTestRunner'
-import type { HealthResponse, TestName, TestResult } from '../lib/contracts'
+import type { HealthResponse } from '../lib/contracts'
+import { HEALTHY, STROKE, runDemoScenario, type Severities } from '../lib/demo/scenarios'
 import { Button } from './ui/Button'
 import { Icon } from './ui/Icon'
 
-// Demo/simulation mode (docs/spec/06). Overrides go through the normal completeTest path, so scoring, the
-// dashboard, the agent context and the alert code all run for real.
-const fake = (test: TestName, severity: number, flags: string[] = []): TestResult => ({
-  test,
-  severity,
-  confidence: 0.9,
-  metrics: {},
-  flags,
-  startedAt: Date.now(),
-  durationMs: 0,
-})
-
-const FLAGS: Record<TestName, string> = {
-  face: 'one side of the smile lifts less',
-  arms: 'one arm drifted down',
-  speech: 'slow, unclear speech',
-  eyes: 'gaze does not track to one side',
-}
-
-const STROKE = { face: 0.8, arms: 0.7, speech: 0.7, eyes: 0.6 }
-const HEALTHY = { face: 0.05, arms: 0.05, speech: 0.05, eyes: 0.05 }
+// Demo/simulation mode (docs/spec/06). Scenario data and the runner live in lib/demo/scenarios.ts (unit-tested):
+// overrides go through the normal completeTest path, so scoring, the dashboard, the agent context and the alert code
+// all run for real.
 
 export function DemoPanel() {
   const s = useSession()
-  const [sev, setSev] = useState<Record<TestName, number>>(STROKE)
+  const [sev, setSev] = useState<Severities>(STROKE)
   const [open, setOpen] = useState(true)
   const [health, setHealth] = useState<HealthResponse | null>(null)
 
@@ -47,12 +30,7 @@ export function DemoPanel() {
     speechRunner.cancel()
   }
 
-  const run = (v: Record<TestName, number>) => {
-    stopRunners()
-    s.reset()
-    s.beginTests()
-    for (const t of testSequence()) useSession.getState().completeTest(fake(t, v[t], v[t] > 0.5 ? [FLAGS[t]] : []))
-  }
+  const run = (v: Severities) => runDemoScenario(v, stopRunners)
 
   const armed = health && !health.dryRun
 
