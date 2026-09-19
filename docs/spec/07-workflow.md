@@ -4,7 +4,7 @@
 | Role | Owns | Spec |
 |---|---|---|
 | **A. Frontend + Agent lead** | Vite app, state machine, dashboard, ElevenLabs agent + client tools, demo panel | 04, 06 |
-| **B. Vision** | MediaPipe face/pose metrics, overlay math, Claude second opinion | 02 |
+| **B. Vision** | MediaPipe face/pose metrics, overlay math, Gemini second opinion | 02 |
 | **C. Speech** | Recorder/WAV, DSP features, Scribe integration, calibration | 03 |
 | **D. Backend + Alerts + Deploy** | FastAPI skeleton, schemas, Twilio, risk scoring, env, deployment, pitch/demo script | 01, 05 |
 
@@ -13,7 +13,7 @@ Everyone: keep `docs/spec/*` updated when reality diverges. Cross-role hand-offs
 ## Timeline (36–48 h)
 | Hours | Goal | Exit criteria |
 |---|---|---|
-| 0–3 | **Foundation** | Repo scaffolded (Vite + FastAPI running), contracts in TS + Pydantic, `.env` shared via password manager, keys for Twilio/ElevenLabs/Anthropic working, Vercel + backend host created |
+| 0–3 | **Foundation** | Repo scaffolded (Vite + FastAPI running), contracts in TS + Pydantic, `.env` shared via password manager, keys for Twilio/ElevenLabs/Gemini working, Vercel + backend host created |
 | 3–16 | **Parallel build against mocks** | A: state machine + UI with fake results. B: face/arm metrics passing fixture tests. C: record → WAV → `/speech/analyze` returns a score. D: `/alert` dry-run works, real Twilio SMS to demo number succeeds, risk fn tested. Agent responds and calls a stub tool |
 | 16–24 | **Integration** | End-to-end happy path in dev: agent → tests → risk → countdown → real SMS. Deployed preview works over HTTPS |
 | 24–32 | **Calibrate & harden** | Thresholds tuned on teammate fixtures, retries/fallbacks, demo mode, second opinion, geolocation link. Bug bash |

@@ -22,7 +22,7 @@ smile → raise arms → repeat a sentence → verdict. If risk is high (or they
 **Stretch (only after MVP is demo-stable)**
 - ~~**Eyes test (BE-FAST)**~~ — promoted into the MVP and wired (see the decisions log); unverified on a live camera.
 - **Phoneme-level speech scoring**: wav2vec2 phoneme recognizer + Goodness-of-Pronunciation, behind `PHONEME_SCORING` (spec 03).
-- Claude vision second-opinion signal folded into the face/arm scores.
+- Gemini vision second-opinion signal folded into the face/arm scores.
 - Passive continuous monitoring.
 - Caregiver contacts; multilingual agent.
 
@@ -32,7 +32,7 @@ smile → raise arms → repeat a sentence → verdict. If risk is high (or they
 | Decision | Choice | Why |
 |---|---|---|
 | Stack | Vite+React+TS frontend, FastAPI backend | Matches existing scaffold; Python gives us librosa/Parselmouth for speech DSP |
-| Vision | Hybrid: in-browser MediaPipe (real time) + Claude vision second opinion on still frames | Real-time + no video upload for the core path; second opinion adds robustness |
+| Vision | Hybrid: in-browser MediaPipe (real time) + Gemini vision second opinion on still frames (free tier) | Real-time + no video upload for the core path; second opinion adds robustness. Gemini, not Claude: the event allows only free/public APIs and Gemini has a free tier |
 | Speech | Fixed-phrase repetition; ElevenLabs Scribe transcript + acoustic/temporal heuristics | Most explainable, best accuracy achievable without training data |
 | Voice agent | ElevenLabs conversational agent + client tools; app state machine is source of truth | Natural conversation and interruptions, deterministic flow |
 | Trigger | Weighted risk score (noisy-OR) with threshold, plus explicit user request | Explainable dashboard, tunable |
@@ -53,13 +53,13 @@ smile → raise arms → repeat a sentence → verdict. If risk is high (or they
 - One patient, one webcam, decent lighting, upper body visible from ~1–1.5 m.
 - English only. Desktop Chrome for the demo.
 - Time "T" in FAST = last-known-well time, asked by the agent and included in the alert.
-- Team has accounts/keys for Twilio, ElevenLabs, Anthropic before hour 4.
+- Team has accounts/keys for Twilio, ElevenLabs, Gemini before hour 4.
 
 ## Open items (owner: whoever answers first, record answer here)
 - [x] Twilio: **trial account, $15.50 credit** (plenty for the demo SMS). `DEMO_PHONE_NUMBER` = the patient/demo-runner's phone (kept in local `.env`, not committed).
 - [ ] **Verify `DEMO_PHONE_NUMBER` in the Twilio console** and confirm the Twilio sender can text it. Test one SMS by hour 4.
 - [x] Backend host: **Railway** (fallback: run locally).
-- [ ] Anthropic + ElevenLabs credit/plan limits (agent minutes, Scribe usage).
+- [ ] Gemini free-tier + ElevenLabs credit/plan limits (agent minutes, Scribe usage).
 - [x] Live-demo patient: the project lead. [ ] Fallback teammate if lighting/camera fails: TBD.
 
 ## Safety & ethics (state these in the pitch and UI)

@@ -12,6 +12,7 @@ PINNED = {
     "PHONEME_SCORING": "false",  # real PyTorch scoring would change severities (needs torch + a 378 MB model)
     "DRY_RUN": "true",  # never place a real call/SMS from a test
     "DEMO_MODE": "true",
+    "GEMINI_API_KEY": "",  # a local key must never make a test call the real Gemini API
 }
 for _k, _v in PINNED.items():
     os.environ[_k] = _v

@@ -110,7 +110,9 @@ As wired: `createEyesCapture` opens ONE capture window exactly `EYE_PROTOCOL_TOT
 
 ## Second opinion (stretch, non-blocking)
 - Capture one JPEG at peak smile and one at end of arm hold (client canvas, ≤512 px, quality 0.7). Only send after the consent checkbox.
-- `POST /api/vision/second-opinion` → `models/vision.py` calls Anthropic (`ANTHROPIC_MODEL`) with a strict JSON-only prompt: *"Describe observable facial/arm asymmetry in these images. You are not diagnosing. Return JSON matching VisionOpinion."* Validate with Pydantic; on any failure return `unclear`.
+- `POST /api/vision/second-opinion` → `models/vision.py` calls the **Gemini API** (`generateContent`, `GEMINI_API_KEY`, model `GEMINI_MODEL`, default `gemini-2.5-flash`, free tier) ONCE for all images, with a strict prompt (observable asymmetry only, not diagnosing, person's own left/right, unmirrored frame so the person's left is the RIGHT of the picture) and a JSON response schema (`index`, `finding`, `side`, `confidence`, `rationale`). Validated with Pydantic; confidence clamped, rationale cut to 200 chars.
+- Per image it checks base64, JPEG magic bytes and a 1.5 MB cap before sending. **Any** failure (no key, bad image, HTTP error/quota, 5 s timeout, safety block, malformed JSON) yields `finding="unclear"`, confidence 0, and never raises. The key goes in a header only; no image data, key or response text is logged. Tests are offline (`tests/test_vision_second_opinion.py`, `httpx.MockTransport`); `conftest.py` blanks `GEMINI_API_KEY` so a local key can't reach the real API.
+- **Not wired in the frontend yet:** `api.secondOpinion`, `addOpinions` and the risk fold-in exist, but nothing captures the JPEGs or shows the consent checkbox. Until that lands the backend is ready but unused.
 - Folded into the risk score as the `vision` contribution (low weight, see 05). Show it on the dashboard labelled "AI second opinion". A timeout or failure must never delay the session.
 
 ## Tests to write first
