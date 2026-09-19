@@ -1,7 +1,7 @@
 # StrokeShield
 
-Guided FAST stroke check (Face, Arms, Speech, Time) with an ElevenLabs voice assistant that calls for help when a risk score crosses a threshold.
-HopHacks demo — **not a medical device**. In the demo, alerts only go to a team-owned number.
+A tool to help guide someone through the BE-FAST stroke check (Eyes, Face, Arms, Speech, Time) with an ElevenLabs voice assistant. If the checks flag something, it can text a demo phone number.
+HopHacks demo. **StrokeShield is only a guide: it is not clinically accurate, not a medical device, has not been validated, and cannot diagnose or rule out a stroke. If you think someone may be having a stroke, call 911 right away.** In the demo, alerts only go to a team-owned number. The wording lives in `frontend/src/lib/disclaimer.ts`.
 
 **New teammate? Start with [docs/GETTING-STARTED.md](docs/GETTING-STARTED.md).**
 

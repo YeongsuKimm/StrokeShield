@@ -1,8 +1,8 @@
 # 00 — Overview, Scope & Decisions
 
 ## One-liner
-StrokeShield walks a possible stroke patient through the **FAST** test using their webcam and mic, guided by a voice assistant,
-and automatically calls for help when the combined risk score crosses a threshold.
+StrokeShield is only a tool to help guide someone through the **BE-FAST** stroke check using their webcam and mic, narrated by a voice assistant.
+If a combined heuristic score crosses a threshold it counts down and texts a demo number. It is not clinically accurate, not a medical device, and cannot diagnose or rule out a stroke.
 
 ## Users & scenario
 Someone alone (or a bystander) suspects a stroke. They open the site, consent to camera/mic/location, and the assistant guides them:
@@ -31,6 +31,7 @@ smile → raise arms → repeat a sentence → verdict. If risk is high (or they
 ## Decisions log
 | Decision | Choice | Why |
 |---|---|---|
+| Honest claims | One shared disclaimer (`lib/disclaimer.ts`) everywhere; no "detect/screen/diagnose", no all-clear, low band neutral and says it cannot rule out a stroke; info-page stats labelled as published research; "AI second opinion" wording dropped | Owner: the site is only a BE-FAST guide with no clinical accuracy; a reassuring result could delay care |
 | Privacy | Explicit unchecked-by-default consent before any capture; voice guide and (future) second opinion are separate opt-ins; "Clear my data" wipes memory and browser storage; CSP via `frontend/vercel.json`; wording is "designed to minimize data", never a compliance claim | Owner wants the app very privacy-compliant; details in spec 06 "Privacy" |
 | Stack | Vite+React+TS frontend, FastAPI backend | Matches existing scaffold; Python gives us librosa/Parselmouth for speech DSP |
 | Vision | Hybrid: in-browser MediaPipe (real time) + Gemini vision second opinion on still frames (free tier) | Real-time + no video upload for the core path; second opinion adds robustness. Gemini, not Claude: the event allows only free/public APIs and Gemini has a free tier |
@@ -65,6 +66,7 @@ smile → raise arms → repeat a sentence → verdict. If risk is high (or they
 - [x] Live-demo patient: the project lead. [ ] Fallback teammate if lighting/camera fails: TBD.
 
 ## Safety & ethics (state these in the pitch and UI)
+- **One disclaimer everywhere** (`frontend/src/lib/disclaimer.ts`, shown on home, consent, every result band, info page, test screens and a footer): only a guide through BE-FAST, not clinically accurate, not a medical device, cannot diagnose or rule out a stroke, call 911. Never pitch it as detecting, screening for, or diagnosing stroke, and never quote the info-page statistics (neurons, treatment windows, BE-FAST vs FAST) as this app's performance: they are from published papers. Nothing is validated; thresholds are uncalibrated.
 - Not a medical device; does not replace calling emergency services. UI always shows a manual "Call 911" `tel:` button.
 - Full data map, vendor terms, compliance posture and known gaps: [docs/PRIVACY.md](../PRIVACY.md) (designed to minimize data; not certified compliant).
 - Video is processed in the browser and never stored. Only optional still frames (with consent) go to the vision second opinion; audio clip goes to the backend for analysis and is not persisted.

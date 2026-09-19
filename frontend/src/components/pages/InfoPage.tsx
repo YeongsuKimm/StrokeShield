@@ -4,6 +4,7 @@ import { testRunner } from '../../lib/vision/useTestRunner'
 import { SlotNumber } from '../ui/SlotNumber'
 import { useScrollHandoff } from '../../lib/useScrollHandoff'
 import { Button } from '../ui/Button'
+import { Disclaimer } from '../ui/Disclaimer'
 import { Icon } from '../ui/Icon'
 import { MicroLabel, SectionHead } from '../ui/Primitives'
 import { FAQS, HOTLINES, INFO_SECTIONS, PROCESS_STEPS, STATS, TEAM, TIME_NOTE } from './infoContent'
@@ -47,6 +48,8 @@ export function InfoPage() {
         Back to the check
       </Button>
 
+      <Disclaimer className="-mt-4 mb-12 max-w-[62ch] border-l-4 border-danger pl-4 text-lg font-medium leading-snug" />
+
       {/* 01 — Process */}
       <section id="process" className="scroll-mt-24">
         <SectionHead {...section('process')} />
@@ -87,20 +90,20 @@ export function InfoPage() {
             <p className="mt-5 max-w-[62ch] text-lg leading-relaxed text-ink-2">
               Most people don&rsquo;t call right away. They&rsquo;re on their own, or they don&rsquo;t want to
               overreact, or they figure it will pass. That&rsquo;s completely human. But waiting is what makes a stroke
-              worse. A two-minute check gives you something concrete to act on, instead of a vague feeling that
-              something&rsquo;s off.
+              worse. A guided two-minute check walks you through the signs, but it is only a prompt to call
+              911, never a substitute for it.
             </p>
             <p className="mt-4 max-w-[62ch] text-lg leading-relaxed text-ink-2">
               We also tried to be honest about what this can&rsquo;t see. If the camera can&rsquo;t get a good look at
-              you, that check gets left out and we tell you so. We&rsquo;d rather say &ldquo;I couldn&rsquo;t
-              tell&rdquo; than hand you an all-clear we haven&rsquo;t earned.
+              you, that check gets left out and we tell you so. Even when every check works, this tool cannot rule a
+              stroke out, so it can never reassure you.
             </p>
           </div>
           <aside className="sm:col-span-2">
             <div className="rounded-[var(--radius-panel)] border border-line bg-surface p-6">
               <MicroLabel className="mb-3">What it won&rsquo;t do</MicroLabel>
               <ul className="space-y-3 text-[1rem] leading-snug text-ink-2">
-                {['Diagnose a stroke or rule one out.', 'Replace a call to emergency services.', 'Keep your video or your voice.', 'Call anyone you haven\u2019t set up ahead of time.'].map((t) => (
+                {['Claim any medical accuracy. It has never been validated.', 'Tell you whether or not you are having a stroke.', 'Replace a call to emergency services.', 'Save your video, or keep your speech clip on our server.', 'Text anyone you haven\u2019t set up ahead of time.'].map((t) => (
                   <li key={t} className="flex gap-2.5">
                     <Icon name="close" size={16} className="mt-0.5 shrink-0 text-danger" />
                     {t}

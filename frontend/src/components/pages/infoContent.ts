@@ -5,6 +5,10 @@
 //  - 4.5 h thrombolysis window / up to 24 h thrombectomy in selected patients: AHA/ASA 2019 acute ischemic
 //    stroke guideline (windows are measured from LAST KNOWN WELL, not from when symptoms were noticed).
 //  - BE-FAST vs FAST missed strokes: Aroor S et al., "BE-FAST", Stroke 2017;48:479-481.
+//
+// HONESTY RULE: every number in STATS is from a published paper or guideline. NONE of them is a measurement of this
+// app, which is uncalibrated and has not been clinically validated. Keep the citations, and never present a figure
+// here as StrokeShield's performance. Shared disclaimer wording lives in lib/disclaimer.ts.
 
 export interface InfoSection {
   id: string
@@ -20,7 +24,7 @@ export const INFO_SECTIONS: InfoSection[] = [
     nav: 'The process',
     index: '01',
     title: 'BE-FAST, in four checks',
-    lede: 'Each check produces a severity and a confidence. Nothing is a diagnosis — the checks only decide whether this is worth an ambulance.',
+    lede: 'A guide through four of the BE-FAST checks (Balance is not checked). Each one produces a rough severity and a confidence from an uncalibrated heuristic. None of it is a diagnosis or a clinical measurement.',
   },
   {
     id: 'why',
@@ -29,7 +33,13 @@ export const INFO_SECTIONS: InfoSection[] = [
     title: 'Why minutes are the whole problem',
     lede: 'Stroke treatment works best when it starts fast. The clock begins the last time you felt completely normal, not the moment you got worried.',
   },
-  { id: 'stats', nav: 'The numbers', index: '03', title: 'The numbers we built around' },
+  {
+    id: 'stats',
+    nav: 'The numbers',
+    index: '03',
+    title: 'Published numbers about stroke',
+    lede: 'These figures come from the published research cited under each one. They are not results from StrokeShield, which has not been tested for accuracy.',
+  },
   { id: 'help', nav: 'Questions & hotlines', index: '04', title: 'Questions, and who to call' },
   { id: 'team', nav: 'The team', index: '05', title: 'Built by' },
 ]
@@ -109,7 +119,7 @@ export const STATS: Stat[] = [
   {
     figure: '14 → 4',
     unit: 'percent',
-    caption: 'missed strokes when the screen adds Balance and Eyes to the classic FAST checks.',
+    caption: 'percent of strokes missed by FAST versus BE-FAST, in one published study. A finding about the clinical BE-FAST scale, not about this app.',
     source: 'Aroor et al., Stroke (2017)',
   },
 ]
@@ -122,7 +132,7 @@ export interface Faq {
 export const FAQS: Faq[] = [
   {
     q: 'Is this a diagnosis?',
-    a: 'No. StrokeShield is a web project designed for health awareness, not a medical device, and it has not been clinically validated. It screens for the signs that emergency dispatchers are trained to ask about, and it errs toward telling you to get help.',
+    a: 'No. StrokeShield is only a tool to help guide someone through the BE-FAST stroke check. It is not clinically accurate, not a medical device and has not been validated: it cannot diagnose or rule out a stroke. A result of "nothing flagged" means nothing. If you think someone may be having a stroke, call 911 right away.',
   },
   {
     q: 'What happens to the video and audio?',
@@ -134,7 +144,7 @@ export const FAQS: Faq[] = [
   },
   {
     q: 'What if a check does not work?',
-    a: 'Every check can be skipped, and a check the camera could not measure is dropped from the score rather than guessed at. If nothing could be measured, the result says so instead of giving you a false all-clear.',
+    a: 'Every check can be skipped, and a check the camera could not measure is dropped from the score rather than guessed at. If nothing could be measured, the result says so. Even when every check is measured, this tool can never reassure you.',
   },
   {
     q: 'Does it really call an ambulance?',

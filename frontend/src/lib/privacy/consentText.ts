@@ -4,8 +4,12 @@
 //
 // Do not say "HIPAA compliant", "fully private" or "secure": this is a demo designed to minimise data, nothing more.
 
+import { DISCLAIMER_LONG } from '../disclaimer'
+
 /** Shown as bullets in the consent panel. */
 export const CONSENT_POINTS: { label: string; text: string }[] = [
+  // First on purpose: what this is (and is not) is read before anything about data.
+  { label: 'Not a diagnosis', text: DISCLAIMER_LONG },
   {
     label: 'Video',
     text: 'Face and arm tracking run in this browser. Your video and face landmarks are not uploaded or stored.',
@@ -26,10 +30,6 @@ export const CONSENT_POINTS: { label: string; text: string }[] = [
     label: 'Your data',
     text: 'We do not sell it or use it for ads. Nothing is saved in your browser. Clear my data wipes it all.',
   },
-  {
-    label: 'Not medical',
-    text: 'This is a demo, not a medical device or a diagnosis. In an emergency call 911.',
-  },
 ]
 
 export const CONSENT_CHECKBOX_LABEL = 'I have read this and agree to these uses.'
@@ -43,7 +43,7 @@ export const VOICE_CONSENT_TEXT =
  * UNCHECKED by default, next to this sentence, and nothing may be sent unless it is ticked.
  */
 export const SECOND_OPINION_CONSENT_TEXT =
-  'Send two still photos to Google Gemini for a second opinion. On the free tier Google may use them to improve its products, and human reviewers may read them.'
+  'Send two still photos to Google Gemini for an extra automated check (not a medical opinion). On the free tier Google may use them to improve its products, and human reviewers may read them.'
 
 export const BROWSER_GRANT_NOTE =
   'Your browser may still remember camera, microphone and location permission. Reset it from the lock icon in the address bar.'

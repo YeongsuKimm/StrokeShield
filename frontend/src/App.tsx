@@ -8,6 +8,7 @@ import { SiteHeader } from './components/chrome/SiteHeader'
 import { HomePage } from './components/pages/HomePage'
 import { InfoPage } from './components/pages/InfoPage'
 import { ResultScreen } from './components/result/ResultScreen'
+import { Disclaimer } from './components/ui/Disclaimer'
 import { ArmsTest } from './components/test/ArmsTest'
 import { EyeTest } from './components/test/EyeTest'
 import { FaceTest } from './components/test/FaceTest'
@@ -193,6 +194,10 @@ function AppContent() {
           </motion.div>
         </AnimatePresence>
       </main>
+      {/* Persistent on every route and phase. Bottom padding keeps it clear of the fixed Call 911 / guide buttons. */}
+      <footer className="mx-auto max-w-3xl px-4 pb-28 text-center sm:pb-24">
+        <Disclaimer variant="short" className="text-[0.8125rem] leading-snug text-ink-3" />
+      </footer>
       <EmergencyButton />
 
       {phase === 'countdown' && <CountdownModal />}

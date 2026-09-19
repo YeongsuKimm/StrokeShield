@@ -103,7 +103,7 @@ export function useAgent() {
 					.map(([test, result]) => `${test}: ${result?.needsRetry ? 'could not get a clear reading' : 'recorded'}`)
 					.join('; ')
 				sendUserMessage(
-					`The website has finished the checks. Tell the user the results are complete and summarize them in calm, non-diagnostic language: ${resultSummary || 'no test results were recorded'}. Do not say they do or do not have a stroke.`,
+					`The website has finished the checks. Tell the user the results are complete and summarize them in calm, non-diagnostic language: ${resultSummary || 'no test results were recorded'}. Do not say they do or do not have a stroke, and never say they are fine. Say briefly that this guide is not clinically accurate and cannot rule out a stroke, and that they should call 911 if they have any symptoms or if symptoms start or change.`,
 				)
 				return
 			}

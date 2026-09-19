@@ -4,6 +4,7 @@ import { useMic } from '../../lib/media/micLevel'
 import { useSession } from '../../lib/session/store'
 import type { TestName } from '../../lib/contracts'
 import { Button } from '../ui/Button'
+import { Disclaimer } from '../ui/Disclaimer'
 import { Icon } from '../ui/Icon'
 import { ProgressDots } from './ProgressDots'
 import { TranscriptStrip } from './TranscriptStrip'
@@ -92,6 +93,7 @@ export function TestScreen({ test, title, lede, children, rail, footer }: Props)
             <MuteWarning />
             <TranscriptStrip />
           </div>
+          <Disclaimer variant="short" className="mt-4 text-center text-[0.875rem] leading-snug text-ink-3" />
         </div>
       </div>
 

@@ -55,7 +55,7 @@ Routing is `store.route` plus `store.phase` — no router library. `App.tsx` pic
   alert status with dry-run badge, and the risk dashboard underneath.
 - **Risk dashboard** (`Dashboard`): per-test card (severity bar, confidence, max weight, flags, raw metrics in an
   expandable table), combined risk gauge with threshold marker, and the per-test noisy-OR arithmetic. Judge-facing.
-- **Countdown modal**: ring, reason line, big "Cancel — I am OK" (autofocused, Escape also cancels; `<main>` is `inert`
+- **Countdown modal**: ring, reason line, big "Cancel the text" (autofocused, Escape also cancels; `<main>` is `inert`
   behind it; the voice-cancel hint shows only while the agent is connected), and a direct
   `tel:911` link. Copy says "emergency contact", never "911", because the backend only ever texts `DEMO_PHONE_NUMBER`.
 - Persistent floating "Call 911" (`tel:`) on every screen, every phase.
@@ -138,6 +138,9 @@ Every vision check screen must always show something to see or press: a run in p
   real microphone. The waveform still reads `lib/media/micLevel` (the consent-time analyser), not the runner's own
   level, so it works even before a run starts.
 - **Second-opinion consent checkbox** is not built (no frame capture exists either). When built it must be a separate, UNCHECKED-by-default checkbox next to `SECOND_OPINION_CONSENT_TEXT` (`lib/privacy/consentText.ts`: free Gemini tier, Google may use content, human reviewers may read it), and nothing is sent unless ticked.
+
+## Honest disclaimer (no clinical claims)
+One constant, `lib/disclaimer.ts` (`DISCLAIMER_SHORT`, `DISCLAIMER_LONG`), rendered by `components/ui/Disclaimer.tsx`: only a guide through the BE-FAST check, not clinically accurate, not a medical device, cannot diagnose or rule out a stroke, call 911. It appears on the home page, first in the consent list (`CONSENT_POINTS[0]`), in the result banner (all three bands), the info page (top), every test screen and a footer under every route. The low band is neutral (not green) and says the checks cannot rule out a stroke; the info page's numbers are labelled "published research, not results from StrokeShield". `lib/disclaimer.test.ts` pins the usage and bans phrases such as "all clear", "you are fine", "clinically accurate" (unless negated), "second opinion", "HIPAA compliant". Countdown cancel reads "Cancel the text" (not "I am OK"). Analyzer flags like "smile looks symmetric" still appear on the dashboard; they describe a measurement, not a finding.
 
 ## Privacy, consent and clearing data
 Designed to minimize data; the app makes no compliance claims ("HIPAA compliant", "fully private" are banned wording, pinned by `privacy/consent.test.ts`). Copy lives in `lib/privacy/consentText.ts` and must stay true to the data flow.

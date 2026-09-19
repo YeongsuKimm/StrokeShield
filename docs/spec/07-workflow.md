@@ -40,7 +40,7 @@ Everyone: keep `docs/spec/*` updated when reality diverges. Cross-role hand-offs
 
 ## Demo script (~3 min)
 1. **Problem** (20 s): stroke = time-critical, most people can't self-assess; FAST is the standard.
-2. **Healthy run** (45 s): guided test (close for face + speech, one step back for arms), dashboard stays green, agent says checks look okay.
+2. **Healthy run** (45 s): guided test (close for face + speech, one step back for arms), dashboard stays green, agent says nothing was flagged but the checks cannot rule out a stroke.
 3. **Symptom run** (75 s): teammate mimics droop/arm drop/slurring (or demo panel "Simulate stroke"); agent announces, countdown, the SMS with the map link arrives on your phone on stage.
 4. **Voice request** (20 s): "Call 911" mid-test → immediate countdown.
 5. **Tech + safety** (20 s): in-browser vision, DSP speech analysis, risk breakdown, demo-number guard, not a medical device.

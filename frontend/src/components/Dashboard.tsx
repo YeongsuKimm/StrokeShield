@@ -133,7 +133,7 @@ export function Dashboard() {
             tone={risk?.triggered ? 'danger' : 'ok'}
             mark={risk?.threshold ?? 0.5}
             height="h-3"
-            label="Combined stroke risk score"
+            label="Combined check score (uncalibrated)"
           />
         </div>
 
