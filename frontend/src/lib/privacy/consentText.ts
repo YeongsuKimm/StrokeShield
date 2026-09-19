@@ -24,7 +24,7 @@ export const CONSENT_POINTS: { label: string; text: string }[] = [
   },
   {
     label: 'Alert text',
-    text: 'If an alert is sent, the text has your location (only if you allowed it), what the checks flagged, and when you were last well if you told the guide. In this demo it goes to one demo phone only.',
+    text: 'If an alert is sent, the text has your location (only if you allowed it), what the checks flagged, and when you were last well if you told the guide. It is sent as an email to the text gateway of the demo phone, so it passes through Gmail and the carrier, and it goes to one demo phone only.',
   },
   {
     label: 'Your data',

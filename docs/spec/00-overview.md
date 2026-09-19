@@ -14,7 +14,7 @@ smile → raise arms → repeat a sentence → verdict. If risk is high (or they
 - In-browser MediaPipe face + pose analysis with live overlay.
 - Speech analysis with advanced heuristics (Python DSP + ElevenLabs Scribe transcript).
 - ElevenLabs Agent with client tools; user can say "call 911 / call for help" at any time.
-- Weighted risk score with threshold; 10 s cancelable countdown; Twilio SMS to `DEMO_PHONE_NUMBER`.
+- Weighted risk score with threshold; 10 s cancelable countdown; a text to the demo phone (email-to-SMS via the carrier gateway; Twilio is the legacy option).
 - Location (browser geolocation) → Google Maps link in SMS and spoken on the call.
 - Live risk dashboard showing per-test metrics and score breakdown.
 - Demo/simulation mode (force results without acting symptomatic).
@@ -39,7 +39,7 @@ smile → raise arms → repeat a sentence → verdict. If risk is high (or they
 | Voice agent | ElevenLabs conversational agent + client tools; app state machine is source of truth | Natural conversation and interruptions, deterministic flow |
 | Trigger | Weighted risk score (noisy-OR) with threshold, plus explicit user request | Explainable dashboard, tunable |
 | Session | Guided FAST session | Predictable demo |
-| Messaging | Twilio SMS, demo number only | Reliable |
+| Messaging | **Email-to-SMS** (Verizon `vtext.com` gateway over Gmail SMTP), demo number only; Twilio kept as a legacy `ALERT_CHANNEL` | Twilio trial numbers are blocked by US carriers (error 30034) and registering needs a paid account, which the event rules forbid; the gateway is free. Best-effort, no receipt. Owner approved changing the "SMS via Twilio" rule on 2026-09-19 |
 | Hosting | Frontend Vercel; backend **Railway** (Dockerfile/nixpacks, no free-tier cold starts); local as demo fallback | HTTPS for camera/mic; Render free tier sleeps, Fly needs more setup |
 | Trained models | No custom-trained classifiers (no suitable stroke data in 36-48h). TensorFlow adds nothing: MediaPipe is already TFLite. Pretrained wav2vec2 (PyTorch) only as a speech stretch | Explainable heuristics beat an unvalidated model; pretrained phoneme scoring needs no patient data |
 | Eyes / phonemes | Both are post-MVP stretches, flag-gated, off by default | Ship FAST first; keep the demo path safe |

@@ -12,6 +12,7 @@ PINNED = {
     "PHONEME_SCORING": "false",  # real PyTorch scoring would change severities (needs torch + a 378 MB model)
     "DRY_RUN": "true",  # never place a real call/SMS from a test
     "DEMO_MODE": "true",
+    "ALERT_CHANNEL": "twilio",  # tests pick the channel themselves; a local .env must not change it
     "GEMINI_API_KEY": "",  # a local key must never make a test call the real Gemini API
     "SECOND_OPINION": "false",  # privacy kill switch: off unless a test turns it on
 }

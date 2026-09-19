@@ -6,7 +6,7 @@ Browser (React)                                             Backend (FastAPI)
 ┌──────────────────────────────────────────┐   REST   ┌───────────────────────────────┐
 │ Session state machine (Zustand)          │─────────▶│ POST /api/speech/analyze      │──▶ models/audio.py ──▶ ElevenLabs Scribe
 │ MediaPipe Face+Pose  (webcam, real time) │          │ POST /api/vision/second-opinion│─▶ models/vision.py ─▶ Gemini API
-│ Web Audio recorder (WAV 16 kHz mono)     │          │ POST /api/alert               │──▶ services/twilio_service.py
+│ Web Audio recorder (WAV 16 kHz mono)     │          │ POST /api/alert               │──▶ services/twilio_service.py → email_sms_service.py
 │ Risk scorer (pure TS)                    │          │ GET  /api/agent/signed-url    │──▶ services/elevenlabs_service.py
 │ Dashboard / overlay / demo panel         │          │ GET  /api/health              │
 │ ElevenLabs agent SDK ◀──WebSocket──▶ ElevenLabs Agents platform (voice, client tools)

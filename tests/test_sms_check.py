@@ -135,3 +135,80 @@ def test_send_flag_goes_through_the_real_alert_path_to_the_env_number_only(monke
     assert sms.main(["--send"], client_factory=lambda e: client, env=GOOD, out=lines.append) == 0
     assert [kw["to"] for kw in sent] == [GOOD["DEMO_PHONE_NUMBER"]]
     assert any("SM123" in ln for ln in lines)
+
+
+# --- email-to-SMS mode (ALERT_CHANNEL=email_sms) ---
+EMAIL = {
+    "ALERT_CHANNEL": "email_sms",
+    "DRY_RUN": "true",
+    "DEMO_PHONE_NUMBER": "+19379419482",
+    "SMS_GATEWAY_DOMAIN": "vtext.com",
+    "SMTP_USER": "demo.sender@gmail.com",
+    "SMTP_APP_PASSWORD": "abcd efgh ijkl mnop",
+}
+
+
+class _Smtp:
+    login_error = None
+
+    def __init__(self, host, port, timeout=None):
+        pass
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *a):
+        return False
+
+    def starttls(self):
+        pass
+
+    def login(self, user, password):
+        if _Smtp.login_error:
+            raise _Smtp.login_error
+
+    def send_message(self, *a, **k):  # the read-only check must never send
+        raise AssertionError("the readiness check must not send mail")
+
+
+def test_email_env_passes_and_never_prints_secrets_or_the_full_number():
+    checks = sms.check_email_env(EMAIL)
+    assert not [c for c in checks if c.status == "FAIL"]
+    text = " ".join(c.detail for c in checks)
+    assert "abcd" not in text and "demo.sender" not in text and "9379419482" not in text
+
+
+@pytest.mark.parametrize(
+    "override,name",
+    [
+        ({"SMTP_USER": ""}, "SMTP_USER"),
+        ({"SMTP_USER": "not-an-email"}, "SMTP_USER"),
+        ({"SMTP_APP_PASSWORD": ""}, "SMTP_APP_PASSWORD"),
+        ({"DEMO_PHONE_NUMBER": "+447911123456"}, "Gateway address"),
+        ({"SMS_GATEWAY_DOMAIN": "nodot"}, "Gateway address"),
+    ],
+)
+def test_email_env_failures_are_reported(override, name):
+    assert status(sms.check_email_env({**EMAIL, **override}), name) == "FAIL"
+
+
+def test_smtp_login_check_passes_and_sends_nothing():
+    _Smtp.login_error = None
+    assert sms.check_smtp_login(EMAIL, _Smtp)[0].status == "PASS"
+
+
+def test_smtp_login_rejection_gives_the_app_password_hint():
+    import smtplib
+
+    _Smtp.login_error = smtplib.SMTPAuthenticationError(535, b"bad")
+    (c,) = sms.check_smtp_login(EMAIL, _Smtp)
+    _Smtp.login_error = None
+    assert c.status == "FAIL" and "app password" in c.detail.lower()
+
+
+def test_main_dispatches_to_email_mode_and_does_not_send_without_the_flag():
+    lines: list[str] = []
+    _Smtp.login_error = None
+    assert sms.main([], env=EMAIL, out=lines.append, smtp_factory=_Smtp) == 0  # fake SMTP: no network, no mail
+    assert any("Email-to-SMS readiness" in ln for ln in lines) and any("READY" in ln for ln in lines)
+    assert not any("Sending ONE real" in ln for ln in lines)
