@@ -3,7 +3,7 @@ import { MIC_VALUES, NOISE_VALUES, type MicKind, type NoiseLevel } from '../lib/
 import { downloadSpeechRun, useSpeechRecorder } from '../lib/speech/speechRecorder'
 import { findSpeechScenario, SPEECH_SCENARIOS } from '../lib/speech/speechScenarios'
 
-// Speech calibration recorder UI. App renders it only with `?record=1`. Pick a scenario, press "Run speech test", say the
+// Speech calibration recorder UI. App renders it with `?record=speech` (or legacy `?record=1`). Pick a scenario and say the
 // phrase as instructed; the .wav + .json pair is saved (and auto-downloaded). Put the files in recordings/speech/.
 // Name / notes / auto-download are shared with RecordPanel (lib/calibration/recorder).
 export function SpeechRecordPanel() {

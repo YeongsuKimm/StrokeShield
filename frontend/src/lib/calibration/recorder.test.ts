@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import type { TestResult } from '../contracts'
 import { collectEnv, conditionsFor, collectSpeechEnv } from './deviceProfile'
-import { recordRun, useRecorder } from './recorder'
+import { isSpeechRecordSearch, isVisionRecordSearch, recordMode, recordRun, useRecorder } from './recorder'
 import { parseRecording, sanitizeConditions, sanitizeEnv, validateRecording, type RecordingInputs } from './recording'
 
 const liveResult: TestResult = { test: 'face', severity: 0.1, confidence: 0.9, metrics: {}, flags: [], startedAt: 1, durationMs: 2 }
@@ -68,6 +68,19 @@ describe('recordRun attaches conditions and env', () => {
     useRecorder.setState({ enabled: false })
     recordRun(inputs, liveResult, () => ({}))
     expect(useRecorder.getState().runs).toHaveLength(0)
+  })
+})
+
+describe('recording query modes', () => {
+  it('separates speech and vision panels while preserving the legacy combined mode', () => {
+    expect(recordMode('?record=speech')).toBe('speech')
+    expect(isSpeechRecordSearch('?record=speech')).toBe(true)
+    expect(isVisionRecordSearch('?record=speech')).toBe(false)
+    expect(isVisionRecordSearch('?record=vision')).toBe(true)
+    expect(isSpeechRecordSearch('?record=vision')).toBe(false)
+    expect(isVisionRecordSearch('?record=1')).toBe(true)
+    expect(isSpeechRecordSearch('?record=1')).toBe(true)
+    expect(recordMode('')).toBeNull()
   })
 })
 

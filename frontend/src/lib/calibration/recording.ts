@@ -122,7 +122,6 @@ export interface Scenario {
   instructions: string
 }
 
-// Only face + arms are wired to the runner today. Add eyes scenarios when runEyes exists (schema already supports 'eyes').
 export const SCENARIOS: Scenario[] = [
   { id: 'face-healthy', kind: 'face', label: 'Face: normal smile', expected: 'healthy', side: 'none', instructions: 'Relax, then smile as big as you normally would.' },
   { id: 'face-natural-asymmetry', kind: 'face', label: 'Face: naturally lopsided smile', expected: 'healthy', side: 'none', instructions: 'Smile the way you naturally do, even if it is a bit lopsided. Do NOT exaggerate.' },
@@ -134,6 +133,9 @@ export const SCENARIOS: Scenario[] = [
   { id: 'arms-mimic-right-drop', kind: 'arms', label: 'Arms: MIMIC YOUR right arm drifting down', expected: 'deficit', side: 'right', instructions: 'Raise both arms, then let YOUR RIGHT arm slowly sink for the rest of the hold. Left arm stays up.' },
   { id: 'arms-mimic-left-never-raised', kind: 'arms', label: 'Arms: MIMIC YOUR left arm cannot lift', expected: 'deficit', side: 'left', instructions: 'Raise ONLY your right arm; keep YOUR LEFT arm down at your side.' },
   { id: 'arms-mimic-right-never-raised', kind: 'arms', label: 'Arms: MIMIC YOUR right arm cannot lift', expected: 'deficit', side: 'right', instructions: 'Raise ONLY your left arm; keep YOUR RIGHT arm down at your side.' },
+  { id: 'eyes-healthy', kind: 'eyes', label: 'Eyes: follow normally', expected: 'healthy', side: 'none', instructions: 'Keep your head still and follow the dot normally with both eyes.' },
+  { id: 'eyes-mimic-cannot-look-left', kind: 'eyes', label: 'Eyes: MIMIC cannot look left', expected: 'deficit', side: 'left', instructions: 'Follow the dot except when it moves to YOUR LEFT; then keep looking near the center.' },
+  { id: 'eyes-mimic-cannot-look-right', kind: 'eyes', label: 'Eyes: MIMIC cannot look right', expected: 'deficit', side: 'right', instructions: 'Follow the dot except when it moves to YOUR RIGHT; then keep looking near the center.' },
 ]
 
 export const scenariosFor = (kind: RecordingKind): Scenario[] => SCENARIOS.filter((s) => s.kind === kind)

@@ -13,7 +13,7 @@ import { FaceTest } from './components/test/FaceTest'
 import { SpeechTest } from './components/test/SpeechTest'
 import { SpeechRecordPanel } from './components/SpeechRecordPanel'
 import { api } from './lib/api'
-import { isRecordSearch } from './lib/calibration/recorder'
+import { isSpeechRecordSearch } from './lib/calibration/recorder'
 import { useSession, isResultPhase } from './lib/session/store'
 
 /** Sends the alert once the countdown expires. The backend decides the destination number — never this client. */
@@ -101,7 +101,7 @@ export default function App() {
       {phase === 'countdown' && <CountdownModal />}
       {demoEnabled && <DemoPanel />}
       <RecordPanel />
-      {isRecordSearch(globalThis.location?.search ?? '') && <SpeechRecordPanel />}
+      {isSpeechRecordSearch(globalThis.location?.search ?? '') && <SpeechRecordPanel />}
     </div>
   )
 }
