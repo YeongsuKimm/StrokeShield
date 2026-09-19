@@ -7,7 +7,10 @@
 /** Shown as bullets in the consent panel. */
 export const CONSENT_POINTS: { label: string; text: string }[] = [
   // First on purpose: what this is (and is not) is read before anything about data.
-  { label: 'Not a diagnosis', text: 'This is a guide, not a medical device. It cannot diagnose or rule out a stroke.' },
+  {
+    label: 'Not a diagnosis',
+    text: 'This is only a guide through the BE-FAST checks. It is not clinically accurate, not a medical device, and cannot diagnose or rule out a stroke. If you think someone may be having one, call 911.',
+  },
   {
     label: 'Video',
     text: 'Face and arm tracking run here. Video and face landmarks are not uploaded or stored.',
