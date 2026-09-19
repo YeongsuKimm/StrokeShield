@@ -59,7 +59,7 @@ result screen says and offers.
   **Newsreader** (for Tiempos) and **Nunito Sans** (for Avenir), self-hosted via `@fontsource-variable/*`. The
   title rule is deliberately unlayered so it beats Tailwind's weight/tracking utilities. To get real Tiempos on the
   deployed site, add licensed `.woff2` files under `public/fonts/` and `@font-face` them as `Tiempos Headline` /
-  `Tiempos Text`. `--font-mono` remains only for the dev panels (`?debug=1`, `?record=1`).
+  `Tiempos Text`. `--font-mono` remains only for the dev panels (`?debug=1`, `?record=vision`, `?record=speech`; legacy `?record=1` combines both recorders).
 - **Type floor:** nothing user-facing is below 13 px. Uppercase micro-labels are 13 px bold; secondary text is 14-15 px;
   body is 16 px+ (raised from an 11 px floor).
 - Icons are inline SVG primitives (`ui/Icon.tsx`), one 24px grid at 1.75 stroke. No icon dependency, no emoji.
