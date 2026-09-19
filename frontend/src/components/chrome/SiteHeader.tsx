@@ -23,6 +23,7 @@ export function BrandMark({ size = 28 }: { size?: number }) {
  * click outside, and after a selection.
  */
 export function SiteHeader() {
+  const goHome = useSession((s) => s.goHome)
   const setRoute = useSession((s) => s.setRoute)
   const route = useSession((s) => s.route)
   const [depth, setDepth] = useState(0)

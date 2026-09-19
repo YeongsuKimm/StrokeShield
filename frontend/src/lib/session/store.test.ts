@@ -126,4 +126,11 @@ describe('session state machine', () => {
     expect(s().skipped).toEqual([])
     expect(s().transcript).toEqual([])
   })
+
+  it('returns to the idle homepage from an active check', () => {
+    s().beginTests()
+    s().goHome()
+    expect(s().route).toBe('home')
+    expect(s().phase).toBe('idle')
+  })
 })

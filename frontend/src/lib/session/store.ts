@@ -64,6 +64,7 @@ interface SessionState {
   hint?: string
 
   setRoute: (route: Route) => void
+  goHome: () => void
   start: () => void
   acceptConsent: () => void
   beginTests: () => void
@@ -120,6 +121,7 @@ export const useSession = create<SessionState>((set, get) => ({
   demoEnabled: new URLSearchParams(globalThis.location?.search ?? '').get('demo') === '1',
 
   setRoute: (route) => set({ route }),
+  goHome: () => set({ route: 'home', phase: 'idle' }),
   start: () => set({ phase: 'consent', route: 'home' }),
   acceptConsent: () => set({ phase: 'intro' }),
   beginTests: () => set({ phase: testSequence()[0], route: 'home' }),

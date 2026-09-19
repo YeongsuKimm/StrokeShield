@@ -37,7 +37,8 @@ Routing is `store.route` plus `store.phase` — no router library. `App.tsx` pic
   ONE row, "Learn more" ("Sections" on the info page); opening it reveals the sections, and "The process" (Speech, Eyes,
   Face, Arms, Time) and "Questions & hotlines" (Hotlines, Common questions) drill one level deeper. The clicked row
   stays put and greys into a breadcrumb; click it to step back. Leaves jump to an element id on the info page, so
-  every target needs an id there (`process`, `step-*`, `why`, `stats`, `help`, `hotlines`, `faq`, `team`). Collapses on
+  every target needs an id there (`process`, `step-*`, `why`, `stats`, `help`, `hotlines`, `faq`, `team`). The logo
+  returns to the idle homepage from any phase. Collapses on
   Escape, outside click and after a choice. The component is adapted from **Drilldown Menu by ruixen.ui on 21st.dev**
   (retrieved with `npx @21st-dev/cli get`, not `add`: the CLI's install path runs `shadcn add`, which would init shadcn
   and rewrite `index.css`). New dependency: `framer-motion` (~+159 kB gzipped on the main bundle).
