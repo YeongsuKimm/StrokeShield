@@ -64,7 +64,7 @@ export function CountdownModal() {
         </div>
 
         <p className="mx-auto max-w-[38ch] text-lg text-ink-2">
-          A call and a text with your location are about to go out. Say “cancel”, or press the button.
+          A text message with your location is about to go out. Say “cancel”, or press the button.
         </p>
 
         <Button autoFocus size="xl" tone="neutral" block className="mt-8" onClick={cancelCountdown}>

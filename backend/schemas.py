@@ -78,7 +78,6 @@ class AlertRequest(CamelModel):
 class AlertResponse(CamelModel):
     ok: bool
     dry_run: bool
-    call_sid: str | None = None
     sms_sid: str | None = None
     error: str | None = None
 

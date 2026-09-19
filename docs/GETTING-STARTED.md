@@ -29,7 +29,7 @@ Open **http://localhost:5173/?demo=1**, click **Simulate stroke**: you'll see th
 ## 2. Keys and safety (read this)
 - **Never commit `.env`** (it's gitignored) and never paste keys in chat groups, issues or PRs. The lead shares real values privately (password manager or DM).
 - Leave **`DRY_RUN=true`**. In dry-run the alert endpoint only logs. Only the lead arms real calls (`DRY_RUN=false`) for the live demo.
-- The backend can only ever call/text the number in `DEMO_PHONE_NUMBER`. Do not add code that takes a phone number from a request or hardcodes 911. Do not put real phone numbers in code, docs or tests (tests use `+15555550100`).
+- The backend can only ever text the number in `DEMO_PHONE_NUMBER`. Do not add code that takes a phone number from a request or hardcodes 911. Do not put real phone numbers in code, docs or tests (tests use `+15555550100`).
 - You only need the keys for the feature you're building (Twilio → alerts, ElevenLabs → agent/speech, Anthropic → vision second opinion).
 
 ## 3. Pick and claim a task

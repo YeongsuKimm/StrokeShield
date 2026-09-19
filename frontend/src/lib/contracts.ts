@@ -53,7 +53,6 @@ export interface AlertRequest {
 export interface AlertResponse {
   ok: boolean
   dryRun: boolean
-  callSid?: string
   smsSid?: string
   error?: string
 }

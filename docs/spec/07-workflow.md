@@ -14,7 +14,7 @@ Everyone: keep `docs/spec/*` updated when reality diverges. Cross-role hand-offs
 | Hours | Goal | Exit criteria |
 |---|---|---|
 | 0–3 | **Foundation** | Repo scaffolded (Vite + FastAPI running), contracts in TS + Pydantic, `.env` shared via password manager, keys for Twilio/ElevenLabs/Anthropic working, Vercel + backend host created |
-| 3–16 | **Parallel build against mocks** | A: state machine + UI with fake results. B: face/arm metrics passing fixture tests. C: record → WAV → `/speech/analyze` returns a score. D: `/alert` dry-run works, real Twilio call to demo number succeeds, risk fn tested. Agent responds and calls a stub tool |
+| 3–16 | **Parallel build against mocks** | A: state machine + UI with fake results. B: face/arm metrics passing fixture tests. C: record → WAV → `/speech/analyze` returns a score. D: `/alert` dry-run works, real Twilio SMS to demo number succeeds, risk fn tested. Agent responds and calls a stub tool |
 | 16–24 | **Integration** | End-to-end happy path in dev: agent → tests → risk → countdown → real call/SMS. Deployed preview works over HTTPS |
 | 24–32 | **Calibrate & harden** | Thresholds tuned on teammate fixtures, retries/fallbacks, demo mode, second opinion, geolocation link. Bug bash |
 | 32–40 | **Polish & pitch** | UI polish, dashboard, sound/animation, pitch deck, README, full rehearsal ×3 |
@@ -41,7 +41,7 @@ Everyone: keep `docs/spec/*` updated when reality diverges. Cross-role hand-offs
 ## Demo script (~3 min)
 1. **Problem** (20 s): stroke = time-critical, most people can't self-assess; FAST is the standard.
 2. **Healthy run** (45 s): guided test (close for face + speech, one step back for arms), dashboard stays green, agent says checks look okay.
-3. **Symptom run** (75 s): teammate mimics droop/arm drop/slurring (or demo panel "Simulate stroke"); agent announces, countdown, phone rings on stage, SMS with map link arrives.
+3. **Symptom run** (75 s): teammate mimics droop/arm drop/slurring (or demo panel "Simulate stroke"); agent announces, countdown, the SMS with the map link arrives on your phone on stage.
 4. **Voice request** (20 s): "Call 911" mid-test → immediate countdown.
 5. **Tech + safety** (20 s): in-browser vision, DSP speech analysis, risk breakdown, demo-number guard, not a medical device.
 Backup: pre-recorded video of the full flow; local run on laptop; demo panel to bypass live capture.

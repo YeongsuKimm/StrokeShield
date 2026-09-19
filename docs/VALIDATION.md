@@ -45,7 +45,7 @@ Each criterion prints PASS / FAIL / INSUFFICIENT DATA: false alarms on healthy r
 Speech note: speech alone can never alert (max weight 0.5), so its false-alarm criterion passes trivially; the meaningful speech check is "healthy ≤ 0.15", broken down by noise, mic and accent.
 
 ## System checks (not recordings)
-- [ ] Real Twilio call + SMS to the verified demo number with `DRY_RUN=false` (never yet run against real Twilio); note time from trigger to ring.
+- [ ] Real Twilio SMS to the verified demo number with `DRY_RUN=false` (never yet run against real Twilio); note time from trigger to receipt.
 - [ ] Failure drills each show a clear message, not a blank screen: backend down, mic unplugged/denied, camera blocked/denied, wifi off.
 - [ ] Demo-room run: distance for arms framing, lighting, noise, the actual laptop; ≥ 3 full timed rehearsals; demo panel fallback works.
 - [ ] Memory/CPU on the demo laptop with the browser, backend and PyTorch model all running (model needs ~1.4 GB; benchmark: 8 threads ≈ 0.45 s per clip).

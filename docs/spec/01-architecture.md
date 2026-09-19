@@ -81,7 +81,7 @@ interface AlertRequest {
   location?: { lat: number; lng: number; accuracyM?: number };
   symptoms: string[];              // flags from TestResults
 }
-interface AlertResponse { ok: boolean; dryRun: boolean; callSid?: string; smsSid?: string; error?: string }
+interface AlertResponse { ok: boolean; dryRun: boolean; smsSid?: string; error?: string }
 ```
 Rule: **no destination number in `AlertRequest`.** Backend reads `DEMO_PHONE_NUMBER`.
 
@@ -106,4 +106,4 @@ Heavy packages (torch, transformers) go in a separate `requirements-ml.txt` (exi
 ## Deployment
 - Frontend → Vercel (`frontend/` root, build `pnpm build`, env `VITE_API_BASE_URL`).
 - Backend → Railway (Dockerfile, Python 3.11). Include `ffmpeg` only if we fall back to webm uploads (default is WAV from the browser, so not needed). Set `ALLOWED_ORIGINS` to the Vercel URL.
-- Fallback for demo day: run both locally; camera/mic work on `localhost` without HTTPS. Twilio calls need no inbound webhook (inline TwiML), so no tunnel needed.
+- Fallback for demo day: run both locally; camera/mic work on `localhost` without HTTPS. Twilio sends an outbound SMS directly, so no inbound webhook or tunnel is needed.
