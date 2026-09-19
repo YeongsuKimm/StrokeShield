@@ -25,6 +25,7 @@
 // that `side` / the landmark reading is what is documented above (and separately, that mouthSmileLeft rises).
 // The tests in face.test.ts encode exactly this documented mapping.
 // ---------------------------------------------------------------------------------------------------------------
+import { epochStartedAt } from './time'
 import { MIN_CONFIDENCE } from '../config'
 import type { TestResult, Side } from '../contracts'
 import { clamp01, median, ramp } from '../math'
@@ -180,7 +181,7 @@ function timing(all: FaceCaptureFrame[]): { startedAt: number; durationMs: numbe
   const t0 = Math.min(...ts)
   const durationMs = Math.max(...ts) - t0
   // Frame `t` may be epoch ms or a performance.now()-style clock; only trust it as startedAt if epoch-like.
-  const startedAt = t0 > 1e11 ? t0 : Date.now() - durationMs
+  const startedAt = epochStartedAt(t0, durationMs)
   return { startedAt, durationMs }
 }
 

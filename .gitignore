@@ -5,3 +5,6 @@ __pycache__/
 .idea/
 .vscode/
 *.egg-info/
+
+# Claude Code agent worktrees
+.claude/worktrees/

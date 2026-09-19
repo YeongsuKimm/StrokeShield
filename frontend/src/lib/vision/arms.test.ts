@@ -251,10 +251,16 @@ describe('analyzeArms', () => {
     expect(r.severity).toBeGreaterThan(0.2)
   })
 
-  it('fills startedAt / durationMs from frame timestamps', () => {
+  it('fills startedAt (epoch ms) / durationMs from frame timestamps', () => {
+    // performance.now()-style clock: startedAt is back-computed to wall-clock epoch ms (contracts.ts)
+    const before = Date.now()
     const r = analyzeArms(makeFrames({ t0: 5000 }))
-    expect(r.startedAt).toBe(5000)
     expect(r.durationMs).toBeCloseTo(10_000, -1)
+    expect(r.startedAt).toBeGreaterThan(1e11)
+    expect(r.startedAt).toBeLessThanOrEqual(before)
+    // epoch-like clock: used as is
+    const epoch = 1_800_000_000_000
+    expect(analyzeArms(makeFrames({ t0: epoch })).startedAt).toBe(epoch)
   })
 
   it('does not depend on input order', () => {

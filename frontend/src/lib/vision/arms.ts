@@ -12,6 +12,7 @@
 // GEOMETRY: landmarks are normalized separately by frame width (x) and height (y), so atan2 on raw normalized values
 // distorts angles unless the aspect ratio is corrected. We convert dx to height units (dx * aspectRatio). Callers should
 // pass the real video aspect ratio (videoWidth / videoHeight); the default is only a guess.
+import { epochStartedAt } from './time'
 import type { TestResult, Side } from '../contracts'
 import { FRAMING_LIMITS, MIN_CONFIDENCE } from '../config'
 import { clamp01, median, ramp } from '../math'
@@ -136,11 +137,11 @@ export function analyzeArms(frames: PoseFrame[], opts: ArmsOptions = {}): TestRe
   const sorted = (Array.isArray(frames) ? frames : [])
     .filter((f) => f && Number.isFinite(f.t) && Array.isArray(f.landmarks))
     .sort((a, b) => a.t - b.t)
-  if (sorted.length === 0) return retry('no pose frames', { startedAt: 0, durationMs: 0 })
+  if (sorted.length === 0) return retry('no pose frames', { startedAt: Date.now(), durationMs: 0 })
 
   const t0 = sorted[0].t
   const tEnd = sorted[sorted.length - 1].t
-  const base = { startedAt: t0, durationMs: tEnd - t0 }
+  const base = { startedAt: epochStartedAt(t0, tEnd - t0), durationMs: tEnd - t0 }
   const n = sorted.length
 
   // Per-frame extraction. A frame is usable only if all six joints are visible AND inside the frame and the shoulders

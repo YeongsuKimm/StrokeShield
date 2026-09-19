@@ -21,6 +21,7 @@
 // - The dot is shown on the patient's screen. The patient faces the screen, so patient-left is physical screen-left.
 //   If the UI renders the dot inside a CSS-mirrored (scaleX(-1)) container, the dot's CSS side is swapped. `target`
 //   in EyeFrame must always be given in the PATIENT's own left/right, i.e. where the patient physically had to look.
+import { epochStartedAt } from './time'
 import type { TestResult, Side } from '../contracts'
 import { MIN_CONFIDENCE } from '../config'
 import { clamp01, median, ramp } from '../math'
@@ -39,7 +40,7 @@ export interface EyeFrame {
 }
 
 export interface EyesOptions {
-  /** Video frame width / height (landmarks are normalized per axis). Default 4/3. */
+  /** Video frame width / height (landmarks are normalized per axis). Default 16/9 (same as face/arms). */
   aspect?: number
   /** Epoch ms for TestResult.startedAt. Defaults to Date.now() (the only impure line, injectable for tests). */
   startedAt?: number
@@ -84,7 +85,7 @@ export const EYES_CONFIG = {
     yawStdDeg: { lo: 3, hi: 8 }, // deg: yaw std-dev over the run (head moving); higher lowers confidence
     settledFrames: { lo: 4, hi: 15 }, // frames: min settled frames over the three targets
     movement: { lo: 0.03, hi: 0.06 }, // eye widths: best-side excursion
-    faceWidth: { lo: 0.1, hi: 0.18 }, // fraction of frame width
+    faceWidth: { lo: 0.12, hi: 0.2 }, // fraction of frame width (landmarks 234/454); same scale as FACE_CONFIG
     noise: { lo: 0.02, hi: 0.06 }, // eye widths: within-segment gaze jitter; higher lowers confidence
   },
 }
@@ -180,10 +181,10 @@ interface Retry {
  * Never throws; low quality or "gaze never moved" returns `needsRetry: true` with an explanatory flag.
  */
 export function analyzeEyes(frames: EyeFrame[], opts: EyesOptions = {}): TestResult {
-  const aspect = opts.aspect && opts.aspect > 0 ? opts.aspect : 4 / 3
+  const aspect = opts.aspect && opts.aspect > 0 ? opts.aspect : 16 / 9
   const list = Array.isArray(frames) ? frames.filter((f) => f && f.face) : []
-  const startedAt = opts.startedAt ?? Date.now()
   const durationMs = list.length > 1 ? Math.max(0, list[list.length - 1].face.t - list[0].face.t) : 0
+  const startedAt = opts.startedAt ?? epochStartedAt(list[0]?.face.t, durationMs)
   const cc = C.confidence
 
   const retry = ({ metrics, flags, confidence }: Retry): TestResult => ({
