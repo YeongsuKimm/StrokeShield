@@ -114,5 +114,5 @@ Heavy packages (torch, transformers) go in a separate `requirements-ml.txt` (exi
 
 ## Deployment
 - Frontend → Vercel (`frontend/` root, build `pnpm build`, env `VITE_API_BASE_URL`).
-- Backend → Railway (Dockerfile, Python 3.11). Include `ffmpeg` only if we fall back to webm uploads (default is WAV from the browser, so not needed). Set `ALLOWED_ORIGINS` to the Vercel URL.
+- Backend → Railway (root `Dockerfile`, python:3.11-slim, torch-free, non-root, `--proxy-headers --no-access-log`; steps + env var table in `docs/DEPLOY.md`). Include `ffmpeg` only if we fall back to webm uploads (default is WAV from the browser, so not needed). Set `ALLOWED_ORIGINS` to the Vercel URL.
 - Fallback for demo day: run both locally; camera/mic work on `localhost` without HTTPS. Twilio sends an outbound SMS directly, so no inbound webhook or tunnel is needed.
