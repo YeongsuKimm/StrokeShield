@@ -1,5 +1,7 @@
 # Calibration: how we check the tests are accurate
 
+> Proving accuracy (held-out people, freeze, confidence bounds) is in **[VALIDATION.md](VALIDATION.md)**. This file covers recording and the tuning loop.
+
 All thresholds are guesses until tuned on real people. This is the loop: **record → replay → tune → repeat**. It needs no coding to record; tuning is small edits to the config blocks.
 
 ## What "accurate" means here (targets)
@@ -53,6 +55,9 @@ It also shows which runs scored differently now than when recorded (after you ch
 3. Run `python -m models.calibrate` (add `--csv out.csv` for a spreadsheet). Set `PHONEME_SCORING=true` first to include phoneme scores (needs `requirements-ml.txt`, see spec 03). Read the per-feature table first: it shows which measurements actually separate healthy from impaired speech; a `WRONG WAY` marker means a ramp in `models/config.py` points the wrong way.
 4. Tune `models/config.py`, re-run (seconds), keep `pytest` green, record the new values and what data they're based on in spec 03 and STATUS.md.
 Remember the noisy-OR: speech has max weight 0.5 and acoustic-only confidence tops out at 0.6, so speech alone never alerts; it corroborates. What matters most is that healthy speakers stay ≤ 0.15.
+
+## Conditions and device info
+Both recording panels ask for **conditions** (glasses, facial hair, lighting, distance, device / mic, noise, native English) and attach device info automatically (browser, cores, fps, delegate, video size / sample rate and the mic's echo-cancellation flags). Fill them in: the validation reports break false alarms and detection down by them. Use ONE consistent id per person; it decides the tune/validate split (VALIDATION.md).
 
 ## Not covered yet
 - **Eyes:** recording schema and replay support `eyes`, but `runEyes` isn't wired, so there are no eyes scenarios yet. Add them to `SCENARIOS` in `lib/calibration/recording.ts` when it is.
