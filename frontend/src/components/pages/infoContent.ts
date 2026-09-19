@@ -126,7 +126,7 @@ export const FAQS: Faq[] = [
   },
   {
     q: 'What happens to the video and audio?',
-    a: 'Your video never leaves your browser: face and arm tracking run on this device, and nothing from the camera is uploaded or stored. Audio goes to two places, and only if you use them. The speech test sends one short recording to our server for analysis, and it may be transcribed by ElevenLabs; we do not store it. The optional voice guide, once you press Start guide, streams your microphone audio to ElevenLabs for as long as it is on. No photos or video frames are sent anywhere.',
+    a: 'Your video never leaves your browser: face and arm tracking run on this device, and nothing from the camera is uploaded or stored. Audio goes to two places, and only if you use them. The speech test sends one short recording to our server for analysis and to no other company; we do not store it. The optional voice guide, once you press Start guide, streams your microphone audio to ElevenLabs for as long as it is on, and ElevenLabs may keep the recording and transcript under its own privacy policy. No photos or video frames are sent anywhere.',
   },
   {
     q: 'What data does this use?',
