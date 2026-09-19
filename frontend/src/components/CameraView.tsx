@@ -123,6 +123,16 @@ export function CameraView({ guide, overlay, hideGuideWhileCapturing = true }: P
           </div>
         )}
 
+        {/* "SMILE!" cue: the moment the relax timer ends and the smile is due, a small card at the top of the camera box
+            says so, so the change of phase is impossible to miss. */}
+        {progress?.test === 'face' && progress.phase === 'smile' && (
+          <div className="absolute inset-x-3 top-3 flex justify-center">
+            <p className="pop rounded-full bg-accent px-7 py-2.5 text-3xl font-extrabold tracking-wide text-white shadow-[var(--shadow-lift)] sm:text-4xl" role="status">
+              SMILE!
+            </p>
+          </div>
+        )}
+
         {/* Instruction card, dead centre, before anything is measured (face / eyes). It is the ONLY thing asked of the
             patient during this beat, so it is big and solid; the check starts by itself when it goes away. */}
         {progress?.phase === 'intro' && progress.caption && (

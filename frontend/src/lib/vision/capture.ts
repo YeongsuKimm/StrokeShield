@@ -286,7 +286,7 @@ export function createFaceCapture<F>(
 ): CaptureController<F> {
   return new CaptureController<F>({
     test: 'face',
-    introCaption: 'First hold a serious, neutral face with your lips closed. Then, when asked, smile as big as you can and hold it.',
+    introCaption: 'Make your face serious. Smile when prompted.',
     waitCaption: 'Look at the camera',
     waitTimeoutFlag: "I couldn't see your face clearly. Let's try again.",
     steps: [
