@@ -45,6 +45,7 @@ Status values: `not started` · `in progress` · `blocked` · `done (untested li
 - All thresholds/weights are uncalibrated (see spec files). Calibrate on teammate fixtures around hour ~20.
 
 ## Recent changes (newest first)
+- 2026-09-19 — frontend/ui — **header menu is now a drilldown list** (21st.dev "Drilldown Menu" by ruixen.ui, adapted to our tokens and a11y labels; no chevrons on rows): collapsed it shows only "Learn more", opening reveals the sections, and "The process" / "Questions & hotlines" drill one level deeper; leaves scroll to new anchors on the info page (`step-*`, `hotlines`, `faq`). New dep `framer-motion` — **run `pnpm install`**.
 - 2026-09-19 — speech — fixed the first real-mic false positive: healthy 2.64 syl/s is no longer "very slow," HNR is report-only for running speech, and the clean run's anonymous metrics are a regression fixture.
 - 2026-09-19 — calibration UI — split recorder routes: `?record=speech` shows only speech controls, `?record=vision` only vision, while `?record=1` remains the combined legacy mode.
 - 2026-09-19 — calibration — started vision + speech tuning: eyes now save labelled calibration recordings alongside face/arms; claimed real-hardware and real-mic validation work.

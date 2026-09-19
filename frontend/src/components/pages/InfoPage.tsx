@@ -36,7 +36,7 @@ export function InfoPage() {
         <SectionHead {...section('process')} />
         <ol className="divide-y divide-line border-y border-line">
           {PROCESS_STEPS.map((step, i) => (
-            <li key={step.name} className="grid gap-x-8 gap-y-3 py-7 sm:grid-cols-[auto_minmax(0,1fr)]">
+            <li id={`step-${step.name.toLowerCase()}`} key={step.name} className="grid scroll-mt-28 gap-x-8 gap-y-3 py-7 sm:grid-cols-[auto_minmax(0,1fr)]">
               <div className="flex items-baseline gap-3 sm:w-24 sm:flex-col sm:items-start sm:gap-1">
                 <span className="font-serif text-5xl leading-none text-accent">{step.letter}</span>
                 <span className="label-micro text-ink-3">{`0${i + 1} · ${step.name}`}</span>
@@ -48,7 +48,7 @@ export function InfoPage() {
               </div>
             </li>
           ))}
-          <li className="grid gap-x-8 gap-y-3 py-7 sm:grid-cols-[auto_minmax(0,1fr)]">
+          <li id="step-time" className="grid scroll-mt-28 gap-x-8 gap-y-3 py-7 sm:grid-cols-[auto_minmax(0,1fr)]">
             <div className="flex items-baseline gap-3 sm:w-24 sm:flex-col sm:items-start sm:gap-1">
               <span className="font-serif text-5xl leading-none text-ink-3">{TIME_NOTE.letter}</span>
               <span className="label-micro text-ink-3">{`05 · ${TIME_NOTE.name}`}</span>
@@ -117,7 +117,7 @@ export function InfoPage() {
       <section id="help" className="mt-24 scroll-mt-24">
         <SectionHead {...section('help')} />
 
-        <div className="mb-10 grid gap-4 sm:grid-cols-2">
+        <div id="hotlines" className="mb-10 grid scroll-mt-28 gap-4 sm:grid-cols-2">
           {HOTLINES.map((h) => (
             <a
               key={h.tel}
@@ -135,7 +135,7 @@ export function InfoPage() {
           ))}
         </div>
 
-        <div className="divide-y divide-line border-y border-line">
+        <div id="faq" className="scroll-mt-28 divide-y divide-line border-y border-line">
           {FAQS.map((f) => (
             <details key={f.q} className="group py-5">
               <summary className="flex cursor-pointer list-none items-start justify-between gap-4 text-lg font-medium tracking-tight [&::-webkit-details-marker]:hidden">

@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
-import { Icon } from '../ui/Icon'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSession } from '../../lib/session/store'
-import { INFO_SECTIONS } from '../pages/infoContent'
+import { DrilldownMenu } from '../ui/DrilldownMenu'
+import { buildMenu } from './menuTree'
 
 /** Mark: a shield silhouette cut by the FAST timeline. Drawn, not an image, so it stays crisp at any size. */
 export function BrandMark({ size = 28 }: { size?: number }) {
@@ -14,20 +14,29 @@ export function BrandMark({ size = 28 }: { size?: number }) {
 }
 
 /**
- * Brand + the disclosure menu from the storyboard. Jumping to a section switches to the info document and scrolls
- * there. Closes on Escape, on outside pointer-down, and after a selection.
+ * Brand + the site menu. The menu is a drilldown list (ui/DrilldownMenu): collapsed it shows only "Learn more", and
+ * opening it reveals the comprehensive list of info-page sections, with "The process" and "Questions & hotlines"
+ * drilling one level further. Choosing a leaf jumps to that spot on the info page. It collapses again on Escape, on a
+ * click outside, and after a selection.
  */
 export function SiteHeader() {
   const setRoute = useSession((s) => s.setRoute)
   const route = useSession((s) => s.route)
-  const [open, setOpen] = useState(false)
+  const [depth, setDepth] = useState(0)
+  // Bumping the key remounts the menu, which is how it collapses back to its single "Learn more" row.
+  const [collapseKey, setCollapseKey] = useState(0)
   const wrapRef = useRef<HTMLDivElement>(null)
+
+  const collapse = useCallback(() => setCollapseKey((k) => k + 1), [])
+  const open = depth > 0
+  // Collapsed, the card hugs its single label ("Learn more" / "Sections") so there is no empty space beside it.
+  const closedWidth = route === 'info' ? 'w-[7.5rem]' : 'w-[8.25rem]'
 
   useEffect(() => {
     if (!open) return
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false)
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && collapse()
     const onDown = (e: PointerEvent) => {
-      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false)
+      if (!wrapRef.current?.contains(e.target as Node)) collapse()
     }
     document.addEventListener('keydown', onKey)
     document.addEventListener('pointerdown', onDown)
@@ -35,14 +44,21 @@ export function SiteHeader() {
       document.removeEventListener('keydown', onKey)
       document.removeEventListener('pointerdown', onDown)
     }
-  }, [open])
+  }, [open, collapse])
 
-  const go = (id: string) => {
-    setOpen(false)
-    setRoute('info')
-    // Wait for the info document to mount before scrolling to the section.
-    requestAnimationFrame(() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
-  }
+  const items = useMemo(
+    () =>
+      buildMenu({
+        route,
+        goToSection: (id) => {
+          setRoute('info')
+          // Wait for the info document to mount before scrolling to the spot.
+          requestAnimationFrame(() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+        },
+        goToCheck: () => setRoute('home'),
+      }),
+    [route, setRoute],
+  )
 
   return (
     <header className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-start justify-between gap-4 p-5 sm:p-7">
@@ -56,36 +72,25 @@ export function SiteHeader() {
         <span className="sr-only">Back to the start</span>
       </button>
 
-      <div ref={wrapRef} className="pointer-events-auto relative">
-        <button
-          type="button"
-          onClick={() => setOpen((v) => !v)}
-          aria-expanded={open}
-          aria-controls="site-menu"
-          className="flex min-h-11 items-center gap-2 rounded-[var(--radius-control)] border border-line-strong bg-surface/80 px-4 text-[1rem] font-medium backdrop-blur-sm transition-colors hover:bg-sunken"
+      {/* The card is its own width at each level (a compact pill when collapsed, wider when open) rather than
+          "auto", so the width can transition. On a phone it overlays the brand while open, which is fine for a menu. */}
+      <div ref={wrapRef} className={`pointer-events-auto relative h-12 ${closedWidth}`}>
+        <nav
+          aria-label="Site sections"
+          className={`absolute right-0 top-0 overflow-hidden rounded-[var(--radius-panel)] border border-line-strong bg-surface py-1.5 pr-3.5 backdrop-blur-sm transition-[width,padding,box-shadow] duration-300 ease-out ${
+            // Open: extra left padding gives the breadcrumb's return arrow a gutter to sit in (it lives just left
+            // of the label, so a tighter card would clip it). Both change together, so the label glides.
+            open ? 'w-[min(17rem,calc(100vw-2.5rem))] pl-9 shadow-[var(--shadow-lift)]' : `${closedWidth} pl-3.5`
+          }`}
         >
-          {route === 'info' ? 'Sections' : 'Learn more'}
-          <Icon name="chevronDown" size={16} className={`transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
-        </button>
-
-        {open && (
-          <nav
-            id="site-menu"
-            className="absolute right-0 top-[calc(100%+0.5rem)] w-60 overflow-hidden rounded-[var(--radius-panel)] border border-line bg-surface py-2 shadow-[var(--shadow-lift)]"
-          >
-            {INFO_SECTIONS.map((s) => (
-              <button
-                key={s.id}
-                type="button"
-                onClick={() => go(s.id)}
-                className="flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left text-[1rem] transition-colors hover:bg-sunken"
-              >
-                {s.nav}
-                <Icon name="arrowUpRight" size={15} className="text-ink-3" />
-              </button>
-            ))}
-          </nav>
-        )}
+          <DrilldownMenu
+            key={`${route}-${collapseKey}`}
+            className="text-[1.0625rem]"
+            items={items}
+            onDepthChange={setDepth}
+            onSelect={collapse}
+          />
+        </nav>
       </div>
     </header>
   )
