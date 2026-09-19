@@ -53,8 +53,9 @@ export const SKIP_OFFER_MS = 15_000
 
 // UI-only outcome bands (the alert trigger is still RISK_THRESHOLD alone, see docs/spec/05).
 // `caution` is the "some signal, below the trigger" middle band that gets the self-help options screen.
-// UNCALIBRATED.
-export const CAUTION_RISK = 0.2
+// UNCALIBRATED. Must stay ABOVE the worst-case healthy person: all four checks at the top of the healthy severity anchor
+// (0.15) with full confidence give a noisy-OR risk of about 0.27 (see risk.test.ts), and a healthy person must land in `low`.
+export const CAUTION_RISK = 0.3
 
 export type ResultBand = 'high' | 'caution' | 'low'
 export const resultBand = (risk: number): ResultBand =>

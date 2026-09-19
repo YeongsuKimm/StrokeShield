@@ -12,6 +12,8 @@ triggered = risk ≥ RISK_THRESHOLD           # default 0.5
 ```
 Initial (**uncalibrated**) max weights: `face 0.6`, `arms 0.6`, `speech 0.5`, `eyes 0.3` (stretch), `vision 0.25` (only if `finding=asymmetric`, severity = its confidence).
 Severity anchors are shared by every test (spec 02 "Shared conventions"): healthy ≤ 0.15, borderline ≈ 0.35, clear ≥ 0.85. Consequences of the current weights: a clear face or arm deficit alone triggers; a clear eyes deficit alone never does (0.3 < 0.5); a clear **speech-only** deficit (severity 0.9 → 0.45) does NOT trigger. **Open decision:** if the team wants "any one FAST sign triggers" (as in real FAST guidance), raise `MAX_WEIGHTS.speech` to 0.6 and update `consistency.test.ts`.
+Result bands (UI only; the alert trigger is still `RISK_THRESHOLD` alone): `low` < 0.3 <= `caution` < 0.5 <= `high`. `CAUTION_RISK` is 0.3, not 0.2, because four healthy checks at the top of the healthy anchor (severity 0.15, confidence 1) already give a risk of about 0.27, and a healthy person must not see "Something showed up". Uncalibrated.
+
 Examples: one test at severity 0.9/confidence 1 → 0.54 (trigger). Two tests at 0.5 → ~0.5 (trigger). One test 0.4 → 0.24 (no).
 
 Rules:

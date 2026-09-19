@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { CAUTION_RISK, resultBand } from './config'
 import { computeRisk } from './risk'
 import type { TestName, TestResult } from './contracts'
 
@@ -49,5 +50,26 @@ describe('computeRisk', () => {
     const base = { kind: 'face', side: 'left', confidence: 0.8, rationale: '' } as const
     expect(computeRisk({}, [{ ...base, finding: 'symmetric' }]).contributions).toHaveLength(0)
     expect(computeRisk({}, [{ ...base, finding: 'asymmetric' }]).contributions).toHaveLength(1)
+  })
+})
+
+describe('result bands and healthy people', () => {
+  const run = (severity: number) => {
+    const at = (test: TestName, w = 1): TestResult => ({
+      test, severity, confidence: w, metrics: {}, flags: [], startedAt: 0, durationMs: 1000,
+    })
+    return computeRisk({ eyes: at('eyes'), face: at('face'), arms: at('arms'), speech: at('speech') })
+  }
+
+  it('four checks at the very top of the healthy anchor (0.15) still land in the low band', () => {
+    const { risk } = run(0.15)
+    expect(risk).toBeGreaterThan(0.25) // the worst case the caution line has to clear
+    expect(risk).toBeLessThan(CAUTION_RISK)
+    expect(resultBand(risk)).toBe('low')
+  })
+
+  it('a clear deficit is still high, and two borderline checks are caution', () => {
+    expect(resultBand(run(0.9).risk)).toBe('high')
+    expect(resultBand(run(0.35).risk)).not.toBe('low')
   })
 })
