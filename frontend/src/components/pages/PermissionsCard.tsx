@@ -132,7 +132,7 @@ export function PermissionsCard() {
           type="checkbox"
           checked={consented}
           onChange={(e) => (e.target.checked ? giveConsent() : void clearAllLocalData())}
-          className="mt-0.5 size-5 shrink-0 accent-[var(--color-accent)]"
+          className="mt-0.5 size-6 shrink-0 accent-[var(--color-accent)]"
         />
         <span className="text-[0.9375rem] font-medium leading-snug">
           {CONSENT_CHECKBOX_LABEL}

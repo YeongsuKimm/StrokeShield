@@ -116,8 +116,8 @@ export function CameraView({ guide, overlay, hideGuideWhileCapturing = true }: P
   return (
     <div className="on-stage">
       <div
-        className={`relative w-full overflow-hidden rounded-[var(--radius-panel)] bg-stage ring-4 transition-shadow duration-500 ease-out ${ring}`}
-        style={{ aspectRatio: aspect }}
+        className={`relative mx-auto w-full overflow-hidden rounded-[var(--radius-panel)] bg-stage ring-4 transition-shadow duration-500 ease-out ${ring}`}
+        style={{ aspectRatio: aspect, maxWidth: `calc(var(--cam-max-h) * ${aspect})` }}
       >
         <div ref={hostRef} className="absolute inset-0" />
         <canvas ref={canvasRef} aria-hidden className="pointer-events-none absolute inset-0 h-full w-full" />

@@ -51,9 +51,15 @@ const SPRING = { type: 'spring' as const, stiffness: 520, damping: 46, mass: 0.9
 /** Livelier, because a character travels a few pixels, not a few rows. */
 const CHAR_SPRING = { type: 'spring' as const, stiffness: 500, damping: 30, mass: 1 }
 
-/** Layout grid, in em, so the whole menu scales off one font size. */
-const ROW_PITCH = 2.2
-const ROW_HEIGHT = 1.9
+/**
+ * Layout grid, in em, so the whole menu scales off one font size. A touch device gets a taller grid so each row
+ * clears the 44px minimum for a thumb; the pitch has to grow with it or absolutely-positioned rows would overlap.
+ * Read once at module load: a device does not grow a touchscreen mid-session.
+ */
+const COARSE = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches === true
+const TOUCH_SCALE = COARSE ? 1.4 : 1
+const ROW_PITCH = 2.2 * TOUCH_SCALE
+const ROW_HEIGHT = 1.9 * TOUCH_SCALE
 const INDENT = 0.9
 
 /** Per-character cadence. Out is quicker than in, and runs back to front. */
@@ -208,7 +214,7 @@ function Row({ item, depth, index, isTrail, onActivate, reduceMotion }: RowProps
         }
         type="button"
         className={cn(
-          'rounded-[0.3em] px-[0.28em] py-[0.32em] text-left font-medium leading-[1.25] outline-none transition-colors',
+          `rounded-[0.3em] px-[0.28em] text-left font-medium leading-[1.25] outline-none transition-colors ${COARSE ? 'py-[0.68em]' : 'py-[0.32em]'}`,
           'hover:bg-sunken focus-visible:ring-2 focus-visible:ring-accent',
           // Weight is deliberately identical either way: a breadcrumb is the same word at the same size, greyed.
           // Drop its weight too and the label reflows its own width the moment you click it.

@@ -159,7 +159,7 @@ export function InfoPage() {
         <div id="faq" className="scroll-mt-28 divide-y divide-line border-y border-line">
           {FAQS.map((f) => (
             <details key={f.q} className="group py-5">
-              <summary className="flex cursor-pointer list-none items-start justify-between gap-4 text-lg font-medium tracking-tight [&::-webkit-details-marker]:hidden">
+              <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-4 text-lg font-medium tracking-tight [&::-webkit-details-marker]:hidden">
                 {f.q}
                 <Icon
                   name="chevronDown"
