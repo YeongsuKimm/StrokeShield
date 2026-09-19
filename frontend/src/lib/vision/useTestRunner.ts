@@ -1,0 +1,214 @@
+// Connects live frames (useMediaPipe) + the capture controller (capture.ts) + the pure analyzers + the session store.
+//
+// Non-React entry points (what the ElevenLabs client tools call; do NOT edit lib/agent/* from here):
+//   import { testRunner } from '../vision/useTestRunner'
+//   start_face_test: async () => summarize(await testRunner.runFace())
+//   start_arm_test:  async () => summarize(await testRunner.runArms())
+// Both return Promise<TestResult>: they always resolve (never reject), including camera/model failure, framing timeout
+// and cancel (all `needsRetry: true`, spoken-style `flags[0]`). Non-cancelled results are also stored via
+// useSession.completeTest. Calling the same run twice returns the in-flight promise; a different run cancels the first.
+//
+// React entry point: `useTestRunner()` returns the same functions plus `running` for button state.
+import { useCaptureProgress, type RunnableTest } from './progressStore'
+import { useSession } from '../session/store'
+import type { TestResult } from '../contracts'
+import { analyzeArms } from './arms'
+import { analyzeFace, FACE_CONFIG, type FaceCaptureFrame } from './face'
+import { CaptureController, createArmsCapture, createFaceCapture, retryResult, withYawGate, type CaptureProgress } from './capture'
+import { checkArmFraming, checkFaceFraming, type Framing } from './framing'
+import type { PoseFrame } from './landmarks'
+import { getVisionEngine, type FrameSource, type VisionSnapshot } from './useMediaPipe'
+
+// ---- ADAPTERS ------------------------------------------------------------------------------------------------------
+// The only place that knows the analyzers' call signatures. If analyzeFace/analyzeArms change, fix ONE line here.
+export type FaceAnalyzer = (neutral: FaceCaptureFrame[], smile: FaceCaptureFrame[]) => TestResult
+export type ArmsAnalyzer = (frames: PoseFrame[], aspectRatio: number) => TestResult
+const analyzeFaceAdapter: FaceAnalyzer = (neutral, smile) => analyzeFace(neutral, smile)
+const analyzeArmsAdapter: ArmsAnalyzer = (frames, aspectRatio) => analyzeArms(frames, { aspectRatio })
+// EXTENSION POINT (eyes, FEATURES.eyesTest, currently NOT wired): add analyzeEyesAdapter + `runEyes` next to runFace/runArms,
+// a `createEyesCapture` in capture.ts, and render <EyeStimulus/> while the eyes phase is active. Use
+// withYawGate(framing, yaw, EYES_CONFIG.maxYawDeg) for the eyes framing gate.
+// --------------------------------------------------------------------------------------------------------------------
+
+const READY_TIMEOUT_MS = 60_000 // camera permission + model load
+const HEARTBEAT_MS = 250 // keeps timeouts/hints alive if the camera stalls
+const STALE_FRAME_MS = 400
+const PUBLISH_MS = 200 // progress -> React at <= 5 Hz (immediately on phase/framing changes)
+
+export interface RunnerDeps {
+  /** Lazy so importing this module never touches the DOM. */
+  source: () => FrameSource
+  analyzeFace: FaceAnalyzer
+  analyzeArms: ArmsAnalyzer
+  completeTest: (r: TestResult) => void
+  setHint: (h?: string) => void
+  publish: (running: RunnableTest | null, p: CaptureProgress | null) => void
+  now: () => number
+  faceYawLimitDeg: number
+}
+
+const defaultDeps = (): RunnerDeps => ({
+  source: getVisionEngine,
+  analyzeFace: analyzeFaceAdapter,
+  analyzeArms: analyzeArmsAdapter,
+  completeTest: (r) => useSession.getState().completeTest(r),
+  setHint: (h) => useSession.getState().setHint(h),
+  publish: (running, p) => useCaptureProgress.getState().set(running, p),
+  now: () => performance.now(),
+  faceYawLimitDeg: FACE_CONFIG.yawFullDeg,
+})
+
+export interface TestRunner {
+  runFace: () => Promise<TestResult>
+  runArms: () => Promise<TestResult>
+  cancel: () => void
+  readonly running: RunnableTest | null
+}
+
+export function createTestRunner(overrides: Partial<RunnerDeps> = {}): TestRunner {
+  const deps = { ...defaultDeps(), ...overrides }
+  let current: { token: symbol; test: RunnableTest; promise: Promise<TestResult>; cancel: () => void } | null = null
+
+  async function execute(test: RunnableTest, cancelled: Promise<void>, controllerRef: { c?: CaptureController<unknown> }) {
+    const source = deps.source()
+    const startedAt = Date.now()
+    const failure = (reason: string) => retryResult(test, reason, startedAt, 0)
+    const release = source.acquire()
+    let unsub = () => {}
+    let heartbeat: ReturnType<typeof setInterval> | undefined
+    try {
+      // Face test only needs the face landmarker, arms only the pose landmarker (saves CPU/GPU).
+      source.setDetectors(test === 'face' ? { face: true, pose: false } : { face: false, pose: true })
+      deps.publish(test, {
+        test,
+        phase: 'waiting',
+        caption: 'Starting the camera…',
+        hint: '',
+        secondsLeft: null,
+        fraction: 0,
+        framingOk: false,
+      })
+      const ready = await Promise.race([source.waitUntilReady(READY_TIMEOUT_MS), cancelled.then(() => null)])
+      if (ready === null) return retryResult(test, 'Cancelled.', startedAt, 0)
+      if (!ready.ok) return failure(`I couldn't start the camera. ${ready.reason}`)
+
+      const controller = (
+        test === 'face'
+          ? createFaceCapture<FaceCaptureFrame>((n, s) => deps.analyzeFace(n, s), {
+              missingFrame: (t) => ({ landmarks: [], blendshapes: {}, t, brightness: source.latest.brightness, aspect: source.latest.aspect }),
+            })
+          : createArmsCapture<PoseFrame>((f) => deps.analyzeArms(f, source.latest.aspect))
+      ) as CaptureController<unknown>
+      controllerRef.c = controller
+
+      return await new Promise<TestResult>((resolve) => {
+        let lastPublish = 0
+        let lastKey = ''
+        let lastFrameAt = deps.now()
+
+        const step = (snap: VisionSnapshot | null) => {
+          const now = snap ? snap.t : deps.now()
+          if (snap) lastFrameAt = now
+          const { framing, frame } = snap ? inputFor(test, snap, deps.faceYawLimitDeg) : { framing: NO_CAMERA, frame: null }
+          const p = controller.tick(now, { framing, frame })
+          const key = `${p.phase}|${p.framingOk}|${p.hint}|${p.secondsLeft}`
+          if (key !== lastKey || now - lastPublish >= PUBLISH_MS) {
+            lastKey = key
+            lastPublish = now
+            deps.publish(test, p)
+            deps.setHint(p.hint || undefined)
+          }
+          if (controller.finished) resolve(controller.result!)
+        }
+
+        unsub = source.subscribeFrames((s) => step(s))
+        heartbeat = setInterval(() => {
+          if (deps.now() - lastFrameAt > STALE_FRAME_MS) step(null)
+        }, HEARTBEAT_MS)
+        void cancelled.then(() => {
+          controller.cancel()
+          resolve(controller.result!)
+        })
+        step(null)
+      })
+    } finally {
+      unsub()
+      clearInterval(heartbeat)
+      source.setDetectors({ face: true, pose: true })
+      release()
+    }
+  }
+
+  function start(test: RunnableTest): Promise<TestResult> {
+    if (current?.test === test) return current.promise
+    const previous = current
+    previous?.cancel()
+
+    let cancelFn = () => {}
+    const cancelled = new Promise<void>((r) => (cancelFn = r))
+    const controllerRef: { c?: CaptureController<unknown> } = {}
+    const token = Symbol(test)
+    const entry = {
+      token,
+      test,
+      cancel: cancelFn,
+      promise: (async () => {
+        await previous?.promise.catch(() => undefined) // let the previous run release the camera first
+        const result = await execute(test, cancelled, controllerRef)
+        // A cancelled run resolves with a 'Cancelled.' retry result and is NOT stored.
+        const wasCancelled = controllerRef.c ? controllerRef.c.cancelled : result.flags[0] === 'Cancelled.'
+        if (!wasCancelled) deps.completeTest(result)
+        deps.setHint(wasCancelled ? undefined : result.needsRetry ? result.flags[0] : undefined)
+        if (current?.token === token) {
+          current = null
+          deps.publish(null, null)
+        }
+        return result
+      })(),
+    }
+    current = entry
+    return entry.promise
+  }
+
+  return {
+    runFace: () => start('face'),
+    runArms: () => start('arms'),
+    cancel: () => current?.cancel(),
+    get running() {
+      return current?.test ?? null
+    },
+  }
+}
+
+const NO_CAMERA: Framing = { ok: false, hint: "I can't get the camera image." }
+
+function inputFor(
+  test: RunnableTest,
+  snap: VisionSnapshot,
+  faceYawLimitDeg: number,
+): { framing: Framing; frame: FaceCaptureFrame | PoseFrame | null } {
+  if (test === 'face') {
+    const face = snap.face
+    // brightness (0..255) and aspect (video w/h) ride along on every face frame, as analyzeFace expects.
+    const frame: FaceCaptureFrame | null = face ? { ...face, brightness: snap.brightness, aspect: snap.aspect } : null
+    return { framing: withYawGate(checkFaceFraming(face?.landmarks ?? null), face?.yawDeg, faceYawLimitDeg), frame }
+  }
+  return { framing: checkArmFraming(snap.pose?.landmarks ?? null), frame: snap.pose }
+}
+
+let shared: TestRunner | undefined
+/** The shared runner for non-React callers (ElevenLabs client tools). */
+export const testRunner: TestRunner = {
+  runFace: () => (shared ??= createTestRunner()).runFace(),
+  runArms: () => (shared ??= createTestRunner()).runArms(),
+  cancel: () => shared?.cancel(),
+  get running() {
+    return shared?.running ?? null
+  },
+}
+
+/** React hook: same functions plus `running` ('face' | 'arms' | null) for button state. */
+export function useTestRunner(): Pick<TestRunner, 'runFace' | 'runArms' | 'cancel'> & { running: RunnableTest | null } {
+  const running = useCaptureProgress((s) => s.running)
+  return { runFace: testRunner.runFace, runArms: testRunner.runArms, cancel: testRunner.cancel, running }
+}
