@@ -9,6 +9,20 @@ Output: two `TestResult`s (`face`, `arms`) and optional `VisionOpinion[]`.
 - Metric functions take plain arrays (`{x,y,z,visibility}[]`) so they can be unit-tested with JSON fixtures.
 - Verify landmark index ↔ anatomy with the debug overlay early, and record the verified left/right mapping in a code comment. (Reference indices below are the standard MediaPipe Face Mesh / BlazePose ones.)
 
+## Shared conventions (face, arms, eyes must all follow these)
+The three tests are built independently but feed ONE noisy-OR risk score (spec 05), so they share one scale. `frontend/src/lib/vision/consistency.test.ts` enforces most of this; run it when you change any threshold.
+- **Severity anchors (0..1):** healthy people with normal natural asymmetry ≤ 0.15; borderline / ambiguous ≈ 0.3–0.4 (never alerts alone); clear one-sided deficit ≥ 0.85. Calibrate ramps to these anchors, and test them.
+- **Confidence and retry:** confidence is 0..1 (1 = ideal capture). Return `needsRetry: true` when confidence < `MIN_CONFIDENCE` (`config.ts`, 0.3, never redefined per test) or data is insufficient; then `severity = 0`, confidence stays just under the cutoff, and `flags[0]` is a short spoken-style reason (lower-case, no trailing period) the UI/agent can read out. Never a confident guess.
+- **Left/right:** `side` and `_left` / `_right` metric suffixes are the PATIENT'S own left/right, computed from RAW (unmirrored) camera coordinates; the patient's left appears on the image RIGHT. The mirrored display is only a draw-layer concern. The mapping is ASSUMED until confirmed on a live camera with `?debug=1` (flags: `FACE_CONFIG.blendshapeLeftIsPatientLeft`, `ARMS_CONFIG.swapLeftRight`).
+- **Units and naming:** frame time `t` in ms (`performance.now()` style; analyzers convert `startedAt` to epoch ms via `vision/time.ts`), durations in seconds (`*_s`, except `raised_time_*`, which is seconds), angles in degrees, every metric a finite number.
+- **Aspect ratio:** MediaPipe landmarks are normalized per axis, so angles need the real video aspect: pass `video.videoWidth / videoHeight` (face: `aspect` on each frame; arms: `opts.aspectRatio`; eyes: `opts.aspect`). Default 16:9 if omitted.
+- **Yaw:** face test tolerates |yaw| ≤ 15° (degrades to 0 confidence at 25°); eyes rejects frames above 10°. The capture layer should hint "Look straight at the screen" before a test starts.
+- **Config:** each test keeps thresholds in one exported const (`FACE_CONFIG`, `ARMS_CONFIG`, `EYES_CONFIG`) with a unit comment per value, all UNCALIBRATED until tuned on teammate recordings. Face-width confidence uses the same scale in face and eyes (0.12 → 0, 0.20 → 1 of frame width).
+- **Contract for the risk score:** eyes has max weight 0.3 (corroborates, can't alert alone); face and arms 0.6.
+
+## Calibration workflow
+Thresholds are tuned by **record → replay → tune**: `?record=1` saves the exact analyzer inputs of live runs (labelled with scenario/expected side), `pnpm calibrate` replays them offline against the anchors above and prints false alarms, misses, wrong sides and retry rate. Full guide: [../CALIBRATION.md](../CALIBRATION.md). Code: `frontend/src/lib/calibration/`.
+
 ## Positioning: close for the face, back for the arms
 The face needs to fill enough of the frame for reliable landmarks; the arms test needs the whole upper body **and both hands** in frame. One camera can't do both, so the session is ordered **Face → (Eyes) → Speech → Arms** (`testSequence()` in `config.ts`): the patient starts close to the screen (~50–70 cm / arm's length; better landmarks, and the mic is close for speech), then steps back **once** (~2 m / 6 ft) for the arms.
 
@@ -46,6 +60,14 @@ Severity = weighted ramp: `0.45·ramp(lift_asym) + 0.25·ramp(smile_bs_asym) + 0
 
 Confidence = min of: face-detected frame ratio, yaw within ±15° (from transform matrix), face width ≥ 20 % of frame width, mean frame brightness in a sane range, smile_strength gate.
 
+As built (`vision/face.ts`, `analyzeFace(neutral, smile)`, extra frame fields `brightness`, `aspect`; changes from the text above):
+- **Smile gate:** the *stronger side's* smile blendshape must reach 0.3 (plus a mean floor of 0.15). A mean-only gate would wrongly reject a severe droop where one side barely moves. `smile_strength` is still reported as the mean.
+- **Neutral capture must not be smiling** (> 0.35 → retry): a pre-smile destroys the lift measurement.
+- **Roll correction needs the real frame aspect** (see conventions).
+- **Blendshape left/right** (`mouthSmileLeft` = patient's left?) is ~50/50 unresolved; it only drives the "blendshape and landmark disagree" flag. Severity and `side` come from landmarks (Face Mesh 61/159/145 = patient's RIGHT, 263/291/386/374 = patient's LEFT — assumed, from the mesh's subject-perspective annotation).
+- Minimum frames: ≥ 5 detected neutral, ≥ 8 detected smile (~15 fps: neutral 1.5 s, smile 3 s). Pass `landmarks: []` frames for missed detections.
+- Known limits: no pitch correction, glasses/dentures/old palsy not handled, `corner_height_diff` is measured in the smile frame only (natural baseline asymmetry counts).
+
 ## Arms test ("Raise both arms out and hold")
 Protocol (10 s): first the patient **steps back** (framing gate above), then "Hold both arms straight out to your sides, palms up." Default is arms out to the **sides** (2D pose is far more reliable than arms pointing at the camera). After the 3-2-1 cue, measure 10 s.
 
@@ -56,15 +78,15 @@ Per frame, per arm: **elevation angle** `θ = atan2(shoulder.y − wrist.y, |wri
 Metrics:
 | Metric | Definition |
 |---|---|
-| `drift_L`, `drift_R` | median θ in first 2 s − median θ in last 2 s (deg) |
+| `drift_left`, `drift_right` | median θ in first 2 s − median θ in last 2 s (deg) |
 | `drift_asym` | `|drift_L − drift_R|` — primary |
 | `height_diff` | mean `|wristL.y − wristR.y| / shoulderWidth` over hold |
-| `min_theta_L/R` | lowest sustained θ; below −25° = arm dropped |
-| `raised_time_L/R` | seconds the arm stayed within 20° of its starting θ |
+| `min_theta_left/right` | lowest sustained θ (1 s rolling median); below −25° = arm dropped |
+| `raised_time_left/right` | seconds until θ first fell more than 20° below its starting θ (0 if the arm never rose) |
 
-Severity = `0.55·ramp(drift_asym; 8→30) + 0.25·ramp(height_diff; 0.08→0.35) + 0.20·(one arm never rose above −10° ? 1 : 0)`.
+Severity (as built, `ARMS_CONFIG`) = `0.6·ramp(drift_asym; 8→25°) + 0.3·ramp(height_diff; 0.10→0.40) + 0.1·neverRose`, with a **floor of 0.9 when exactly one arm never rose** (sustained θ ≤ −10°; a hanging arm has no drift, so the formula alone can't express it). The original spec weights (0.55/0.25/0.20, 8→30) capped a clear 30° drop at 0.80, below the shared 0.85 anchor. Measured: steady 0, natural asymmetry ≈ 0.07, one arm 14° → 0.36, 20° → 0.68, ≥ 25° → ~0.9. Neither arm rising → `needsRetry` (`neither arm was raised`): the patient probably didn't do the test, and bilateral weakness alone shouldn't alert. `side` is `'both'` for the equal-drift fatigue case (severity ≈ 0) and `'none'` when nothing is notable.
 Both arms sinking equally is fatigue, not stroke → contributes via `drift_asym` only (≈0); add flag `"both arms drifted equally"`.
-Confidence = joint visibility ratio, both wrists/elbows/shoulders in frame (the framing gate above must have passed), shoulder width ≥ 9 % of frame width.
+Confidence = min(visibility score, duration score): fraction of frames with all six joints visible, in frame, and shoulders ≥ 9 % of frame width (0 at 40 %, 1 at 85 %), and data span (0 at 3 s, 1 at 8 s). Needs ≥ 6 s and ≥ 30 usable frames. Feed ONLY the 10 s hold window (clock starts after the 3-2-1 cue; a window that starts while the arms are still rising biases the start median low). Limits: arms toward the camera are unreliable in 2D (`poseWorldLandmarks` would fix it and the aspect issue; not built); a naturally low arm scores ≈ 0.2.
 
 ## Eyes test — BE-FAST stretch (`FEATURES.eyesTest`, off by default)
 Build only after the FAST MVP is demo-stable. Files: `frontend/src/lib/vision/eyes.ts` (pure metrics), a stimulus component that moves a dot on screen. Output: a `TestResult` with `test: "eyes"`.
@@ -74,7 +96,8 @@ Protocol (~10 s, patient still **close** to the screen, same framing gate as the
 Landmarks: iris centers `468` and `473`, eye corners `33/133` and `362/263` (verify mapping with the debug overlay). Per eye, **horizontal gaze ratio** = (iris.x − outer corner.x) / (inner corner.x − outer corner.x), roll-corrected and head-yaw compensated (or frames rejected when |yaw| > 10°).
 
 Metrics: `exc_left`, `exc_right` (gaze-ratio excursion from the center baseline when the dot is left/right, per eye), `excursion_asym = |exc_left − exc_right| / max(...)` (gaze palsy: cannot look one way), `conjugacy_err` (difference between the two eyes' excursions; dysconjugate gaze), `rest_deviation` (mean offset while the dot is centered; fixed gaze deviation), `tracking_lag_s`.
-Severity: `0.5·ramp(excursion_asym) + 0.3·ramp(conjugacy_err) + 0.2·ramp(rest_deviation)` with **uncalibrated** ramps; max risk weight 0.3 (glasses, strabismus, small eyes cause false positives).
+Severity (as built, `EYES_CONFIG`): `max(0.5·ramp(excursion_asym; 0.3→0.8) + 0.3·ramp(conjugacy_err; 0.3→0.8) + 0.2·ramp(rest_deviation; 0.08→0.22), 0.9·ramp(excursion_asym))`. The `max` term is deliberate: the plain weighted sum caps a pure one-sided gaze palsy at 0.5, below the 0.85 anchor. Ramps are wide because natural left/right amplitude differs by ~0.1–0.3. Units are eye widths (a dot 13–20° off-center moves the iris ~0.08–0.15 eye widths; webcam jitter ~0.01–0.02 — reasoned, not measured). `rest_deviation` is |mean centered gaze − 0.5|, which real eye geometry offsets by ~±0.05. `tracking_lag_s` only raises a "slow to follow" flag (> 1.2 s); it is not in severity. `side` is set only when `excursion_asym` ≥ 0.4. Max risk weight 0.3 (glasses, strabismus, small eyes cause false positives).
+Implementation notes: `EyeFrame = { face: FaceFrame; target: 'center'|'left'|'right' }`, `target` in the PATIENT's own left/right (physical screen-left = patient-left when they face the screen; set `EyeStimulus mirrored` only if an ancestor is CSS-flipped). Label frames with `labelEyeFrames(faces, protocolStartT)` using the same `performance.now()` clock as `EyeStimulus.onTargetChange`. The first 500 ms and first half of every segment are skipped (so 2 s left/right segments are measured over the last second). If gaze moves opposite to the dot the result is a retry ("check left/right labeling"). Eye landmarks 33/133/468 = patient's RIGHT eye, 263/362/473 = patient's LEFT eye (assumed, ~90 %). Known limits: yaw > 10° is rejected not compensated, no vertical gaze, conjugacy modeled as amplitude difference, slow followers underestimated.
 Confidence: iris landmarks visible, |yaw| stable, brightness, dot-following actually happened (gaze moved at all). Low confidence → `needsRetry`, never a guess.
 Stretch of the stretch: visual-field check (dots flash at screen edges while gaze stays at the center; patient taps a key when seen). Skip nystagmus and pupil response (30 fps webcam is too noisy).
 
