@@ -45,6 +45,7 @@ Status values: `not started` · `in progress` · `blocked` · `done (untested li
 - All thresholds/weights are uncalibrated (see spec files). Calibrate on teammate fixtures around hour ~20.
 
 ## Recent changes (newest first)
+- 2026-09-19 — backend/alerts — audit: `ruff.toml` pins lint scope (ruff 0.16 default was flagging 63 style-only items; none were bugs; ruff now runs in CI); `DRY_RUN` fails safe (only explicit false/0/no/off arms real SMS); Twilio/ElevenLabs errors no longer leak raw upstream text, alert send is locked, dry-run log has no PII; +34 error-path tests; leftover "call" copy in `.env.example`/docs fixed. Contracts untouched.
 - 2026-09-19 — voice-agent — made tool completion messages test-neutral and strengthened authoritative phase invalidation so late arms/face/eyes results cannot drive speech-step guidance.
 - 2026-09-19 — voice-agent/ui — restored the visible top-center Start guide control and replaced the oversized custom cursor with standard browser cursors.
 - 2026-09-19 — voice-agent/config — synced the latest main branch with Eyes → Face → Arms → Speech, guarded agent tools, and button-only speech recording.

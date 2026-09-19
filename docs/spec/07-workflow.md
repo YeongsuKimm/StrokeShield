@@ -15,7 +15,7 @@ Everyone: keep `docs/spec/*` updated when reality diverges. Cross-role hand-offs
 |---|---|---|
 | 0–3 | **Foundation** | Repo scaffolded (Vite + FastAPI running), contracts in TS + Pydantic, `.env` shared via password manager, keys for Twilio/ElevenLabs/Anthropic working, Vercel + backend host created |
 | 3–16 | **Parallel build against mocks** | A: state machine + UI with fake results. B: face/arm metrics passing fixture tests. C: record → WAV → `/speech/analyze` returns a score. D: `/alert` dry-run works, real Twilio SMS to demo number succeeds, risk fn tested. Agent responds and calls a stub tool |
-| 16–24 | **Integration** | End-to-end happy path in dev: agent → tests → risk → countdown → real call/SMS. Deployed preview works over HTTPS |
+| 16–24 | **Integration** | End-to-end happy path in dev: agent → tests → risk → countdown → real SMS. Deployed preview works over HTTPS |
 | 24–32 | **Calibrate & harden** | Thresholds tuned on teammate fixtures, retries/fallbacks, demo mode, second opinion, geolocation link. Bug bash |
 | 32–40 | **Polish & pitch** | UI polish, dashboard, sound/animation, pitch deck, README, full rehearsal ×3 |
 | 40–T-6 h | **Feature freeze** | Bug fixes only. Tag `demo-v1`. Rehearse worst cases |

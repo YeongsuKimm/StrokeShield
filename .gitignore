@@ -12,3 +12,5 @@ __pycache__/
 # Local speech calibration recordings (voice is personal data); only the folder README is tracked
 recordings/speech/*
 !recordings/speech/README.md
+.env.*
+!.env.example

@@ -27,7 +27,7 @@ models/
   vision.py               # second-opinion call → VisionOpinion
 services/
   elevenlabs_service.py   # signed URL, Scribe STT
-  twilio_service.py       # place_call, send_sms, dry-run aware
+  twilio_service.py       # place_alert (SMS only), dry-run aware
 tests/                    # pytest + fixtures/ (wav, jpg)
 frontend/
   src/
@@ -95,7 +95,7 @@ Rule: **no destination number in `AlertRequest`.** Backend reads `DEMO_PHONE_NUM
 | `POST /api/alert` | `AlertRequest` | `AlertResponse` | Backend |
 
 Timeouts: second opinion 5 s (non-blocking; the session proceeds without it), speech analyze 10 s, alert 10 s.
-Errors: JSON `{error: string}` with proper status; frontend shows retry/fallback, never a blank screen.
+Errors: FastAPI JSON `{detail: string}` with the proper status (alert failures are HTTP 200 `AlertResponse{ok:false,error}`); frontend shows retry/fallback, never a blank screen.
 
 ## Environment variables
 See `.env.example`. Backend reads via `python-dotenv`; frontend only gets `VITE_API_BASE_URL` and (if agent is public) `VITE_ELEVENLABS_AGENT_ID`.
