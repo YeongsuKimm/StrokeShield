@@ -24,9 +24,10 @@ export const CAPTURE_TIMING = {
   framingLossGraceMs: 3000, // framing bad continuously this long during a capture => retry (time to re-adjust)
   minCoverage: 0.6, // fraction of a capture segment's time that framing must have been OK, else retry
   maxDtMs: 250, // a single gap between ticks counts for at most this much coverage time
+  introMs: 4000, // face / eyes: how long the instruction card is shown, alone, before anything is measured
 } as const
 
-export type CapturePhase = 'waiting' | 'cue' | 'neutral' | 'smile' | 'hold' | 'done' | 'cancelled'
+export type CapturePhase = 'intro' | 'waiting' | 'cue' | 'neutral' | 'smile' | 'hold' | 'done' | 'cancelled'
 
 export interface CaptureProgress {
   test: TestName
@@ -63,6 +64,9 @@ interface ControllerConfig<F> {
   missingFrame?: (t: number) => F
   /** Epoch clock for result.startedAt (injected in tests). */
   wallClock?: () => number
+  /** How long to show `introCaption` on its own before the framing wait even starts (0 / omitted = no intro). */
+  introMs?: number
+  introCaption?: string
 }
 
 /**
@@ -83,6 +87,7 @@ export class CaptureController<F> {
   private phase: CapturePhase = 'waiting'
   private stepIdx = -1 // -1 = waiting for framing
   private began: number | undefined
+  private introEnd = 0
   private lastTick = 0
   private waitStart = 0
   private okSince: number | undefined
@@ -125,12 +130,16 @@ export class CaptureController<F> {
       this.waitStart = now
       this.lastTick = now
       this.startedAtEpoch = (this.cfg.wallClock ?? Date.now)()
+      this.introEnd = now + (this.cfg.introMs ?? 0)
     }
     const dt = Math.min(Math.max(now - this.lastTick, 0), CAPTURE_TIMING.maxDtMs)
     this.lastTick = now
     this.lastFraming = input.framing
 
-    if (this.stepIdx < 0) this.tickWaiting(now, input)
+    if (now < this.introEnd) {
+      // Instruction card only: nothing is measured and the framing-wait timeout has not started.
+      this.waitStart = this.introEnd
+    } else if (this.stepIdx < 0) this.tickWaiting(now, input)
     else {
       const step = this.cfg.steps[this.stepIdx]
       if (step.kind === 'cue') this.tickCue(now, input, step)
@@ -227,6 +236,17 @@ export class CaptureController<F> {
         fraction: 1,
       }
     }
+    if (now < this.introEnd) {
+      const total = this.cfg.introMs ?? 1
+      return {
+        ...base,
+        phase: 'intro',
+        caption: this.cfg.introCaption ?? '',
+        hint: '',
+        secondsLeft: Math.ceil((this.introEnd - now) / 1000),
+        fraction: 1 - (this.introEnd - now) / total,
+      }
+    }
     if (this.stepIdx < 0) {
       const held = this.okSince === undefined ? 0 : (now - this.okSince) / FRAMING_LIMITS.holdOkMs
       return {
@@ -255,6 +275,8 @@ export interface CaptureOptions<F> {
   /** Frame to store when nothing is detected during a capture (face: an empty-landmarks frame). */
   missingFrame?: (t: number) => F
   wallClock?: () => number
+  /** Show the instruction card this long before starting (see CAPTURE_TIMING.introMs). Omit for none. */
+  introMs?: number
 }
 
 /** FACE protocol. `analyze(neutral, smile)` is injected (see useTestRunner.ts adapter). */
@@ -264,6 +286,7 @@ export function createFaceCapture<F>(
 ): CaptureController<F> {
   return new CaptureController<F>({
     test: 'face',
+    introCaption: 'Get ready to smile. First relax your face, then smile as big as you can and hold it.',
     waitCaption: 'Look at the camera',
     waitTimeoutFlag: "I couldn't see your face clearly. Let's try again.",
     steps: [
@@ -307,6 +330,7 @@ export function createArmsCapture<F>(
 export function createEyesCapture<F>(analyze: (frames: F[]) => TestResult, opts: CaptureOptions<F> = {}): CaptureController<F> {
   return new CaptureController<F>({
     test: 'eyes',
+    introCaption: 'Keep your head still. Follow the dot with your eyes only.',
     waitCaption: 'Look straight at the camera',
     waitTimeoutFlag: "I couldn't see your eyes clearly. Let's try again.",
     steps: [

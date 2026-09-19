@@ -18,6 +18,7 @@ import { analyzeEyes, EYES_CONFIG } from './eyes'
 import { labelEyeFrames } from './eyeProtocol'
 import { analyzeFace, FACE_CONFIG, type FaceCaptureFrame } from './face'
 import {
+  CAPTURE_TIMING,
   CaptureController,
   createArmsCapture,
   createEyesCapture,
@@ -87,6 +88,12 @@ const defaultDeps = (): RunnerDeps => ({
   eyesYawLimitDeg: EYES_CONFIG.maxYawDeg,
 })
 
+/** Checks whose instruction card has already been shown this session (cleared when the session returns to idle). */
+const introDone = new Set<RunnableTest>()
+useSession.subscribe((st) => {
+  if (st.phase === 'idle') introDone.clear()
+})
+
 export interface TestRunner {
   runFace: () => Promise<TestResult>
   runArms: () => Promise<TestResult>
@@ -131,13 +138,16 @@ export function createTestRunner(overrides: Partial<RunnerDeps> = {}): TestRunne
       if (ready === null) return retryResult(test, 'Cancelled.', startedAt, 0)
       if (!ready.ok) return failure(`I couldn't start the camera. ${ready.reason}`)
 
+      // The instruction card is shown once per check per session: an automatic or manual retry goes straight back in.
+      const introMs = test !== 'arms' && !introDone.has(test) ? CAPTURE_TIMING.introMs : 0
       const controller = (
         test === 'face'
           ? createFaceCapture<FaceCaptureFrame>((n, s) => deps.analyzeFace(n, s), {
+              introMs,
               missingFrame: (t) => ({ landmarks: [], blendshapes: {}, t, brightness: source.latest.brightness, aspect: source.latest.aspect }),
             })
           : test === 'eyes'
-            ? createEyesCapture<FaceCaptureFrame>((f) => deps.analyzeEyes(f, source.latest.aspect))
+            ? createEyesCapture<FaceCaptureFrame>((f) => deps.analyzeEyes(f, source.latest.aspect), { introMs })
             : createArmsCapture<PoseFrame>((f) => deps.analyzeArms(f, source.latest.aspect))
       ) as CaptureController<unknown>
       controllerRef.c = controller
@@ -153,6 +163,8 @@ export function createTestRunner(overrides: Partial<RunnerDeps> = {}): TestRunne
           const yawLimit = test === 'eyes' ? deps.eyesYawLimitDeg : deps.faceYawLimitDeg
           const { framing, frame } = snap ? inputFor(test, snap, yawLimit) : { framing: NO_CAMERA, frame: null }
           const p = controller.tick(now, { framing, frame })
+          // Counted as shown only once it has actually run its course (a cancelled early mount must not use it up).
+          if (introMs > 0 && p.phase !== 'intro') introDone.add(test)
           const key = `${p.phase}|${p.framingOk}|${p.hint}|${p.secondsLeft}`
           if (key !== lastKey || now - lastPublish >= PUBLISH_MS) {
             lastKey = key
