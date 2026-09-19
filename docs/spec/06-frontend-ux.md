@@ -4,7 +4,7 @@ Owner: Frontend dev. Files: `frontend/src/**` (except `lib/vision`, `lib/speech`
 
 ## Session state machine (Zustand store, single source of truth)
 ```
-idle → speech → [eyes, only if FEATURES.eyesTest] → face → arms → scoring
+idle → [eyes, only if FEATURES.eyesTest] → face → arms → speech → scoring
 (order comes from `testSequence()` in `config.ts`; progression is "first test without a usable result AND not skipped",
  so it tolerates retries, skips and out-of-order completion)
 scoring → clear                       (risk < threshold)

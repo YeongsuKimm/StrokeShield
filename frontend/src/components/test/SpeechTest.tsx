@@ -36,7 +36,7 @@ export function SpeechTest() {
     <TestScreen
       test="speech"
       title="Read this out loud"
-      lede="Say it once, at your normal speaking pace. There is no rush and no right accent."
+      lede="Move back close to the screen, then say it once at your normal pace. No rush, no right accent."
     >
       <div className="rounded-[var(--radius-panel)] border border-line bg-surface p-6 shadow-[var(--shadow-panel)] sm:p-10">
         <MicroLabel className="mb-4 text-center">The sentence</MicroLabel>

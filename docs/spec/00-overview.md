@@ -43,7 +43,7 @@ smile → raise arms → repeat a sentence → verdict. If risk is high (or they
 | Eyes / phonemes | Both are post-MVP stretches, flag-gated, off by default | Ship FAST first; keep the demo path safe |
 | Heavy-model hosting | Run backend on the demo laptop; Railway is the backup (feature flags off, no torch) | No image-size/memory limits; localhost needs no HTTPS |
 | Agent tooling | Claude Code + Codex/Gemini → `AGENTS.md` canonical | Shared spec |
-| Test order | **Speech → Eyes → Face → Arms** (`testSequence()`), from the UX storyboard | All but arms are close-up, so their order is a UX choice; arms must stay last (one step back) |
+| Test order | **Eyes → Face → Arms → Speech** (`testSequence()`); speech moved to last at the project lead's request (was first, per the storyboard) | The patient steps back for arms then returns close for speech (the speech screen says so); the mic still needs to be near for the recording. Arms is no longer last |
 | Eyes test | **Promoted out of stretch and turned ON** (`FEATURES.eyesTest = true`), wired end to end | Storyboard includes it; the analyzer and stimulus were already built and tested. Still unverified live — flip the flag off if it misbehaves on demo day |
 | Result bands | Three UI bands (`high` / `caution` / `low`) via `resultBand()`; the alert trigger stays the single `RISK_THRESHOLD` | The storyboard wants a "somewhat concerning" screen that offers self-help without raising an alarm |
 | Visual direction | Light clinical chrome, one deep-blue accent, red reserved for emergency, dark camera stage, no gradients | Reads as a medical instrument rather than a consumer app; the dark stage makes the viewfinder unmistakable |
