@@ -16,6 +16,7 @@ import { SpeechTest } from './components/test/SpeechTest'
 import { SpeechRecordPanel } from './components/SpeechRecordPanel'
 import { api } from './lib/api'
 import { consumePendingAnchor } from './lib/anchorTarget'
+import { guideStartProblemText, locationForAlert } from './lib/media/permissions'
 import { isSpeechRecordSearch } from './lib/calibration/recorder'
 import { useSession, isResultPhase } from './lib/session/store'
 import { ConversationProvider } from '@elevenlabs/react'
@@ -30,10 +31,20 @@ function AgentControl() {
   const voiceConsent = useSession((s) => s.voiceConsent)
   const setVoiceConsent = useSession((s) => s.setVoiceConsent)
   const [asking, setAsking] = useState(false)
+  const [note, setNote] = useState<string | null>(null)
+  // A blocked microphone, no device or a failed signed-URL request must say so, not fail silently.
+  const run = () => {
+    setNote(null)
+    start().catch((e: unknown) => {
+      console.debug('[agent] start failed', (e as { name?: string } | null)?.name)
+      setVoiceConsent(false)
+      setNote(guideStartProblemText(e))
+    })
+  }
   const begin = () => {
     setAsking(false)
     setVoiceConsent(true)
-    void start()
+    run()
   }
   // However the session ended (button, dropped socket, Clear my data), the opt-in ends with it.
   useEffect(() => {
@@ -53,12 +64,20 @@ function AgentControl() {
       </span>
       <button
         type="button"
-        onClick={() => (connected ? finish() : voiceConsent ? void start() : setAsking((v) => !v))}
+        onClick={() => (connected ? finish() : voiceConsent ? run() : setAsking((v) => !v))}
         disabled={connecting}
         className="rounded-full bg-ink px-4 py-2 text-[0.875rem] font-semibold text-paper transition-opacity hover:opacity-80 disabled:opacity-50"
       >
         {connected ? 'End guide' : 'Start guide'}
       </button>
+      {note && !connected && !connecting && !asking && (
+        <p
+          role="alert"
+          className="absolute bottom-full right-0 mb-3 w-[min(20rem,calc(100vw-2.5rem))] rounded-[var(--radius-panel)] border border-line-strong bg-surface p-4 text-[0.9375rem] leading-snug text-danger shadow-[var(--shadow-lift)] sm:bottom-auto sm:left-1/2 sm:right-auto sm:top-full sm:mb-0 sm:mt-3 sm:-translate-x-1/2"
+        >
+          {note}
+        </p>
+      )}
       {asking && !connected && (
         <div
           role="group"
@@ -87,15 +106,21 @@ function useAlertOnExpiry() {
     if (phase !== 'alerting') return
     const st = useSession.getState()
     const symptoms = Object.values(st.results).flatMap((r) => r?.flags ?? [])
-    api
-      .sendAlert({
-        reason: st.alertReason ?? 'user_request',
-        risk: st.risk ?? undefined,
-        patient: { name: st.patientName },
-        lastKnownWell: st.lastKnownWell,
-        location: st.location,
-        symptoms,
-      })
+    // Location never blocks the alert: at most ALERT_LOCATION_CAP_MS for a refresh (only if already granted, never a
+    // prompt), else the fix cached at the consent step, else none ("Location unavailable" in the text).
+    // Without the consent tick nothing location-related is read at all.
+    ;(st.consented ? locationForAlert(st.location) : Promise.resolve(undefined))
+      .catch(() => undefined)
+      .then((location) =>
+        api.sendAlert({
+          reason: st.alertReason ?? 'user_request',
+          risk: st.risk ?? undefined,
+          patient: { name: st.patientName },
+          lastKnownWell: st.lastKnownWell,
+          location,
+          symptoms,
+        }),
+      )
       .then((res) => st.setAlertResult(res.ok ? 'sent' : 'failed', res))
       .catch((e) => st.setAlertResult('failed', { ok: false, dryRun: false, error: String(e) }))
   }, [phase])
