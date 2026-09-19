@@ -18,7 +18,7 @@ Headline numbers `pnpm calibrate` prints: false alarms on healthy runs (want **0
 If the app mixes up left and right, every "side" result is wrong. Do the live camera check in [GETTING-STARTED.md](GETTING-STARTED.md) §8 (`?debug=1`) first, flip the flag it tells you to if needed, and note it in STATUS.md.
 
 ## Recording (about 10 minutes per person)
-1. `pnpm dev`, open **http://localhost:5173/?record=1** in Chrome. A red "Recording mode" panel appears (top right).
+1. `pnpm dev`, open **http://localhost:5173/?record=vision** in Chrome. A red "Recording mode" panel appears (top right). Legacy `?record=1` opens both vision and speech panels.
 2. Type your name or an anonymous id (e.g. `sam`). It's remembered.
 3. Pick a **scenario**, read the instruction under it, and start the matching eyes, face or arms test. Each completed run is saved and downloads a `.json` file. If the browser blocks many downloads, uncheck auto-download and use the **save** buttons.
 4. **"left" and "right" always mean YOUR OWN left/right.** "Droop on your left" = your left cheek/arm.
@@ -49,7 +49,7 @@ It also shows which runs scored differently now than when recorded (after you ch
 5. When the team agrees on new values: update the config, spec 02 (as-built values) and `docs/STATUS.md`, and say what data the values are based on (e.g. "12 people, 248 runs").
 
 ## Speech calibration (same loop, audio instead of landmarks)
-1. Open **http://localhost:5173/?record=1**. A "speech scenarios" panel appears next to the vision one. Pick a scenario, read the instruction, press **Run speech test**, and say the sentence. Each run downloads `<name>__<scenario>__<time>.wav` plus a matching `.json` label file.
+1. Open **http://localhost:5173/?record=speech**. Only the speech scenarios panel appears. Pick a scenario, read the instruction, start the speech test, and say the sentence. Each run downloads `<name>__<scenario>__<time>.wav` plus a matching `.json` label file.
    - Healthy: `speech-normal`, `speech-fast-casual`, `speech-quiet-tired`. Mimicked impairment: `speech-mimic-slurred` (slow, mushy consonants), `speech-mimic-slow-pauses`, `speech-mimic-flat-monotone`.
    - Use a real microphone in a normal room; note headset vs laptop mic, background noise, accents. ≥ 8 people, ≥ 2 runs per scenario. Non-native speakers and noisy rooms matter: they are where false alarms will come from.
 2. Move the files into **`recordings/speech/`** (repo root, gitignored; audio of real people is personal data: don't commit or post it; consented clips may be committed to `tests/fixtures/audio/{normal,slurred}/`).

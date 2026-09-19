@@ -1,11 +1,11 @@
-// Speech calibration recording (`?record=1`). After each completed speech run the WAV and a sidecar JSON are saved with
+// Speech calibration recording (`?record=speech`, or legacy `?record=1`). After each completed speech run the WAV and a sidecar JSON are saved with
 // matching base names and (optionally) downloaded. Subject / notes / auto-download come from the shared calibration
 // recorder store (read only; RecordPanel edits them). No effect unless `?record=1`.
 import { create } from 'zustand'
 import { SPEECH_TARGET_PHRASE } from '../config'
 import type { TestResult } from '../contracts'
 import { browserEnvSources, collectSpeechEnv, conditionsFor, type EnvSources, type TrackSettingsLite } from '../calibration/deviceProfile'
-import { isRecordSearch, useRecorder } from '../calibration/recorder'
+import { isSpeechRecordSearch, useRecorder } from '../calibration/recorder'
 import type { Conditions, RecordingEnv } from '../calibration/recording'
 import type { SpeechRecording } from './recorder'
 import { buildSidecar, speechBaseName, SPEECH_SCENARIOS, type SpeechSidecar } from './speechScenarios'
@@ -77,9 +77,9 @@ export function downloadSpeechRun(run: SavedSpeechRun): void {
   setTimeout(() => downloadBlob(`${run.baseName}.json`, new Blob([run.json], { type: 'application/json' })), 250)
 }
 
-/** Called by the speech runner after a clip with speech was analyzed. Never throws; does nothing unless `?record=1`. */
+/** Called by the speech runner after a clip with speech was analyzed. Never throws outside speech recording mode. */
 export function recordSpeechRun(rec: SpeechRecording, liveResult: TestResult): void {
-  if (!isRecordSearch(globalThis.location?.search ?? '')) return
+  if (!isSpeechRecordSearch(globalThis.location?.search ?? '')) return
   try {
     const shared = useRecorder.getState()
     const st = useSpeechRecorder.getState()

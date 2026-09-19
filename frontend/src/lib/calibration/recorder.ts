@@ -1,4 +1,4 @@
-// Live recording (enable with `?record=1`): every completed face/arms run is saved as a Recording (see recording.ts) and
+// Vision recording (enable with `?record=vision`, or legacy `?record=1`): every completed vision run is saved as a Recording and
 // downloaded as a .json file, labelled with who/what scenario you selected in RecordPanel. No effect unless enabled.
 import { create } from 'zustand'
 import type { TestResult } from '../contracts'
@@ -6,7 +6,17 @@ import { getVisionEngine } from '../vision/useMediaPipe'
 import { browserEnvSources, collectEnv, conditionsFor } from './deviceProfile'
 import { findScenario, recordingFileName, sanitizeConditions, scenariosFor, serializeRecording, type Conditions, type Recording, type RecordingEnv, type RecordingInputs, type RecordingKind } from './recording'
 
-export const isRecordSearch = (search: string): boolean => new URLSearchParams(search).get('record') === '1'
+export type RecordMode = 'all' | 'vision' | 'speech' | null
+
+export function recordMode(search: string): RecordMode {
+  const value = new URLSearchParams(search).get('record')
+  if (value === '1' || value === 'all') return 'all'
+  if (value === 'vision' || value === 'speech') return value
+  return null
+}
+
+export const isVisionRecordSearch = (search: string): boolean => ['all', 'vision'].includes(recordMode(search) ?? '')
+export const isSpeechRecordSearch = (search: string): boolean => ['all', 'speech'].includes(recordMode(search) ?? '')
 
 export interface SavedRun {
   id: string
@@ -65,7 +75,7 @@ const loadConditions = (): Conditions => {
 }
 
 export const useRecorder = create<RecorderState>((set) => ({
-  enabled: isRecordSearch(globalThis.location?.search ?? ''),
+  enabled: isVisionRecordSearch(globalThis.location?.search ?? ''),
   subject: safeGet(SUBJECT_KEY),
   notes: '',
   autoDownload: true,

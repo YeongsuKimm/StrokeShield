@@ -1,7 +1,7 @@
 import { downloadJson, useRecorder } from '../lib/calibration/recorder'
 import { findScenario, LIGHTING_VALUES, scenariosFor, type Lighting, type RecordingKind } from '../lib/calibration/recording'
 
-// Calibration recorder UI. Only rendered with `?record=1`. Run a test with the normal buttons; each completed run is
+// Vision calibration recorder UI. Rendered with `?record=vision` (or legacy `?record=1`). Each completed run is
 // saved (and auto-downloaded) with the labels chosen here. See docs/CALIBRATION.md.
 const KINDS: { kind: RecordingKind; title: string }[] = [
   { kind: 'eyes', title: 'Eyes test scenario' },
