@@ -33,6 +33,14 @@ Routing is `store.route` plus `store.phase` — no router library. `App.tsx` pic
 - **Test screens** (`TestScreen` + `SpeechTest` / `EyeTest` / `FaceTest` / `ArmsTest`): progress dots, one big
   instruction, the stage, the assistant transcript strip, the mute warning, and the skip hatch.
 - **Info** (`InfoPage`): process (BE-FAST), why, stats, Q&A + hotlines, team. Reached from the header menu too.
+- **Header menu** (`chrome/SiteHeader` + `ui/DrilldownMenu` + `chrome/menuTree.ts`): a drilldown list. Collapsed it shows
+  ONE row, "Learn more" ("Sections" on the info page); opening it reveals the sections, and "The process" (Speech, Eyes,
+  Face, Arms, Time) and "Questions & hotlines" (Hotlines, Common questions) drill one level deeper. The clicked row
+  stays put and greys into a breadcrumb; click it to step back. Leaves jump to an element id on the info page, so
+  every target needs an id there (`process`, `step-*`, `why`, `stats`, `help`, `hotlines`, `faq`, `team`). Collapses on
+  Escape, outside click and after a choice. The component is adapted from **Drilldown Menu by ruixen.ui on 21st.dev**
+  (retrieved with `npx @21st-dev/cli get`, not `add`: the CLI's install path runs `shadcn add`, which would init shadcn
+  and rewrite `index.css`). New dependency: `framer-motion` (~+159 kB gzipped on the main bundle).
 - **Result** (`ResultScreen`): banner in one of three bands, three actions (call 911 / alert a contact / ER nearby),
   alert status with dry-run badge, and the risk dashboard underneath.
 - **Risk dashboard** (`Dashboard`): per-test card (severity bar, confidence, max weight, flags, raw metrics in an
