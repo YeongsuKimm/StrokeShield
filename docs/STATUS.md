@@ -45,6 +45,7 @@ Status values: `not started` · `in progress` · `blocked` · `done (untested li
 - All thresholds/weights are uncalibrated (see spec files). Calibrate on teammate fixtures around hour ~20.
 
 ## Recent changes (newest first)
+- 2026-09-19 — frontend/ui — resolved the duplicate `goHome` declaration introduced when the latest logo-navigation commits met on `main`; the logo keeps the full cancel/reset behavior and the merged frontend compiles again.
 - 2026-09-19 — vision/frontend — fixed camera checks becoming idle after bad framing or a pre-smile: face, eyes and arms now retry once automatically, then show a persistent **Try again** action; framing times out at 12 s so recovery begins before Skip appears.
 - 2026-09-19 — frontend/ui — mouse cursor is 2x the default size site-wide (`index.css`): SVG arrow, pointing hand over anything clickable, I-beam in text fields; falls back to system cursors if unsupported.
 - 2026-09-19 — frontend/ui — home <-> info hand-off now has buffer: the page rubber-bands with your scroll (nudges and dims as it fills), needs 110 px of travel, and the swap is a 0.24 s fade-slide (outgoing page pinned to its route, so no flash of the next page) in the direction of travel (instant under reduced-motion). Menu jumps to a section survive the animated swap (`lib/anchorTarget.ts`).
