@@ -52,7 +52,7 @@ export function HomePage() {
           </h1>
 
           <p className="mt-5 max-w-[44ch] text-pretty text-lg leading-relaxed text-ink-2">
-            A voice guide walks you through {CHECK_COUNT_WORD[steps.length] ?? steps.length} short BE-FAST checks. If the checks
+            A voice guide walks you through {CHECK_COUNT_WORD[steps.length] ?? steps.length} short stroke symptom checks. If our checks
             flag something, it can text a demo phone we set up ahead of time, with your location if you allow it.
           </p>
 
