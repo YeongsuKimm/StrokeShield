@@ -11,6 +11,7 @@ import { useEffect, useSyncExternalStore } from 'react'
 import type { FaceLandmarker, PoseLandmarker } from '@mediapipe/tasks-vision'
 import { useSession } from '../session/store'
 import { watchTracksEnded } from '../media/permissions'
+import { currentBrowser } from '../preflight/browserSupport'
 import type { FaceFrame, PoseFrame } from './landmarks'
 import {
   CAMERA_ENDED_TEXT,
@@ -52,6 +53,24 @@ export interface VisionError {
 }
 
 /** Everything the latest processed frame produced. Raw (unmirrored) coordinates. */
+/**
+ * What to ask the camera for. Phones are held in PORTRAIT for the whole check, and that is what decides this:
+ *
+ * - **3:4 portrait, not 16:9.** The arm check needs the patient's whole arm span to fit ACROSS the frame. A 16:9
+ *   stream rotated into portrait is 9:16, by far the narrowest view a phone can give, and the framing gate would
+ *   never pass at any sensible distance in a room. 3:4 is both wider and usually the sensor's full field of view.
+ * - **Smaller and slower.** A 720x960 stream at 24 fps is enough for landmarks and leaves a mid-range phone the
+ *   headroom to run two models; 1280x720 at whatever fps it can manage does not.
+ *
+ * Everything downstream reads the REAL `videoWidth / videoHeight` (see `aspect` on each snapshot), so a portrait
+ * stream is measured correctly without any other change. Desktop is deliberately untouched.
+ */
+export function cameraConstraints(mobile = currentBrowser().ios || currentBrowser().android): MediaTrackConstraints {
+  return mobile
+    ? { facingMode: 'user', width: { ideal: 720 }, height: { ideal: 960 }, frameRate: { ideal: 24, max: 30 } }
+    : { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } }
+}
+
 export interface VisionSnapshot {
   seq: number // increments per processed frame
   t: number // performance.now() ms, strictly increasing
@@ -285,10 +304,7 @@ export class VisionEngine implements FrameSource {
   /** Resolves false when this run was superseded (its stream is stopped here); throws on a real camera failure. */
   private async openCamera(gen: number): Promise<boolean> {
     if (!navigator.mediaDevices?.getUserMedia) throw Object.assign(new Error('no mediaDevices'), { name: 'TypeError' })
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
-      audio: false,
-    })
+    const stream = await navigator.mediaDevices.getUserMedia({ video: cameraConstraints(), audio: false })
     if (gen !== this.gen) {
       stream.getTracks().forEach((t) => t.stop())
       return false

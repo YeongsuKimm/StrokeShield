@@ -138,6 +138,33 @@ reading, unit tests and lint only; a real screen reader and browser pass is stil
 - **Motion:** CSS animations/transitions are cut by `prefers-reduced-motion`; framer-motion and the slot numbers also check it.
 - **Targets and reflow:** primary actions are >= 44 px (Allow buttons, voice guide buttons, brand); nothing uses fixed px
   heights for text (all rem). Header brand shrinks on 320 px phones.
+
+## Phones (Safari and Chrome, portrait)
+The whole check is done in **portrait**; there is no "turn your phone sideways" step. See [../MOBILE-TEST.md](../MOBILE-TEST.md)
+for how to get the site onto a device and what is still unverified there.
+- **Camera.** Phones are asked for a **portrait 3:4** stream at 24 fps (`cameraConstraints`, useMediaPipe.ts). 3:4 is
+  the widest view a phone gives in portrait, which is what the arm check needs: the patient's whole arm span has to fit
+  ACROSS the frame, and a 16:9 stream rotated into portrait (9:16) is far too narrow to pass the framing gate at any
+  sensible distance in a room. Everything downstream reads the real `videoWidth / videoHeight`, so a portrait stream is
+  measured correctly with no other change. Desktop is untouched at 16:9.
+- **Arm distance.** No distance is quoted anywhere any more (screen, voice agent, or prompt docs): how far back is far
+  enough depends on the camera, and the framing gate already measures the real thing. The phone estimate is ~6 ft, and
+  the arm screen tells phone users to stand the device up first, since nobody can hold it at that distance.
+- **The camera stage may not grow under the floating controls.** `--cam-max-h` (index.css) caps it below `sm`; the cap
+  is applied as a MAX-WIDTH derived from the real aspect, because capping height would stretch the video and misalign
+  the landmark overlay. Call 911 and the voice guide sit bottom-left and bottom-right, exactly where the hands are.
+- **Check screens fit without scrolling.** The lede is hidden below `sm` (the same instruction is already on the camera
+  in much larger type) and the header is tighter.
+- **Safe areas.** The page draws edge to edge (`viewport-fit=cover`); every fixed bottom control adds `var(--safe-b)`
+  so it clears the iPhone home bar. `overscroll-behavior-y: contain` stops Android's pull-to-refresh reloading the page
+  and losing the session mid-check.
+- **Touch.** 44 px minimum tap target; the drilldown menu scales its whole em grid up on a coarse pointer.
+- **Unsupported browsers** (`browserSupport.ts`, pure + tested). In-app web views (Instagram, TikTok, a chat app) block
+  camera access, so they get a red "open this in Safari or Chrome" banner. Anything that is not WebKit or Blink gets one
+  quiet, dismissible "not tested" line and is never blocked: telling someone who may be having a stroke that their
+  browser is unsupported, and stopping there, would be the worst outcome available.
+- **`pnpm test:mobile`** is a phone-layout regression check (overflow, controls over the camera, tap targets). It needs
+  a dev server and is deliberately NOT part of `pnpm test`, so CI stays on vitest.
 - **Lint:** oxlint runs the `jsx-a11y` plugin (`.oxlintrc.json`); `prefer-tag-over-role` is off on purpose.
 - **Not changed on purpose:** the emergency countdown is the only timed step; everything else has no time limit. Scroll-to-info
   hand-off (wheel) is a shortcut only; the "How it works" button is always there.

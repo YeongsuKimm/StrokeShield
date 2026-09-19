@@ -1,4 +1,5 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { currentBrowser } from '../../lib/preflight/browserSupport'
 import { connectivityOf, useNetwork } from '../../lib/resilience/network'
 import { useLifecycle } from '../../lib/resilience/lifecycle'
 import { useSession } from '../../lib/session/store'
@@ -49,6 +50,45 @@ export function ResumeNotice() {
       {interrupted === 'speech'
         ? 'Paused while this tab was in the background. Press Start recording when you are ready.'
         : 'Paused while this tab was in the background. Picking the check back up now.'}
+    </div>
+  )
+}
+
+/**
+ * The browser itself cannot run the check. Only two cases are worth interrupting someone for:
+ *
+ * - **In-app browser** (the web view inside Instagram, TikTok, a chat app): several block camera access outright, so
+ *   the check would fail with no explanation. Not dismissible, because nothing here will work until they move.
+ * - **An engine we have not tested** (Firefox and the rest): everything may well work, so this is one quiet,
+ *   dismissible line, never a block. Telling someone who may be having a stroke "unsupported browser" and stopping
+ *   there would be the worst outcome of all.
+ */
+export function BrowserBanner() {
+  const [browser] = useState(currentBrowser)
+  const [dismissed, setDismissed] = useState(false)
+  if (browser.verdict === 'supported' || dismissed) return null
+
+  if (browser.verdict === 'in-app') {
+    const how = browser.ios ? 'Tap the ⋯ or compass icon, then “Open in Safari”.' : 'Tap the ⋮ menu, then “Open in browser”.'
+    return (
+      <div role="alert" className={`${pill} border-danger/40 bg-danger-wash text-danger`} data-testid="browser-banner">
+        <p className="font-semibold">The camera cannot start inside {browser.host ?? 'this app'}.</p>
+        <p className="mt-0.5 text-ink-2">
+          {how} Then run the check there. In an emergency, call 911 directly.
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div role="status" className={`${pill} flex items-start gap-3 border-line-strong bg-surface text-ink`} data-testid="browser-banner">
+      <p className="min-w-0 flex-1 text-ink-2">
+        <span className="font-semibold text-ink">This browser has not been tested.</span> The check should still work. If
+        the camera or microphone will not start, try Safari or Chrome.
+      </p>
+      <button type="button" onClick={() => setDismissed(true)} className="shrink-0 font-semibold text-accent underline underline-offset-2">
+        Got it
+      </button>
     </div>
   )
 }
