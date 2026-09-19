@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+mediapipe
+opencv-python
+elevenlabs
+twilio
+python-dotenv
+pydantic
