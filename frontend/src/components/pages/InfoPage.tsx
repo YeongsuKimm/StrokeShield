@@ -1,0 +1,187 @@
+import { useSession } from '../../lib/session/store'
+import { useScrollHandoff } from '../../lib/useScrollHandoff'
+import { Button } from '../ui/Button'
+import { Icon } from '../ui/Icon'
+import { MicroLabel, SectionHead } from '../ui/Primitives'
+import { FAQS, HOTLINES, INFO_SECTIONS, PROCESS_STEPS, STATS, TEAM, TIME_NOTE } from './infoContent'
+
+const section = (id: string) => INFO_SECTIONS.find((s) => s.id === id)!
+
+/** The long scrollable document behind the home screen: what the checks are, why they matter, who to call. */
+export function InfoPage() {
+  const setRoute = useSession((s) => s.setRoute)
+  const start = useSession((s) => s.beginTests)
+  // Scrolling up past the top goes back to the check, the mirror of the home page's hand-off. The explicit
+  // "Back to the check" button below stays, so this gesture is a shortcut and never the only way back.
+  const pull = useScrollHandoff(true, 'up', () => setRoute('home'))
+
+  return (
+    <div className="mx-auto w-full max-w-5xl px-4 pb-32 pt-24 sm:px-6 sm:pt-28">
+      {/* Progress of the scroll-up hand-off: a bar across the top edge, plus a label once it is clearly under way. */}
+      <div className="pointer-events-none fixed inset-x-0 top-0 z-40" aria-hidden>
+        <div className="h-1.5 bg-accent transition-[width] duration-100 ease-out" style={{ width: `${pull * 100}%` }} />
+        {pull > 0.08 && (
+          <p className="mx-auto mt-3 w-fit rounded-full bg-ink px-4 py-2 text-[0.9375rem] font-medium text-white">
+            Keep going to return to the check
+          </p>
+        )}
+      </div>
+
+      <Button tone="quiet" icon="arrowDown" className="mb-12 [&>svg]:rotate-180" onClick={() => setRoute('home')}>
+        Back to the check
+      </Button>
+
+      {/* 01 — Process */}
+      <section id="process" className="scroll-mt-24">
+        <SectionHead {...section('process')} />
+        <ol className="divide-y divide-line border-y border-line">
+          {PROCESS_STEPS.map((step, i) => (
+            <li key={step.name} className="grid gap-x-8 gap-y-3 py-7 sm:grid-cols-[auto_minmax(0,1fr)]">
+              <div className="flex items-baseline gap-3 sm:w-24 sm:flex-col sm:items-start sm:gap-1">
+                <span className="font-serif text-5xl leading-none text-accent">{step.letter}</span>
+                <span className="label-micro text-ink-3">{`0${i + 1} · ${step.name}`}</span>
+              </div>
+              <div>
+                <h3 className="text-xl font-semibold tracking-tight">{step.instruction}</h3>
+                <p className="mt-2 max-w-[62ch] leading-relaxed text-ink-2">{step.looksFor}</p>
+                <p className="mt-2 max-w-[62ch] text-[0.9375rem] leading-relaxed text-ink-3">{step.measured}</p>
+              </div>
+            </li>
+          ))}
+          <li className="grid gap-x-8 gap-y-3 py-7 sm:grid-cols-[auto_minmax(0,1fr)]">
+            <div className="flex items-baseline gap-3 sm:w-24 sm:flex-col sm:items-start sm:gap-1">
+              <span className="font-serif text-5xl leading-none text-ink-3">{TIME_NOTE.letter}</span>
+              <span className="label-micro text-ink-3">{`05 · ${TIME_NOTE.name}`}</span>
+            </div>
+            <p className="max-w-[62ch] leading-relaxed text-ink-2">{TIME_NOTE.body}</p>
+          </li>
+        </ol>
+      </section>
+
+      {/* 02 — Why */}
+      <section id="why" className="mt-24 scroll-mt-24">
+        <SectionHead {...section('why')} />
+        <div className="grid gap-6 sm:grid-cols-5">
+          <div className="sm:col-span-3">
+            <p className="text-2xl leading-snug text-pretty">
+              Every minute a stroke goes untreated, the brain loses roughly 1.9 million neurons. The medicines that can
+              reverse it only work for the first few hours. So the real question isn&rsquo;t whether to get checked.
+              It&rsquo;s how quickly.
+            </p>
+            <p className="mt-5 max-w-[62ch] text-lg leading-relaxed text-ink-2">
+              Most people don&rsquo;t call right away. They&rsquo;re on their own, or they don&rsquo;t want to
+              overreact, or they figure it will pass. That&rsquo;s completely human. But waiting is what makes a stroke
+              worse. A two-minute check gives you something concrete to act on, instead of a vague feeling that
+              something&rsquo;s off.
+            </p>
+            <p className="mt-4 max-w-[62ch] text-lg leading-relaxed text-ink-2">
+              We also tried to be honest about what this can&rsquo;t see. If the camera can&rsquo;t get a good look at
+              you, that check gets left out and we tell you so. We&rsquo;d rather say &ldquo;I couldn&rsquo;t
+              tell&rdquo; than hand you an all-clear we haven&rsquo;t earned.
+            </p>
+          </div>
+          <aside className="sm:col-span-2">
+            <div className="rounded-[var(--radius-panel)] border border-line bg-surface p-6">
+              <MicroLabel className="mb-3">What it won&rsquo;t do</MicroLabel>
+              <ul className="space-y-3 text-[1rem] leading-snug text-ink-2">
+                {['Diagnose a stroke or rule one out.', 'Replace a call to emergency services.', 'Keep your video or your voice.', 'Call anyone you haven\u2019t set up ahead of time.'].map((t) => (
+                  <li key={t} className="flex gap-2.5">
+                    <Icon name="close" size={16} className="mt-0.5 shrink-0 text-danger" />
+                    {t}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      {/* 03 — Stats */}
+      <section id="stats" className="mt-24 scroll-mt-24">
+        <SectionHead {...section('stats')} />
+        <div className="grid gap-px overflow-hidden rounded-[var(--radius-panel)] border border-line bg-line sm:grid-cols-2">
+          {STATS.map((s) => (
+            <article key={s.caption} className="bg-surface p-7">
+              <p className="flex items-baseline gap-2">
+                <span className="tnum font-serif text-6xl leading-none">{s.figure}</span>
+                <span className="label-micro text-ink-3">{s.unit}</span>
+              </p>
+              <p className="mt-4 max-w-[34ch] leading-relaxed text-ink-2">{s.caption}</p>
+              <p className="mt-3 text-[0.875rem] text-ink-3">{s.source}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      {/* 04 — Q&A + hotlines */}
+      <section id="help" className="mt-24 scroll-mt-24">
+        <SectionHead {...section('help')} />
+
+        <div className="mb-10 grid gap-4 sm:grid-cols-2">
+          {HOTLINES.map((h) => (
+            <a
+              key={h.tel}
+              href={`tel:${h.tel}`}
+              className={`group block rounded-[var(--radius-panel)] border p-6 transition-colors ${
+                h.urgent ? 'border-danger/30 bg-danger-wash hover:bg-danger-wash/70' : 'border-line bg-surface hover:bg-sunken'
+              }`}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <p className={`text-lg font-semibold tracking-tight ${h.urgent ? 'text-danger' : ''}`}>{h.label}</p>
+                <Icon name="phone" size={18} className={h.urgent ? 'text-danger' : 'text-ink-3'} />
+              </div>
+              <p className="mt-2 max-w-[40ch] text-[1rem] leading-snug text-ink-2">{h.detail}</p>
+            </a>
+          ))}
+        </div>
+
+        <div className="divide-y divide-line border-y border-line">
+          {FAQS.map((f) => (
+            <details key={f.q} className="group py-5">
+              <summary className="flex cursor-pointer list-none items-start justify-between gap-4 text-lg font-medium tracking-tight [&::-webkit-details-marker]:hidden">
+                {f.q}
+                <Icon
+                  name="chevronDown"
+                  size={20}
+                  className="mt-1 shrink-0 text-ink-3 transition-transform duration-200 group-open:rotate-180"
+                />
+              </summary>
+              <p className="mt-3 max-w-[64ch] leading-relaxed text-ink-2">{f.a}</p>
+            </details>
+          ))}
+        </div>
+      </section>
+
+      {/* 05 — Team */}
+      <section id="team" className="mt-24 scroll-mt-24">
+        <SectionHead {...section('team')} />
+        <ul className="grid gap-px overflow-hidden rounded-[var(--radius-panel)] border border-line bg-line sm:grid-cols-2">
+          {TEAM.map((m) => (
+            <li key={m.name} className="bg-surface p-7">
+              <p className="text-lg font-semibold tracking-tight">{m.name}</p>
+              <p className="label-micro mt-1 text-accent">{m.role}</p>
+              <p className="mt-3 max-w-[38ch] leading-relaxed text-ink-2">{m.focus}</p>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <div className="mt-20 flex flex-wrap items-center justify-between gap-4 rounded-[var(--radius-panel)] bg-ink p-8 text-white">
+        <p className="max-w-[40ch] text-xl font-medium tracking-tight text-balance">
+          If you are reading this because something feels wrong right now, do the check.
+        </p>
+        <Button
+          size="lg"
+          tone="quiet"
+          icon="arrowRight"
+          onClick={() => {
+            setRoute('home')
+            start()
+          }}
+        >
+          Start the test
+        </Button>
+      </div>
+    </div>
+  )
+}

@@ -1,31 +1,26 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { CountdownModal } from './components/CountdownModal'
-import { CameraView } from './components/CameraView'
-import { Dashboard } from './components/Dashboard'
 import { DemoPanel } from './components/DemoPanel'
 import { RecordPanel } from './components/RecordPanel'
-import { SpeechPanel } from './components/SpeechPanel'
+import { EmergencyButton } from './components/chrome/EmergencyButton'
+import { SiteHeader } from './components/chrome/SiteHeader'
+import { HomePage } from './components/pages/HomePage'
+import { InfoPage } from './components/pages/InfoPage'
+import { ResultScreen } from './components/result/ResultScreen'
+import { ArmsTest } from './components/test/ArmsTest'
+import { EyeTest } from './components/test/EyeTest'
+import { FaceTest } from './components/test/FaceTest'
+import { SpeechTest } from './components/test/SpeechTest'
 import { SpeechRecordPanel } from './components/SpeechRecordPanel'
 import { api } from './lib/api'
 import { isRecordSearch } from './lib/calibration/recorder'
-import type { HealthResponse } from './lib/contracts'
-import { useSession } from './lib/session/store'
-import { useSpeechRunner } from './lib/speech/speechRunner'
-import { useTestRunner } from './lib/vision/useTestRunner'
+import { useSession, isResultPhase } from './lib/session/store'
 
-export default function App() {
-  const s = useSession()
-  const [health, setHealth] = useState<HealthResponse | null>(null)
-  const speech = useSpeechRunner()
-  const runner = useTestRunner() // TEMP manual test buttons; remove with the block below once the voice agent drives the tests
-
+/** Sends the alert once the countdown expires. The backend decides the destination number — never this client. */
+function useAlertOnExpiry() {
+  const phase = useSession((s) => s.phase)
   useEffect(() => {
-    api.health().then(setHealth).catch(() => setHealth(null))
-  }, [])
-
-  // Send the alert once the countdown expires. The backend decides the destination number.
-  useEffect(() => {
-    if (s.phase !== 'alerting') return
+    if (phase !== 'alerting') return
     const st = useSession.getState()
     const symptoms = Object.values(st.results).flatMap((r) => r?.flags ?? [])
     api
@@ -39,54 +34,74 @@ export default function App() {
       })
       .then((res) => st.setAlertResult(res.ok ? 'sent' : 'failed', res))
       .catch((e) => st.setAlertResult('failed', { ok: false, dryRun: false, error: String(e) }))
-  }, [s.phase])
+  }, [phase])
+}
+
+/** Shift+D turns on the demo panel mid-session, as well as ?demo=1 (docs/spec/06). */
+function useDemoHotkey() {
+  const setDemoEnabled = useSession((s) => s.setDemoEnabled)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.shiftKey && (e.key === 'D' || e.key === 'd') && !/^(INPUT|TEXTAREA)$/.test((e.target as HTMLElement)?.tagName)) {
+        setDemoEnabled(!useSession.getState().demoEnabled)
+      }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [setDemoEnabled])
+}
+
+function CurrentScreen() {
+  const route = useSession((s) => s.route)
+  const phase = useSession((s) => s.phase)
+
+  if (route === 'info') return <InfoPage />
+  if (isResultPhase(phase)) return <ResultScreen />
+
+  switch (phase) {
+    case 'speech':
+      return <SpeechTest />
+    case 'eyes':
+      return <EyeTest />
+    case 'face':
+      return <FaceTest />
+    case 'arms':
+      return <ArmsTest />
+    default:
+      return <HomePage />
+  }
+}
+
+export default function App() {
+  const phase = useSession((s) => s.phase)
+  const route = useSession((s) => s.route)
+  const demoEnabled = useSession((s) => s.demoEnabled)
+  useAlertOnExpiry()
+  useDemoHotkey()
+
+  // Every route change starts at the top of the new document rather than wherever the last one was scrolled.
+  // (The "no scrolling to the info page once a check starts" rule is enforced by the home page's hand-off only
+  // listening while idle. The page itself is never scroll-locked: that hid the skip button on short windows and
+  // made the result screen unreachable below the fold.)
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' })
+  }, [route])
 
   return (
-    <main className="mx-auto max-w-5xl space-y-6 p-6">
-      <header className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">StrokeShield</h1>
-        <span className="text-xs text-slate-400">
-          {health ? (health.dryRun ? 'backend: DRY RUN' : 'backend: LIVE CALLS ARMED') : 'backend: offline'}
-        </span>
-      </header>
+    <div className="min-h-[100dvh]">
+      <a href="#main" className="sr-only">
+        Skip to the main content
+      </a>
+      <SiteHeader />
+      <main id="main">
+        <CurrentScreen />
+      </main>
+      <EmergencyButton />
 
-      <p className="text-sm text-slate-400">Demo only — not a medical device. In an emergency call 911.</p>
-
-      <div className="grid gap-6 md:grid-cols-2">
-        <section className="space-y-3 rounded-lg border border-slate-800 p-4">
-          <p className="text-sm uppercase text-slate-400">Phase</p>
-          <p className="text-3xl font-semibold">{s.phase}</p>
-          {s.phase === 'idle' && <button onClick={s.start} className="rounded bg-sky-600 px-4 py-2">Start check</button>}
-          {s.phase === 'consent' && <button onClick={s.acceptConsent} className="rounded bg-sky-600 px-4 py-2">I consent (camera, mic, location)</button>}
-          {s.phase === 'intro' && <button onClick={s.beginTests} className="rounded bg-sky-600 px-4 py-2">Begin tests</button>}
-          {['clear', 'cancelled', 'alerted'].includes(s.phase) && <button onClick={s.reset} className="rounded bg-slate-700 px-4 py-2">Start over</button>}
-          {s.alertStatus !== 'none' && (
-            <p className="text-sm">
-              Alert: {s.alertStatus}
-              {s.alertResponse?.dryRun ? ' (dry run — nothing sent)' : ''}
-              {s.alertResponse?.error ? ` — ${s.alertResponse.error}` : ''}
-            </p>
-          )}
-          <CameraView />
-          {/* TEMP manual test controls (exercise the camera flow without the voice agent). Delete this block to remove. */}
-          <div className="flex flex-wrap gap-2">
-            <button disabled={runner.running !== null} onClick={() => void runner.runFace()} className="rounded bg-sky-600 px-4 py-2 disabled:opacity-40">Run face test</button>
-            <button disabled={runner.running !== null} onClick={() => void runner.runArms()} className="rounded bg-sky-600 px-4 py-2 disabled:opacity-40">Run arm test</button>
-            <button disabled={speech.running} onClick={() => void speech.runSpeech()} className="rounded bg-sky-600 px-4 py-2 disabled:opacity-40">Run speech test</button>
-            {speech.running && <button onClick={speech.cancel} className="rounded bg-slate-700 px-4 py-2">Cancel speech</button>}
-            {runner.running && <button onClick={runner.cancel} className="rounded bg-slate-700 px-4 py-2">Cancel test</button>}
-          </div>
-          <SpeechPanel />
-        </section>
-        <Dashboard />
-      </div>
-
-      <a href="tel:911" className="inline-block rounded bg-red-700 px-4 py-2 font-semibold">Call 911</a>
-
-      {s.phase === 'countdown' && <CountdownModal />}
-      {s.demoEnabled && <DemoPanel />}
+      {phase === 'countdown' && <CountdownModal />}
+      {demoEnabled && <DemoPanel />}
       <RecordPanel />
       {isRecordSearch(globalThis.location?.search ?? '') && <SpeechRecordPanel />}
-    </main>
+    </div>
   )
 }

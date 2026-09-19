@@ -24,7 +24,7 @@ The three tests are built independently but feed ONE noisy-OR risk score (spec 0
 Thresholds are tuned by **record → replay → tune**: `?record=1` saves the exact analyzer inputs of live runs (labelled with scenario/expected side), `pnpm calibrate` replays them offline against the anchors above and prints false alarms, misses, wrong sides and retry rate. Full guide: [../CALIBRATION.md](../CALIBRATION.md); proof protocol (held-out split, freeze, criteria): [../VALIDATION.md](../VALIDATION.md). Recordings carry optional `conditions` and `env` (schema stays 1). Code: `frontend/src/lib/calibration/`.
 
 ## Positioning: close for the face, back for the arms
-The face needs to fill enough of the frame for reliable landmarks; the arms test needs the whole upper body **and both hands** in frame. One camera can't do both, so the session is ordered **Face → (Eyes) → Speech → Arms** (`testSequence()` in `config.ts`): the patient starts close to the screen (~50–70 cm / arm's length; better landmarks, and the mic is close for speech), then steps back **once** (~2 m / 6 ft) for the arms.
+The face needs to fill enough of the frame for reliable landmarks; the arms test needs the whole upper body **and both hands** in frame. One camera can't do both, so the session is ordered **Speech → Eyes → Face → Arms** (`testSequence()` in `config.ts`, matching the UX storyboard): the patient starts close to the screen (~50–70 cm / arm's length; better landmarks, and the mic is close for speech), then steps back **once** (~2 m / 6 ft) for the arms. The first three are all close-up, so their order among themselves is a UX choice, not a vision constraint; arms must stay last.
 
 Before each test, run a **framing gate** (`frontend/src/lib/vision/framing.ts`, pure, already implemented + tested):
 - `checkFaceFraming(faceLandmarks)` — face width within 18–60 % of the frame and not touching an edge. Hints: "Move a little closer to the screen." / "Move back a little." / "Center your face in the view."
@@ -88,8 +88,10 @@ Severity (as built, `ARMS_CONFIG`) = `0.6·ramp(drift_asym; 8→25°) + 0.3·ram
 Both arms sinking equally is fatigue, not stroke → contributes via `drift_asym` only (≈0); add flag `"both arms drifted equally"`.
 Confidence = min(visibility score, duration score): fraction of frames with all six joints visible, in frame, and shoulders ≥ 9 % of frame width (0 at 40 %, 1 at 85 %), and data span (0 at 3 s, 1 at 8 s). Needs ≥ 6 s and ≥ 30 usable frames. Feed ONLY the 10 s hold window (clock starts after the 3-2-1 cue; a window that starts while the arms are still rising biases the start median low). Limits: arms toward the camera are unreliable in 2D (`poseWorldLandmarks` would fix it and the aspect issue; not built); a naturally low arm scores ≈ 0.2.
 
-## Eyes test — BE-FAST stretch (`FEATURES.eyesTest`, off by default)
-Build only after the FAST MVP is demo-stable. Files: `frontend/src/lib/vision/eyes.ts` (pure metrics), a stimulus component that moves a dot on screen. Output: a `TestResult` with `test: "eyes"`.
+## Eyes test — BE-FAST (`FEATURES.eyesTest`, **now ON**)
+Wired into the live flow and part of the default test order (see "Positioning" above). Files: `frontend/src/lib/vision/eyes.ts` (pure metrics), `eyeProtocol.ts` (dot sequence + frame labelling), `createEyesCapture` in `capture.ts`, `runEyes` in `useTestRunner.ts`, `components/EyeStimulus.tsx` (the dot), `components/test/EyeTest.tsx` (the screen). Output: a `TestResult` with `test: "eyes"`.
+
+**Still unverified on a real camera, and uncalibrated** — the left/right landmark mapping is reasoned, not confirmed. Verify with `?debug=1` and calibrate before the demo; turn the flag back off if it misbehaves.
 
 Protocol (~10 s, patient still **close** to the screen, same framing gate as the face test): "Keep your head still and follow the dot with your eyes only." Dot sequence: center 1 s → left 2 s → center 1 s → right 2 s → center 1 s (optional up/down).
 
@@ -101,7 +103,7 @@ Implementation notes: `EyeFrame = { face: FaceFrame; target: 'center'|'left'|'ri
 Confidence: iris landmarks visible, |yaw| stable, brightness, dot-following actually happened (gaze moved at all). Low confidence → `needsRetry`, never a guess.
 Stretch of the stretch: visual-field check (dots flash at screen edges while gaze stays at the center; patient taps a key when seen). Skip nystagmus and pupil response (30 fps webcam is too noisy).
 
-Enabling it touches: `FEATURES.eyesTest`, agent tool `start_eye_test` (spec 04), dashboard card (auto-shown when flag is on), demo panel slider, risk weight (`MAX_WEIGHTS.eyes`). Contracts already include `eyes`.
+As wired: `createEyesCapture` opens ONE capture window exactly `EYE_PROTOCOL_TOTAL_MS` long, gated by the face framing gate plus the tighter `EYES_CONFIG.maxYawDeg` yaw limit. `EyeTest` mounts `<EyeStimulus>` when `progress.phase === 'hold'`, i.e. as that window opens, so the analyzer can take the first collected frame's timestamp as the protocol start (sync error: one camera frame against 1–2 s dot segments). The dot is rendered OUTSIDE the mirrored layer, so `mirrored` stays false. Still open: the agent tool `start_eye_test` (spec 04) is not registered yet.
 
 ## Second opinion (stretch, non-blocking)
 - Capture one JPEG at peak smile and one at end of arm hold (client canvas, ≤512 px, quality 0.7). Only send after the consent checkbox.

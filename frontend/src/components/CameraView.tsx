@@ -1,16 +1,29 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import { useSession } from '../lib/session/store'
 import { isDebugSearch } from '../lib/vision/frameUtils'
 import { useCaptureProgress } from '../lib/vision/progressStore'
 import { useMediaPipe } from '../lib/vision/useMediaPipe'
 import { DebugPanel } from './DebugPanel'
 import { drawOverlay } from './overlayDraw'
+import { Button } from './ui/Button'
+import { Icon } from './ui/Icon'
+import { Ring } from './ui/Primitives'
 
 const DEBUG = isDebugSearch(globalThis.location?.search ?? '')
 
+interface Props {
+  /** Positioning outline (HeadGuide / BodyGuide). Hidden automatically once a timed capture is under way. */
+  guide?: ReactNode
+  /** Anything drawn over the video that is NOT mirrored — the eye-test dot, for instance. */
+  overlay?: ReactNode
+  /** Hide the guide during the capture itself, so it does not compete with the instruction. */
+  hideGuideWhileCapturing?: boolean
+}
+
 // The live camera: MIRRORED video (CSS scaleX(-1)) + an overlay canvas that mirrors landmarks in the DRAW layer only
-// (landmark math elsewhere is RAW/unmirrored). Outline is green/red from the current framing verdict.
-export function CameraView() {
+// (landmark math elsewhere is RAW/unmirrored). The frame reads as a dark viewfinder inset into the light page;
+// its border carries the framing verdict (neutral → amber → green).
+export function CameraView({ guide, overlay, hideGuideWhileCapturing = true }: Props) {
   const { engine, summary } = useMediaPipe()
   const progress = useCaptureProgress((s) => s.progress)
   const hint = useSession((s) => s.hint)
@@ -22,6 +35,8 @@ export function CameraView() {
     const host = hostRef.current
     const v = engine.video
     if (!host) return
+    // objectFit 'fill' on purpose: the box already carries the video's own aspect ratio, and stretching (rather than
+    // cropping) keeps normalized landmarks aligned with the overlay canvas even before the video size is known.
     Object.assign(v.style, { width: '100%', height: '100%', objectFit: 'fill', transform: 'scaleX(-1)', display: 'block' })
     host.prepend(v)
     return () => {
@@ -68,89 +83,107 @@ export function CameraView() {
   }, [engine])
 
   const aspect = summary.videoSize ? summary.videoSize.w / summary.videoSize.h : 16 / 9
-  const outline = !progress ? 'border-slate-700' : progress.framingOk ? 'border-emerald-500' : 'border-red-500'
+  const framingOk = progress?.framingOk ?? false
+  const ring = !progress ? 'ring-stage-2' : framingOk ? 'ring-ok' : 'ring-caution'
   const showCue = progress?.phase === 'cue' && progress.secondsLeft !== null
+  const capturing = !!progress && ['neutral', 'smile', 'hold'].includes(progress.phase)
   const timed = progress && progress.secondsLeft !== null && progress.phase !== 'cue'
+  const showGuide = guide && !(hideGuideWhileCapturing && capturing)
 
   return (
-    <div className="space-y-2">
+    <div className="on-stage">
       <div
-        className={`relative w-full overflow-hidden rounded-lg border-4 bg-black transition-colors ${outline}`}
+        className={`relative w-full overflow-hidden rounded-[var(--radius-panel)] bg-stage ring-4 transition-shadow duration-500 ease-out ${ring}`}
         style={{ aspectRatio: aspect }}
       >
         <div ref={hostRef} className="absolute inset-0" />
         <canvas ref={canvasRef} className="pointer-events-none absolute inset-0 h-full w-full" />
 
+        {showGuide && <div className="absolute inset-0">{guide}</div>}
+        {overlay}
+
+        {/* Positioning hint, top centre. Amber while it is an instruction, green the moment framing is good. */}
         {hint && (
-          <p className="absolute left-2 right-2 top-2 rounded bg-black/70 px-3 py-1 text-center text-base font-medium text-amber-200">
-            {hint}
-          </p>
+          <div className="absolute inset-x-3 top-3 flex justify-center">
+            <p
+              className="rounded-full bg-stage/85 px-4 py-2 text-center text-[1rem] font-medium text-caution-wash backdrop-blur-sm"
+              role="status"
+            >
+              {hint}
+            </p>
+          </div>
+        )}
+        {!hint && framingOk && !capturing && (
+          <div className="absolute inset-x-3 top-3 flex justify-center">
+            <p className="flex items-center gap-2 rounded-full bg-ok/90 px-4 py-2 text-[1rem] font-medium text-white backdrop-blur-sm">
+              <Icon name="check" size={16} />
+              Hold it right there
+            </p>
+          </div>
         )}
 
+        {/* 3 · 2 · 1 */}
         {showCue && (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-            <span className="text-9xl font-bold text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]" aria-live="assertive">
+            <span
+              key={progress.secondsLeft}
+              className="tnum text-[22vmin] font-bold leading-none text-white [text-shadow:0_4px_24px_rgba(0,0,0,0.75)] sm:text-[14rem]"
+              style={{ animation: 'ss-rise 300ms var(--ease-out) both' }}
+              aria-live="assertive"
+            >
               {progress.secondsLeft}
             </span>
           </div>
         )}
 
-        {progress?.caption && (
-          <div className="absolute inset-x-2 bottom-2 flex items-center justify-center gap-3 rounded bg-black/70 px-3 py-2">
-            {timed && <Ring fraction={progress.fraction} label={String(progress.secondsLeft)} />}
-            <p className="text-lg font-semibold text-white" role="status">
+        {/* Instruction caption + capture ring, bottom. Suppressed while merely waiting for position: the hint pill
+            above and the page heading already say the same thing, and three copies of it is noise. */}
+        {progress?.caption && progress.phase !== 'waiting' && (
+          <div className="absolute inset-x-3 bottom-3 flex items-center justify-center gap-3 rounded-[var(--radius-control)] bg-stage/85 px-4 py-3 backdrop-blur-sm">
+            {timed && <Ring fraction={progress.fraction} label={String(progress.secondsLeft)} tone="#8fc2f5" />}
+            <p className="text-lg font-semibold text-stage-ink" role="status">
               {progress.caption}
             </p>
           </div>
         )}
 
+        {/* Camera not ready: never a bare spinner (docs/spec/06 "no blocking spinners > 3 s without status text"). */}
         {summary.status !== 'ready' && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/70 p-4 text-center">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-stage/90 p-6 text-center backdrop-blur-sm">
             {summary.status === 'error' ? (
               <>
-                <p className="text-lg text-red-300">{summary.error?.message}</p>
-                <button onClick={() => engine.restart()} className="rounded bg-sky-600 px-4 py-2">
-                  Try camera again
-                </button>
-                <p className="text-xs text-slate-400">Demo mode (?demo=1) still works without a camera.</p>
+                <span className="flex size-12 items-center justify-center rounded-full bg-danger/20 text-danger-wash">
+                  <Icon name="camera" size={24} />
+                </span>
+                <div>
+                  <p className="text-lg font-semibold text-stage-ink">The camera did not start</p>
+                  <p className="mt-1 max-w-sm text-[1rem] text-stage-ink-2">{summary.error?.message}</p>
+                </div>
+                <Button tone="stage" icon="refresh" onClick={() => engine.restart()}>
+                  Try the camera again
+                </Button>
+                <p className="text-xs text-stage-ink-2">You can still skip this check, or add ?demo=1 to rehearse without a camera.</p>
               </>
             ) : (
-              <p className="text-slate-200">{summary.status === 'starting' ? 'Starting camera and loading models…' : 'Camera is off.'}</p>
+              <>
+                <span className="flex size-12 items-center justify-center rounded-full bg-white/10 text-stage-ink">
+                  <Icon name="camera" size={24} className="breathe" />
+                </span>
+                <p className="text-[1rem] text-stage-ink-2">
+                  {summary.status === 'starting' ? 'Starting the camera and loading the models…' : 'The camera is off.'}
+                </p>
+              </>
             )}
           </div>
         )}
 
         {DEBUG && (
-          <p className="absolute bottom-2 right-2 rounded bg-black/70 px-2 py-0.5 font-mono text-xs text-slate-300">
+          <p className="absolute bottom-3 right-3 rounded bg-stage/85 px-2 py-0.5 font-mono text-xs text-stage-ink-2">
             {summary.delegate ?? '-'} {summary.fps} fps
           </p>
         )}
       </div>
       {DEBUG && <DebugPanel />}
     </div>
-  )
-}
-
-function Ring({ fraction, label }: { fraction: number; label: string }) {
-  const r = 16
-  const c = 2 * Math.PI * r
-  return (
-    <svg width="44" height="44" viewBox="0 0 44 44" className="shrink-0" aria-hidden>
-      <circle cx="22" cy="22" r={r} fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="4" />
-      <circle
-        cx="22"
-        cy="22"
-        r={r}
-        fill="none"
-        stroke="#38bdf8"
-        strokeWidth="4"
-        strokeDasharray={c}
-        strokeDashoffset={c * (1 - fraction)}
-        transform="rotate(-90 22 22)"
-      />
-      <text x="22" y="27" textAnchor="middle" fontSize="14" fill="white" fontWeight="bold">
-        {label}
-      </text>
-    </svg>
   )
 }

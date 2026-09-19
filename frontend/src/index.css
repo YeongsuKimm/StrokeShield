@@ -1,5 +1,195 @@
 @import "tailwindcss";
 
-body {
-  @apply bg-slate-950 text-slate-100;
+/* Free fallbacks, self-hosted so demo day never depends on a font CDN (same reason the MediaPipe models are committed).
+   They only show where the real typefaces are not installed. See the font stacks in @theme below. */
+@import "@fontsource-variable/newsreader";
+@import "@fontsource-variable/nunito-sans";
+
+/* ---------------------------------------------------------------------------------------------------------------
+   StrokeShield design tokens.
+   Light "clinical" chrome + a near-black camera stage. No gradients anywhere: flat fills, one hairline, one shadow.
+   Every pairing below is >= 4.5:1 against its own background (checked by hand; see docs/spec/06-frontend-ux.md).
+   Red is RESERVED for emergency (countdown, alert, call button) so it never competes with ordinary UI.
+--------------------------------------------------------------------------------------------------------------- */
+@theme {
+  /* TWO typefaces, per the brief: Tiempos for titles, Avenir for everything else.
+     Both are commercial, so each stack leads with the real font (used automatically wherever it is installed;
+     Avenir ships with macOS and iOS) and falls back to a close free look-alike that we do bundle:
+       Tiempos  ->  Newsreader  (editorial serif, similar weight and contrast)
+       Avenir   ->  Nunito Sans (geometric humanist sans, the usual Avenir stand-in)
+     To use real Tiempos everywhere, including the deployed site, add licensed .woff2 files under public/fonts/ and
+     @font-face them as "Tiempos Headline" / "Tiempos Text"; no other change is needed. */
+  --font-serif: "Tiempos Headline", "Tiempos Text", "Newsreader Variable", "Iowan Old Style", Georgia, serif;
+  --font-sans: "Avenir Next", "Avenir", "Nunito Sans Variable", ui-sans-serif, system-ui, sans-serif;
+  /* Dev panels only (?debug=1, ?record=1). Not part of the visible design. */
+  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* Surfaces */
+  --color-paper: #fbfbf9; /* warm bone page */
+  --color-surface: #ffffff;
+  --color-sunken: #f3f3ef; /* inset wells, unfilled tracks */
+  --color-line: #e3e3dc; /* hairline */
+  --color-line-strong: #c9c9c0;
+
+  /* Ink */
+  --color-ink: #12161b; /* off-black, never #000 — 15.8:1 on paper */
+  --color-ink-2: #4a5561; /*  7.5:1 on paper */
+  --color-ink-3: #6b7683; /*  4.6:1 on paper, large/secondary only */
+
+  /* One accent. Deep clinical blue, 6.7:1 against white. */
+  --color-accent: #0b5cab;
+  --color-accent-press: #083f76;
+  --color-accent-wash: #eaf1f9;
+
+  /* Status. Each is >= 4.5:1 with white text on the solid, and as text on paper. */
+  --color-danger: #b3261e;
+  --color-danger-press: #8c1c16;
+  --color-danger-wash: #fbeceb;
+  --color-caution: #8a5a00;
+  --color-caution-wash: #fdf3e0;
+  --color-ok: #1b6b48;
+  --color-ok-wash: #e9f4ee;
+
+  /* Camera stage: its own dark material, so the video reads as a viewfinder rather than a photo on a page. */
+  --color-stage: #0e1216;
+  --color-stage-2: #1b222a;
+  --color-stage-ink: #f2f4f6;
+  --color-stage-ink-2: #aab4c0;
+
+  --radius-panel: 1.25rem;
+  --radius-control: 0.625rem;
+
+  /* One shadow, tinted to the paper hue rather than neutral black. */
+  --shadow-panel: 0 1px 2px rgba(18, 22, 27, 0.04), 0 12px 32px -16px rgba(18, 22, 27, 0.18);
+  --shadow-lift: 0 2px 4px rgba(18, 22, 27, 0.06), 0 24px 48px -20px rgba(18, 22, 27, 0.28);
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-synthesis-weight: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Tabular numerals everywhere a number changes in place (timers, scores, percentages). */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Visible focus on every interactive element, on both light chrome and the dark stage. */
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+
+  .on-stage :focus-visible {
+    outline-color: #8fc2f5;
+  }
+
+  /* Screen-reader-only text that still becomes visible when focused (skip link). */
+  .sr-only:not(:focus):not(:active) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+@layer utilities {
+  /* Micro-label: the only place uppercase + letterspacing is allowed. Avenir, not a third font. */
+  .label-micro {
+    font-family: var(--font-sans);
+    font-size: 0.8125rem;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+  }
+
+  @keyframes ss-rise {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* Staggered entrance; --i is set inline by the caller. */
+  .rise {
+    animation: ss-rise 520ms var(--ease-out) both;
+    animation-delay: calc(var(--i, 0) * 70ms);
+  }
+
+  /* One-off spring-in for things that must be noticed the moment they appear (the skip offer). */
+  @keyframes ss-pop {
+    0% {
+      opacity: 0;
+      transform: translateY(16px) scale(0.94);
+    }
+    60% {
+      opacity: 1;
+      transform: translateY(-3px) scale(1.02);
+    }
+    100% {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .pop {
+    animation: ss-pop 480ms var(--ease-out) both;
+  }
+
+  @keyframes ss-breathe {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.45;
+    }
+  }
+
+  .breathe {
+    animation: ss-breathe 2s ease-in-out infinite;
+  }
+}
+
+/* The patient may be impaired and the room may be bright: honour reduced motion completely. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Title face. Deliberately UNLAYERED: unlayered rules beat every @layer, so this reliably overrides the
+   tracking / weight utilities that headings carry and switches every h1-h3 in the app at once. */
+h1,
+h2,
+h3,
+blockquote,
+.font-serif {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  letter-spacing: -0.012em;
+  font-variant-numeric: lining-nums;
 }

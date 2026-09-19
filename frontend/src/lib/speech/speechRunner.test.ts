@@ -260,7 +260,12 @@ describe('default wiring (real stores)', () => {
   })
 
   it('a good result advances speech -> arms', async () => {
-    useSession.setState({ phase: 'speech', results: { face: { ...okResult, test: 'face' } } })
+    // face and eyes are already done, so arms is the next pending test whatever order / eyes flag is configured
+    // (the UI order is Speech -> Eyes -> Face -> Arms with FEATURES.eyesTest on).
+    useSession.setState({
+      phase: 'speech',
+      results: { face: { ...okResult, test: 'face' }, eyes: { ...okResult, test: 'eyes' } },
+    })
     const h = harness()
     const runner = createSpeechRunner({ record: h.record, analyze: h.analyze, onRecorded: h.onRecorded })
     await runner.runSpeech()
