@@ -1,6 +1,15 @@
 import { useCallback, useEffect, useState } from 'react'
 import { micMonitor } from '../../lib/media/micLevel'
-import { queryPermission, requestCamera, requestLocation, requestMicrophone, watchPermission } from '../../lib/media/permissions'
+import {
+  isInsecureContext,
+  problemText,
+  queryPermission,
+  requestCamera,
+  requestLocation,
+  requestMicrophone,
+  watchPermission,
+  type PermissionProblem,
+} from '../../lib/media/permissions'
 import { useSession, type PermissionKey, type PermissionState } from '../../lib/session/store'
 import { CONSENT_CHECKBOX_LABEL, CONSENT_POINTS } from '../../lib/privacy/consentText'
 import { clearAllLocalData } from '../../lib/privacy/clearData'
@@ -33,9 +42,13 @@ export function PermissionsCard() {
   const permissions = useSession((s) => s.permissions)
   const setPermission = useSession((s) => s.setPermission)
   const setLocation = useSession((s) => s.setLocation)
+  const hasFix = useSession((s) => !!s.location)
   const consented = useSession((s) => s.consented)
   const giveConsent = useSession((s) => s.giveConsent)
   const [busy, setBusy] = useState<PermissionKey | 'all' | null>(null)
+  // Why the last attempt for a row failed (blocked vs dismissed vs no device vs busy...), so the text can say what to do.
+  const [problems, setProblems] = useState<Partial<Record<PermissionKey, PermissionProblem>>>({})
+  const insecure = isInsecureContext()
 
   // Reflect grants the browser already remembers, and any the patient changes mid-session.
   useEffect(() => {
@@ -62,17 +75,26 @@ export function PermissionsCard() {
       if (!useSession.getState().consented) return
       setBusy(key)
       try {
+        let state: PermissionState
+        let problem: PermissionProblem | null
         if (key === 'camera') {
-          setPermission('camera', await requestCamera())
+          ;({ state, problem } = await requestCamera())
         } else if (key === 'microphone') {
-          const { state, stream } = await requestMicrophone()
-          setPermission('microphone', state)
-          if (stream) micMonitor.attach(stream) // kept open: the mute indicator and the speech check both use it
+          const r = await requestMicrophone()
+          ;({ state, problem } = r)
+          // Consent may have been withdrawn while the browser prompt was open: do not keep a device we no longer may hold.
+          if (r.stream && !useSession.getState().consented) r.stream.getTracks().forEach((t) => t.stop())
+          else if (r.stream) micMonitor.attach(r.stream) // kept open: the mute indicator and the speech check both use it
         } else {
-          const { state, fix } = await requestLocation()
-          setPermission('location', state)
-          if (fix) setLocation(fix)
+          const r = await requestLocation()
+          ;({ state, problem } = r)
+          if (r.fix && useSession.getState().consented) setLocation(r.fix)
         }
+        if (!useSession.getState().consented) return
+        // 'unknown' = the attempt failed for a reason that says nothing about the grant (device busy, none found,
+        // insecure page): keep whatever the browser last told us instead of overwriting it.
+        if (state !== 'unknown') setPermission(key, state)
+        setProblems((p) => ({ ...p, [key]: problem ?? undefined }))
       } finally {
         setBusy(null)
       }
@@ -120,12 +142,24 @@ export function PermissionsCard() {
       </label>
 
       <h3 className="mt-5 text-base font-semibold tracking-tight">Allow access</h3>
+      {insecure && (
+        <p className="mt-2 text-[0.875rem] leading-snug text-danger" role="alert">
+          {problemText('camera', 'insecure')}
+        </p>
+      )}
 
       <ul className="mt-4 space-y-3">
         {ROWS.map(({ key, icon, label, why }) => {
           const state = permissions[key]
           const granted = state === 'granted'
           const denied = state === 'denied'
+          // Location can be "allowed" yet have no fix (indoors, timeout): offer another try, and say so.
+          const problem = insecure ? undefined : problems[key] // insecure has one banner, not three repeated rows
+          const noFix = key === 'location' && granted && !hasFix && !!problem
+          // Allowed but the device would not start (in use elsewhere, unplugged): still worth telling them now.
+          const deviceProblem = problem === 'busy' || problem === 'no-device'
+          const again = !granted || noFix || deviceProblem
+          const showProblem = !!problem && again && !(problem === 'denied' && !denied)
           return (
             <li key={key} className="flex gap-3">
               <span
@@ -144,21 +178,26 @@ export function PermissionsCard() {
                 </div>
                 <p className="mt-0.5 text-[0.9375rem] leading-snug text-ink-2">{why}</p>
                 {/* Each grant is its own choice, so location (which goes into the alert text) can be skipped. */}
-                {!granted && !denied && (
+                {again && (
                   <Button
                     tone="quiet"
                     size="sm"
                     className="mt-2"
                     onClick={() => void grant(key)}
-                    disabled={busy !== null || !consented}
-                    aria-label={`Allow ${label.toLowerCase()}`}
+                    disabled={busy !== null || !consented || insecure}
+                    aria-label={`${denied || problem ? 'Try again: allow' : 'Allow'} ${label.toLowerCase()}`}
                   >
-                    Allow
+                    {denied || problem ? 'Try again' : 'Allow'}
                   </Button>
                 )}
-                {denied && (
-                  <p className="mt-1 text-[0.875rem] leading-snug text-danger">
-                    Blocked. Allow it in the address bar, then reload.
+                {denied && !showProblem && (
+                  <p className="mt-1 text-[0.875rem] leading-snug text-danger" role="alert">
+                    {problemText(key, 'denied')}
+                  </p>
+                )}
+                {showProblem && problem && (
+                  <p className="mt-1 text-[0.875rem] leading-snug text-danger" role="alert">
+                    {problemText(key, problem)}
                   </p>
                 )}
               </div>

@@ -116,12 +116,15 @@ export function classifyCameraError(e: unknown): CameraErrorKind {
 }
 
 export const CAMERA_ERROR_TEXT: Record<CameraErrorKind, string> = {
-  'permission-denied': 'Camera permission was denied. Allow camera access in the browser and reload.',
+  'permission-denied': 'Camera access is blocked. Click the lock icon in the address bar, set Camera to Allow, then reload this page.',
   'no-camera': 'No camera was found on this device.',
   'camera-busy': 'The camera is in use by another app or tab.',
   unsupported: 'This browser cannot open the camera (needs HTTPS or localhost).',
   unknown: 'Could not start the camera.',
 }
+
+/** The camera stopped while a check was running (permission revoked, unplugged, or taken by another app). */
+export const CAMERA_ENDED_TEXT = 'The camera stopped. It may have been unplugged, blocked in the address bar (lock icon), or taken by another app.'
 
 /** `?debug=1` toggles the landmark-index / left-right debug overlay. */
 export const isDebugSearch = (search: string): boolean => new URLSearchParams(search).get('debug') === '1'

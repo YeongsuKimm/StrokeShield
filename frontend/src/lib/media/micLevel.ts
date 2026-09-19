@@ -23,10 +23,12 @@ export function evaluateMic(input: {
   hasStream: boolean
   trackEnabled: boolean
   trackMuted: boolean
+  /** The track stopped by itself (permission revoked, device unplugged): it will never deliver sound again. */
+  trackEnded?: boolean
   msSinceSound: number
 }): MicVerdict {
   if (!input.hasStream) return { muted: true, reason: 'no-mic' }
-  if (!input.trackEnabled || input.trackMuted) return { muted: true, reason: 'track-off' }
+  if (!input.trackEnabled || input.trackMuted || input.trackEnded) return { muted: true, reason: 'track-off' }
   if (input.msSinceSound >= SILENCE_GRACE_MS) return { muted: true, reason: 'no-sound' }
   return { muted: false, reason: 'ok' }
 }
@@ -123,6 +125,7 @@ class MicMonitor {
       hasStream: !!this.stream,
       trackEnabled: track?.enabled ?? false,
       trackMuted: track?.muted ?? false,
+      trackEnded: track?.readyState === 'ended',
       msSinceSound: now - this.lastSoundAt,
     })
 
