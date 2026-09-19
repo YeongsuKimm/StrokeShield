@@ -179,6 +179,7 @@ export function InfoPage() {
             <li key={m.name} className="bg-surface p-7">
               <p className="text-lg font-semibold tracking-tight">{m.name}</p>
               <p className="mt-1 text-ink-2">{m.affiliation}</p>
+              <p className="mt-1 text-ink-2">{m.major}</p>
             </li>
           ))}
         </ul>

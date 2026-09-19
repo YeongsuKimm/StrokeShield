@@ -180,12 +180,13 @@ export const HOTLINES: Hotline[] = [
 export interface Member {
   name: string
   affiliation: string
+  major: string
 }
 
 const JHU = 'Johns Hopkins University'
 export const TEAM: Member[] = [
-  { name: 'Sathvik S.', affiliation: JHU },
-  { name: 'Fatih C.', affiliation: JHU },
-  { name: 'Yeongsu K.', affiliation: JHU },
-  { name: 'Leo Y.', affiliation: JHU },
+  { name: 'Sathvik S.', affiliation: JHU, major: "Biomedical Engineering" },
+  { name: 'Fatih C.', affiliation: JHU, major: "CS + Applied Math"},
+  { name: 'Yeongsu K.', affiliation: JHU, major : "CS + Applied Math" },
+  { name: 'Leo Y.', affiliation: JHU, major: "Electrical Engineering + CS"},
 ]
