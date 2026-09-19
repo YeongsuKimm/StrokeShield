@@ -64,6 +64,8 @@ interface SessionState {
   alertReason?: AlertReason
   alertStatus: AlertStatus
   alertResponse?: AlertResponse
+  /** ms epoch of the last alert outcome (drives the retry wait shown after a rate limit). */
+  alertResultAt?: number
   demoEnabled: boolean
   /** Live positioning caption, e.g. "Step back until I can see both hands." */
   hint?: string
@@ -91,6 +93,8 @@ interface SessionState {
   requestEmergency: (reason?: AlertReason) => void
   cancelCountdown: () => void
   confirmCountdown: () => void
+  /** After a FAILED alert: send once more (no countdown). Returns false, and does nothing, unless the last attempt failed. */
+  retryAlert: () => boolean
   setAlertResult: (status: AlertStatus, res?: AlertResponse) => void
   setDemoEnabled: (v: boolean) => void
   setHint: (hint?: string) => void
@@ -116,6 +120,7 @@ const initial = {
   hint: undefined,
   alertReason: undefined,
   alertResponse: undefined,
+  alertResultAt: undefined,
   lastKnownWell: undefined,
 }
 
@@ -200,10 +205,17 @@ export const useSession = create<SessionState>((set, get) => ({
     if (get().phase !== 'countdown') return
     set({ phase: 'alerting', alertStatus: 'sending', alertResponse: undefined }) // drop a previous attempt's error
   },
+  // One-shot: only a failed alert can be retried, and it flips to 'sending' synchronously, so a double click (or an
+  // agent tool and a click together) cannot start two sends.
+  retryAlert: () => {
+    if (get().phase !== 'alerting' || get().alertStatus !== 'failed') return false
+    set({ alertStatus: 'sending', alertResponse: undefined })
+    return true
+  },
   setAlertResult: (alertStatus, alertResponse) => {
     // A response that lands after the session was reset must not paint "Alert sent" onto the next session.
     if (get().phase !== 'alerting') return
-    set({ alertStatus, alertResponse, phase: alertStatus === 'sent' ? 'alerted' : 'alerting' })
+    set({ alertStatus, alertResponse, alertResultAt: Date.now(), phase: alertStatus === 'sent' ? 'alerted' : 'alerting' })
   },
   setDemoEnabled: (demoEnabled) => set({ demoEnabled }),
   setHint: (hint) => set({ hint }),

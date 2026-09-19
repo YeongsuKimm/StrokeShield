@@ -14,9 +14,9 @@ import { EyeTest } from './components/test/EyeTest'
 import { FaceTest } from './components/test/FaceTest'
 import { SpeechTest } from './components/test/SpeechTest'
 import { SpeechRecordPanel } from './components/SpeechRecordPanel'
-import { api } from './lib/api'
+import { sendAlertForSession } from './lib/alertFlow'
 import { consumePendingAnchor } from './lib/anchorTarget'
-import { guideStartProblemText, locationForAlert } from './lib/media/permissions'
+import { guideStartProblemText } from './lib/media/permissions'
 import { isSpeechRecordSearch } from './lib/calibration/recorder'
 import { useSession, isResultPhase } from './lib/session/store'
 import { ConversationProvider } from '@elevenlabs/react'
@@ -99,31 +99,16 @@ function AgentControl() {
   )
 }
 
-/** Sends the alert once the countdown expires. The backend decides the destination number — never this client. */
+/**
+ * Sends the alert when the store enters alerting+sending: countdown expiry, or the one retry after a failure
+ * (`retryAlert`). The backend decides the destination number, never this client (lib/alertFlow.ts).
+ */
 function useAlertOnExpiry() {
   const phase = useSession((s) => s.phase)
+  const alertStatus = useSession((s) => s.alertStatus)
   useEffect(() => {
-    if (phase !== 'alerting') return
-    const st = useSession.getState()
-    const symptoms = Object.values(st.results).flatMap((r) => r?.flags ?? [])
-    // Location never blocks the alert: at most ALERT_LOCATION_CAP_MS for a refresh (only if already granted, never a
-    // prompt), else the fix cached at the consent step, else none ("Location unavailable" in the text).
-    // Without the consent tick nothing location-related is read at all.
-    ;(st.consented ? locationForAlert(st.location) : Promise.resolve(undefined))
-      .catch(() => undefined)
-      .then((location) =>
-        api.sendAlert({
-          reason: st.alertReason ?? 'user_request',
-          risk: st.risk ?? undefined,
-          patient: { name: st.patientName },
-          lastKnownWell: st.lastKnownWell,
-          location,
-          symptoms,
-        }),
-      )
-      .then((res) => st.setAlertResult(res.ok ? 'sent' : 'failed', res))
-      .catch((e) => st.setAlertResult('failed', { ok: false, dryRun: false, error: String(e) }))
-  }, [phase])
+    if (phase === 'alerting' && alertStatus === 'sending') void sendAlertForSession()
+  }, [phase, alertStatus])
 }
 
 /** Shift+D turns on the demo panel mid-session, as well as ?demo=1 (docs/spec/06). */
