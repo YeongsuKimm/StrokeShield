@@ -126,7 +126,11 @@ export const FAQS: Faq[] = [
   },
   {
     q: 'What happens to the video and audio?',
-    a: 'The video never leaves your browser — face and pose detection run locally on this device. The speech clip is sent to our server for analysis and is not stored. Still frames are only sent for a second opinion if you tick that box yourself.',
+    a: 'Your video never leaves your browser: face and arm tracking run on this device, and nothing from the camera is uploaded or stored. Audio goes to two places, and only if you use them. The speech test sends one short recording to our server for analysis, and it may be transcribed by ElevenLabs; we do not store it. The optional voice guide, once you press Start guide, streams your microphone audio to ElevenLabs for as long as it is on. No photos or video frames are sent anywhere.',
+  },
+  {
+    q: 'What data does this use?',
+    a: 'The camera (processed in this browser only), the microphone (the speech recording, and the voice guide if you turn it on) and, if you allow it, your location. Results, the transcript and your location are kept in this tab’s memory only and nothing is written to your browser storage. If an alert is sent, one text goes to a demo phone with your location if allowed, what the checks flagged, and when you were last well if you told the guide. We do not sell data or use it for ads, and this site loads no analytics or ad trackers. “Clear my data” (or the logo) stops the camera and microphone, ends the voice guide and wipes it all. StrokeShield is designed to minimize data. It is a demo, not a medical device, and we make no compliance claims.',
   },
   {
     q: 'What if a check does not work?',

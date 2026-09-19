@@ -1,6 +1,7 @@
 // Browser-only microphone capture: getUserMedia + AudioContext + AudioWorklet (ScriptProcessor fallback).
 // Deliberately thin and NOT unit-tested (no DOM in vitest); see the manual checklist in the speech report / docs.
 // Importing this module never touches the DOM; everything happens inside openBrowserMic().
+import { useSession } from '../session/store'
 import { SPEECH_SAMPLE_RATE } from './config'
 import { classifyMicError, MicError } from './micErrors'
 import type { MicCapture } from './recorder'
@@ -42,6 +43,8 @@ export async function openBrowserMic(): Promise<MicCapture> {
   if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia || typeof AudioContext === 'undefined') {
     throw new MicError('unsupported')
   }
+  // Consent gate: the recording only opens after the visitor ticked the consent box (docs/spec/06 "Privacy").
+  if (!useSession.getState().consented) throw new MicError('permission-denied')
   let stream: MediaStream
   try {
     stream = await navigator.mediaDevices.getUserMedia({ audio: AUDIO_CONSTRAINTS })

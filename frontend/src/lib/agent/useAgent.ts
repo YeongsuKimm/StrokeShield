@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react'
 import { api } from '../api'
 import { useSession } from '../session/store'
 import { clientTools, isSpeechToolPending, registerAgentContextualUpdate } from './clientTools'
+import { registerAgentEnd } from './agentSession'
 import { bindAgentToFaceCapture, FACE_BRIEFING } from './faceCues'
 import { bindAgentToSpeechRecording } from './speechAudioGate'
 
@@ -31,6 +32,11 @@ export function useAgent() {
 	useEffect(() => {
 		latest.current = conversation
 	})
+	// Let "Clear my data" hang up the guide from outside React.
+	useEffect(() => {
+		registerAgentEnd(() => latest.current.endSession())
+		return () => registerAgentEnd(null)
+	}, [])
 	useEffect(
 		() =>
 			bindAgentToSpeechRecording({
@@ -129,6 +135,8 @@ export function useAgent() {
 	)
 
 	const start = async () => {
+		// Consent gate: nothing contacts the backend or ElevenLabs, or opens the microphone, without the voice opt-in.
+		if (!useSession.getState().voiceConsent) return
 		const { signedUrl } = await api.signedUrl()
 		await conversation.startSession({ signedUrl })
 	}

@@ -21,6 +21,7 @@ describe('session state machine', () => {
   beforeEach(() => {
     FEATURES.eyesTest = false // most cases exercise the plain FAST order; the eyes case turns it back on
     s().reset()
+    s().giveConsent() // beginTests() is a no-op without consent (lib/privacy/consent.test.ts covers that)
   })
   afterEach(() => {
     FEATURES.eyesTest = eyesDefault
