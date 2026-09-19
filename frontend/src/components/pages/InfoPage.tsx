@@ -97,7 +97,7 @@ export function InfoPage() {
               911, never a substitute for it.
             </p>
             <p className="mt-4 max-w-[62ch] text-lg leading-relaxed text-ink-2">
-              If the camera cannot get a good look at you, that check is left out and the result says so. Even when
+              If the camera cannot get a good look at you, that check is left out and the result will not factor in that data. Even when
               every check works, this tool cannot rule a stroke out, so it can never reassure you.
             </p>
           </div>
