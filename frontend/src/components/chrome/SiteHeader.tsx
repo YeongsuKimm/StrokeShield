@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSession } from '../../lib/session/store'
+import { speechRunner } from '../../lib/speech/speechRunner'
+import { testRunner } from '../../lib/vision/useTestRunner'
+import { setPendingAnchor } from '../../lib/anchorTarget'
 import { DrilldownMenu } from '../ui/DrilldownMenu'
 import { buildMenu } from './menuTree'
 
@@ -46,14 +49,31 @@ export function SiteHeader() {
     }
   }, [open, collapse])
 
+  // The logo is a true "start over": stop anything running, clear the session, and land on the home screen.
+  const goHome = useCallback(() => {
+    testRunner.cancel()
+    speechRunner.cancel()
+    useSession.getState().reset()
+    setRoute('home')
+    collapse()
+  }, [setRoute, collapse])
+
   const items = useMemo(
     () =>
       buildMenu({
         route,
         goToSection: (id) => {
           setRoute('info')
-          // Wait for the info document to mount before scrolling to the spot.
-          requestAnimationFrame(() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+          // The info page mounts after the old page finishes fading out, so poll briefly for the target.
+          setPendingAnchor(id)
+          let tries = 0
+          const seek = () => {
+            const el = document.getElementById(id)
+            if (el) {
+              el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+            } else if (tries++ < 90) requestAnimationFrame(seek)
+          }
+          requestAnimationFrame(seek)
         },
         goToCheck: () => setRoute('home'),
       }),
@@ -64,7 +84,7 @@ export function SiteHeader() {
     <header className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-start justify-between gap-4 p-5 sm:p-7">
       <button
         type="button"
-        onClick={() => setRoute('home')}
+        onClick={goHome}
         className="pointer-events-auto flex items-center gap-2.5 text-ink transition-opacity hover:opacity-70"
       >
         <BrandMark />

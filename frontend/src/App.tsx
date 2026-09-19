@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { CountdownModal } from './components/CountdownModal'
 import { DemoPanel } from './components/DemoPanel'
 import { RecordPanel } from './components/RecordPanel'
@@ -13,6 +14,7 @@ import { FaceTest } from './components/test/FaceTest'
 import { SpeechTest } from './components/test/SpeechTest'
 import { SpeechRecordPanel } from './components/SpeechRecordPanel'
 import { api } from './lib/api'
+import { consumePendingAnchor } from './lib/anchorTarget'
 import { isSpeechRecordSearch } from './lib/calibration/recorder'
 import { useSession, isResultPhase } from './lib/session/store'
 
@@ -51,8 +53,9 @@ function useDemoHotkey() {
   }, [setDemoEnabled])
 }
 
-function CurrentScreen() {
-  const route = useSession((s) => s.route)
+/** `route` is a PROP, not read from the store: the page that is fading out must stay what it was, or it would
+ *  re-render as the destination page mid-exit and flash it before the transition. */
+function CurrentScreen({ route }: { route: 'home' | 'info' }) {
   const phase = useSession((s) => s.phase)
 
   if (route === 'info') return <InfoPage />
@@ -79,13 +82,12 @@ export default function App() {
   useAlertOnExpiry()
   useDemoHotkey()
 
-  // Every route change starts at the top of the new document rather than wherever the last one was scrolled.
-  // (The "no scrolling to the info page once a check starts" rule is enforced by the home page's hand-off only
-  // listening while idle. The page itself is never scroll-locked: that hid the skip button on short windows and
-  // made the result screen unreachable below the fold.)
-  useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'instant' })
-  }, [route])
+  // Home <-> info is a soft hand-off, not a cut: the old page eases out in the direction of travel (down to info =
+  // content moves up), then the new page eases in from the far side. Direction follows the destination.
+  const reduce = useReducedMotion()
+  const dir = route === 'info' ? 1 : -1
+  const D = reduce ? 0 : 0.24
+  const OFFSET = reduce ? 0 : 28
 
   return (
     <div className="min-h-[100dvh]">
@@ -93,8 +95,33 @@ export default function App() {
         Skip to the main content
       </a>
       <SiteHeader />
-      <main id="main">
-        <CurrentScreen />
+      <main id="main" className="overflow-x-clip">
+        <AnimatePresence
+          mode="wait"
+          initial={false}
+          custom={dir}
+          // The new page must start at the top; doing it here (after the old one is gone, before the new one mounts)
+          // avoids the old page visibly jumping while it fades out.
+          onExitComplete={() => {
+            if (!consumePendingAnchor()) window.scrollTo({ top: 0, behavior: 'instant' })
+          }}
+        >
+          <motion.div
+            key={route}
+            custom={dir}
+            variants={{
+              enter: (d: number) => ({ opacity: 0, y: d * OFFSET }),
+              center: { opacity: 1, y: 0 },
+              exit: (d: number) => ({ opacity: 0, y: -d * OFFSET }),
+            }}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{ duration: D, ease: 'easeOut' }}
+          >
+            <CurrentScreen route={route} />
+          </motion.div>
+        </AnimatePresence>
       </main>
       <EmergencyButton />
 
