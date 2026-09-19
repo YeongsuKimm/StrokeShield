@@ -9,7 +9,7 @@
 import { useEffect, useRef, useState } from 'react'
 
 /** Wheel travel, in the direction of travel and near the page edge, that commits the hand-off. */
-export const HANDOFF_BUFFER_PX = 150
+export const HANDOFF_BUFFER_PX = 110
 /**
  * Accumulated travel fades at this rate per 100 ms. Gentle on purpose: a plain mouse wheel delivers one ~100 px notch
  * at a time, maybe a second apart, and a faster fade would keep that from ever adding up to the buffer (it stalls

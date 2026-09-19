@@ -166,12 +166,13 @@ export const HOTLINES: Hotline[] = [
 
 export interface Member {
   name: string
-  role: string
-  focus: string
+  affiliation: string
 }
 
-// EDIT ME before the demo: one entry per teammate.
+const JHU = 'Johns Hopkins University'
 export const TEAM: Member[] = [
-  { name: 'Leo Yang', role: 'Frontend & experience', focus: 'Session flow, camera stage, the interface you are looking at.' },
-  { name: 'majesticcoder14', role: 'Vision & calibration', focus: 'MediaPipe runtime, face/arm/eye analysis, the calibration harness.' },
+  { name: 'Sathvik S.', affiliation: JHU },
+  { name: 'Fatih C.', affiliation: JHU },
+  { name: 'Yeongsu K.', affiliation: JHU },
+  { name: 'Leo Y.', affiliation: JHU },
 ]
