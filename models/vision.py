@@ -2,7 +2,7 @@
 """AI second opinion on still frames, via the Gemini API (free tier is enough; no paid API).
 
 The result is a soft signal only: it is folded into the risk score with a small weight and shown as "AI second opinion".
-It must NEVER block or break a session, so every failure path (no key, bad image, network, timeout, safety block,
+It must NEVER block or break a session, so every failure path (switched off via SECOND_OPINION, no key, bad image, network, timeout, safety block,
 malformed JSON) returns `finding="unclear"` instead of raising. No image data, key or response text is logged.
 """
 import base64
@@ -14,6 +14,7 @@ import re
 
 import httpx
 
+from backend import settings
 from backend.schemas import VisionImage, VisionOpinion
 
 log = logging.getLogger("vision")
@@ -116,8 +117,12 @@ def parse_response(payload: dict, kinds: dict[int, str]) -> dict[int, VisionOpin
 def second_opinion(images: list[VisionImage], *, transport: httpx.BaseTransport | None = None) -> list[VisionOpinion]:
     """One opinion per input image, same order. Never raises."""
     results = [_unclear(i.kind, "second opinion unavailable") for i in images]
+    if not images:
+        return results
+    if not settings.second_opinion_enabled():  # privacy kill switch (default off): no decoding, no network
+        return [_unclear(i.kind, "second opinion is off") for i in images]
     key = os.getenv("GEMINI_API_KEY", "").strip()
-    if not images or not key:
+    if not key:
         return results
 
     frames: list[tuple[int, str, bytes]] = []

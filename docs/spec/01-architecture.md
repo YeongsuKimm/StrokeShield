@@ -97,6 +97,14 @@ Rule: **no destination number in `AlertRequest`.** Backend reads `DEMO_PHONE_NUM
 Timeouts: second opinion 5 s (non-blocking; the session proceeds without it), speech analyze 10 s, alert 10 s.
 Errors: FastAPI JSON `{detail: string}` with the proper status (alert failures are HTTP 200 `AlertResponse{ok:false,error}`); frontend shows retry/fallback, never a blank screen.
 
+## Privacy & abuse hardening (`backend/security.py`, wired in `backend/main.py`)
+- **No persistence:** audio/images are processed in memory and dropped (the upload is closed right after reading); nothing is written to disk. Logs carry only module tags, status codes, sizes and error TYPES (no messages/tracebacks, names, numbers, locations, transcripts). uvicorn's access log is filtered to drop the query string and client address; `httpx`/`httpcore` are held at WARNING (their INFO lines print outbound URLs).
+- **Response headers on every response:** `Cache-Control: no-store`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`, `X-Frame-Options: DENY`, restrictive `Permissions-Policy` (camera/mic/geolocation/etc. all `()`: this is the API, the page's own policy is the frontend host's), and on `/api/*` a `Content-Security-Policy: default-src 'none'; frame-ancestors 'none'`. Unhandled errors return `{detail:"internal error"}` and log the exception type only.
+- **CORS:** only `ALLOWED_ORIGINS`, methods `GET`/`POST`, header `Content-Type` (plus Starlette's safelisted ones).
+- **Body caps (413):** 64 KB default (alert, agent), 2 MB for `/api/vision/second-opinion`, 5 MB + 64 KB for `/api/speech/analyze`; enforced on `Content-Length` and on streamed bytes.
+- **Per-IP rate limits (429 + `Retry-After`, in memory, generous):** speech analyze 30/min, second opinion 30/min, agent signed-url 20/min, alert 10/min (the alert also keeps its own 1 live SMS per 2 min guard). Behind a proxy run uvicorn with `--proxy-headers` so the client address is the real one.
+- **`SECOND_OPINION`** (default off) gates every Gemini call; see spec 02.
+
 ## Environment variables
 See `.env.example`. Backend reads via `python-dotenv`; frontend only gets `VITE_API_BASE_URL` and (if agent is public) `VITE_ELEVENLABS_AGENT_ID`.
 

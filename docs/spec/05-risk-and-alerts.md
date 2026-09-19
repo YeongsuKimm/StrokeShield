@@ -31,7 +31,7 @@ Rules:
 3. `to = DEMO_PHONE_NUMBER` from env; if unset/invalid → HTTP 200 `{ok:false, error}` (never a 500).
 4. If dry-run (the default; only an explicit `DRY_RUN=false|0|no|off` arms real sending, so a typo stays dry): log the message *length* (no PII) and return `{dryRun:true}`.
 5. Else Twilio: send **one SMS only**. The app does not create an automated voice call. Free-text fields are clipped to 120 chars. Twilio failures return `{ok:false, error:"SMS could not be sent (Twilio error <code>)"}`: the raw Twilio message (which can echo numbers/SID) is logged type+code only and never returned.
-6. Rate limit: at most 1 alert per 2 minutes (in-memory) to prevent accidental SMS storms (a lock makes concurrent alerts safe; a failed send does not start the window).
+6. Rate limits: the request body is capped at 64 KB (413) and `/api/alert` allows 10 requests/min per client IP (429 + `Retry-After`, `backend/security.py`). Separately, at most 1 live alert per 2 minutes (in-memory) to prevent accidental SMS storms (a lock makes concurrent alerts safe; a failed send does not start the window).
 
 ### SMS
 `StrokeShield ALERT: possible stroke. Symptoms: {symptoms}. Last known well: {lkw}. Location: https://maps.google.com/?q={lat},{lng} (±{acc} m). Risk {risk:.0%}. Demo message.`

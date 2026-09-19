@@ -41,6 +41,7 @@ def ok(payload):
 
 @pytest.fixture(autouse=True)
 def key(monkeypatch):
+    monkeypatch.setenv("SECOND_OPINION", "true")  # the privacy kill switch is off by default
     monkeypatch.setenv("GEMINI_API_KEY", "test-key")
     monkeypatch.delenv("GEMINI_MODEL", raising=False)
 
@@ -157,3 +158,39 @@ def test_no_images_and_the_endpoint_respect_the_contract(monkeypatch):
     res = TestClient(app).post("/api/vision/second-opinion", json={"images": [{"kind": "face", "jpegBase64": B64}]})
     assert res.status_code == 200
     assert res.json() == [{"kind": "face", "finding": "unclear", "side": "none", "confidence": 0.0, "rationale": "second opinion unavailable"}]
+
+
+def test_off_by_default_even_with_a_key_and_makes_no_network_call(monkeypatch):
+    monkeypatch.delenv("SECOND_OPINION")  # the autouse fixture turned it on; remove it entirely
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    rec = Recorder(ok(reply([item(0)])))
+    out = second_opinion([img(), img("arms")], transport=rec.transport)
+    assert [o.finding for o in out] == ["unclear", "unclear"] and [o.kind for o in out] == ["face", "arms"]
+    assert [o.rationale for o in out] == ["second opinion is off"] * 2
+    assert rec.requests == []
+
+
+@pytest.mark.parametrize("value", ["false", "0", "no", "off", "", "flase", "enabled", "2"])
+def test_only_explicit_truthy_values_enable_it(monkeypatch, value):
+    monkeypatch.setenv("SECOND_OPINION", value)
+    rec = Recorder(ok(reply([item(0)])))
+    assert second_opinion([img()], transport=rec.transport)[0].rationale == "second opinion is off"
+    assert rec.requests == []
+
+
+@pytest.mark.parametrize("value", ["true", "1", "yes", "on", " TRUE "])
+def test_truthy_values_enable_it(monkeypatch, value):
+    monkeypatch.setenv("SECOND_OPINION", value)
+    rec = Recorder(ok(reply([item(0)])))
+    assert second_opinion([img()], transport=rec.transport)[0].finding == "asymmetric"
+    assert len(rec.requests) == 1
+
+
+def test_endpoint_is_off_by_default(monkeypatch):
+    from fastapi.testclient import TestClient
+
+    from backend.main import app
+
+    monkeypatch.delenv("SECOND_OPINION")
+    res = TestClient(app).post("/api/vision/second-opinion", json={"images": [{"kind": "face", "jpegBase64": B64}]})
+    assert res.json()[0]["rationale"] == "second opinion is off"

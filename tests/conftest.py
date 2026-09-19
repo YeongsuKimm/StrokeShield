@@ -13,6 +13,7 @@ PINNED = {
     "DRY_RUN": "true",  # never place a real call/SMS from a test
     "DEMO_MODE": "true",
     "GEMINI_API_KEY": "",  # a local key must never make a test call the real Gemini API
+    "SECOND_OPINION": "false",  # privacy kill switch: off unless a test turns it on
 }
 for _k, _v in PINNED.items():
     os.environ[_k] = _v
@@ -24,3 +25,13 @@ def _pin_env(monkeypatch):
     for k, v in PINNED.items():
         monkeypatch.setenv(k, v)
     monkeypatch.delenv("PHONEME_THREADS", raising=False)
+
+
+@pytest.fixture(autouse=True)
+def _fresh_rate_limiter():
+    """Rate-limit state is process memory; reset it so tests never affect each other."""
+    from backend.security import limiter
+
+    limiter.reset()
+    yield
+    limiter.reset()

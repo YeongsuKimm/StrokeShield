@@ -21,6 +21,11 @@ def dry_run() -> bool:
     return os.getenv("DRY_RUN", "true").strip().lower() not in _FALSE_VALUES
 
 
+def second_opinion_enabled() -> bool:
+    # Privacy kill switch, default OFF: only an explicit true/1/yes/on lets face/arm frames leave for the Gemini API.
+    return _flag("SECOND_OPINION", False)
+
+
 def demo_mode() -> bool:
     return _flag("DEMO_MODE", True)
 

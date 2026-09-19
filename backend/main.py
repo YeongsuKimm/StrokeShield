@@ -8,8 +8,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from backend import settings
 from backend.routers import agent, alert, speech, vision
 from backend.schemas import HealthResponse
+from backend.security import (
+    BodyLimitMiddleware,
+    RateLimitMiddleware,
+    SecurityHeadersMiddleware,
+    install_log_privacy,
+)
 
 log = logging.getLogger("strokeshield.startup")
+install_log_privacy()
 
 
 @asynccontextmanager
@@ -22,18 +29,24 @@ async def lifespan(_: FastAPI):
         if phoneme.phoneme_scoring_enabled():
             await run_in_threadpool(phoneme.warmup)
             log.info("phoneme model warmed up")
-    except Exception:  # torch missing, model not downloaded, etc.: speech falls back to acoustic-only scoring
-        log.exception("phoneme warm-up skipped")
+    except Exception as exc:  # torch missing, model not downloaded, etc.: speech falls back to acoustic-only scoring
+        log.warning("phoneme warm-up skipped (%s)", type(exc).__name__)
     yield
 
 
 app = FastAPI(title="StrokeShield API", lifespan=lifespan)
 
+# The last middleware added is the outermost: CORS (answers preflights, decorates 413/429 replies) -> security headers +
+# catch-all -> body cap -> rate limit -> routes.
+app.add_middleware(RateLimitMiddleware)
+app.add_middleware(BodyLimitMiddleware)
+app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.allowed_origins(),
     allow_methods=["GET", "POST"],
-    allow_headers=["*"],
+    allow_headers=["Content-Type"],  # the browser client only ever sends Content-Type
+    max_age=600,
 )
 
 
