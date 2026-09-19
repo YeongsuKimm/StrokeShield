@@ -8,3 +8,7 @@ __pycache__/
 
 # Claude Code agent worktrees
 .claude/worktrees/
+
+# Local speech calibration recordings (voice is personal data); only the folder README is tracked
+recordings/speech/*
+!recordings/speech/README.md

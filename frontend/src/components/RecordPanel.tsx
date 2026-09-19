@@ -1,5 +1,5 @@
 import { downloadJson, useRecorder } from '../lib/calibration/recorder'
-import { findScenario, scenariosFor, type RecordingKind } from '../lib/calibration/recording'
+import { findScenario, LIGHTING_VALUES, scenariosFor, type Lighting, type RecordingKind } from '../lib/calibration/recording'
 
 // Calibration recorder UI. Only rendered with `?record=1`. Run a test with the normal buttons; each completed run is
 // saved (and auto-downloaded) with the labels chosen here. See docs/CALIBRATION.md.
@@ -8,9 +8,14 @@ const KINDS: { kind: RecordingKind; title: string }[] = [
   { kind: 'arms', title: 'Arms test scenario' },
 ]
 
+/** yes / no / not recorded, so an untouched field is stored as null instead of a false "no". */
+const triToValue = (v: boolean | null | undefined): string => (v === true ? 'yes' : v === false ? 'no' : '')
+const valueToTri = (v: string): boolean | null => (v === 'yes' ? true : v === 'no' ? false : null)
+
 export function RecordPanel() {
   const r = useRecorder()
   if (!r.enabled) return null
+  const c = r.conditions
   return (
     <div className="fixed right-4 top-4 z-20 w-80 space-y-2 rounded-lg border border-rose-500 bg-slate-900/95 p-3 text-sm shadow-xl">
       <p className="font-semibold text-rose-400">● Recording mode</p>
@@ -34,8 +39,53 @@ export function RecordPanel() {
           </label>
         )
       })}
+      <fieldset className="grid grid-cols-2 gap-2 rounded border border-slate-700 p-2">
+        <legend className="px-1 text-xs text-slate-300">Conditions (remembered)</legend>
+        <label className="text-xs">
+          Glasses
+          <select value={triToValue(c.glasses)} onChange={(e) => r.setConditions({ glasses: valueToTri(e.target.value) })} className="mt-0.5 w-full rounded bg-slate-800 px-1 py-1">
+            <option value="">?</option>
+            <option value="yes">yes</option>
+            <option value="no">no</option>
+          </select>
+        </label>
+        <label className="text-xs">
+          Facial hair
+          <select value={triToValue(c.facialHair)} onChange={(e) => r.setConditions({ facialHair: valueToTri(e.target.value) })} className="mt-0.5 w-full rounded bg-slate-800 px-1 py-1">
+            <option value="">?</option>
+            <option value="yes">yes</option>
+            <option value="no">no</option>
+          </select>
+        </label>
+        <label className="text-xs">
+          Lighting
+          <select value={c.lighting ?? ''} onChange={(e) => r.setConditions({ lighting: (e.target.value || null) as Lighting | null })} className="mt-0.5 w-full rounded bg-slate-800 px-1 py-1">
+            <option value="">?</option>
+            {LIGHTING_VALUES.map((l) => (
+              <option key={l} value={l}>
+                {l}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="text-xs">
+          Distance (m)
+          <input
+            type="number"
+            min={0}
+            step={0.1}
+            value={c.distanceM ?? ''}
+            onChange={(e) => r.setConditions({ distanceM: e.target.value === '' || !Number.isFinite(Number(e.target.value)) ? null : Number(e.target.value) })}
+            className="mt-0.5 w-full rounded bg-slate-800 px-1 py-1"
+          />
+        </label>
+        <label className="col-span-2 text-xs">
+          Camera / laptop model
+          <input value={c.device ?? ''} onChange={(e) => r.setConditions({ device: e.target.value.trim() ? e.target.value : null })} placeholder="e.g. ThinkPad X1" className="mt-0.5 w-full rounded bg-slate-800 px-1 py-1" />
+        </label>
+      </fieldset>
       <label className="block">
-        Notes (glasses, lighting, distance…)
+        Notes (anything else)
         <input value={r.notes} onChange={(e) => r.setNotes(e.target.value)} className="mt-1 w-full rounded bg-slate-800 px-2 py-1" />
       </label>
       <label className="flex items-center gap-2">

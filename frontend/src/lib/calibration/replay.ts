@@ -5,7 +5,8 @@ import { computeRisk } from '../risk'
 import { analyzeArms } from '../vision/arms'
 import { analyzeEyes } from '../vision/eyes'
 import { analyzeFace } from '../vision/face'
-import type { Expected, ExpectedSide, Recording, RecordingKind } from './recording'
+import type { Conditions, Expected, ExpectedSide, Recording, RecordingEnv, RecordingKind } from './recording'
+import { splitFor, type Split, type SplitOverride } from './split'
 
 /** Severity bands every analyzer is calibrated to. Change only together with the specs + consistency.test.ts. */
 export const ANCHORS = {
@@ -67,9 +68,13 @@ export interface Row {
   liveSeverity: number
   verdict: Verdict
   alert: boolean
+  /** tune / validate (deterministic by subject, see split.ts; `override` = recordings/split.json). */
+  split: Split
+  conditions?: Conditions
+  env?: RecordingEnv
 }
 
-export function analyzeRow(rec: Recording, file: string): Row {
+export function analyzeRow(rec: Recording, file: string, override?: SplitOverride | null): Row {
   const result = replay(rec)
   return {
     file,
@@ -82,6 +87,9 @@ export function analyzeRow(rec: Recording, file: string): Row {
     liveSeverity: rec.liveResult?.severity ?? NaN,
     verdict: evaluate(rec, result),
     alert: wouldAlert(result),
+    split: splitFor(rec.subject, override),
+    conditions: rec.conditions,
+    env: rec.env,
   }
 }
 

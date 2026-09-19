@@ -21,7 +21,7 @@ The three tests are built independently but feed ONE noisy-OR risk score (spec 0
 - **Contract for the risk score:** eyes has max weight 0.3 (corroborates, can't alert alone); face and arms 0.6.
 
 ## Calibration workflow
-Thresholds are tuned by **record → replay → tune**: `?record=1` saves the exact analyzer inputs of live runs (labelled with scenario/expected side), `pnpm calibrate` replays them offline against the anchors above and prints false alarms, misses, wrong sides and retry rate. Full guide: [../CALIBRATION.md](../CALIBRATION.md). Code: `frontend/src/lib/calibration/`.
+Thresholds are tuned by **record → replay → tune**: `?record=1` saves the exact analyzer inputs of live runs (labelled with scenario/expected side), `pnpm calibrate` replays them offline against the anchors above and prints false alarms, misses, wrong sides and retry rate. Full guide: [../CALIBRATION.md](../CALIBRATION.md); proof protocol (held-out split, freeze, criteria): [../VALIDATION.md](../VALIDATION.md). Recordings carry optional `conditions` and `env` (schema stays 1). Code: `frontend/src/lib/calibration/`.
 
 ## Positioning: close for the face, back for the arms
 The face needs to fill enough of the frame for reliable landmarks; the arms test needs the whole upper body **and both hands** in frame. One camera can't do both, so the session is ordered **Speech → Eyes → Face → Arms** (`testSequence()` in `config.ts`, matching the UX storyboard): the patient starts close to the screen (~50–70 cm / arm's length; better landmarks, and the mic is close for speech), then steps back **once** (~2 m / 6 ft) for the arms. The first three are all close-up, so their order among themselves is a UX choice, not a vision constraint; arms must stay last.

@@ -17,6 +17,7 @@ async function load(globbed: Record<string, Loader>): Promise<{ ok: Loaded[]; er
   const ok: Loaded[] = []
   const errors: string[] = []
   for (const [file, loader] of Object.entries(globbed).sort(([a], [b]) => a.localeCompare(b))) {
+    if (/(^|\/)split\.json$/.test(file)) continue // the split override is not a recording
     const short = file.replace(/^.*recordings\//, '')
     try {
       ok.push({ file: short, rec: validateRecording(await loader(), short) })

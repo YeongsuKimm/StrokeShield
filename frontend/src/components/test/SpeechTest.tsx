@@ -1,44 +1,36 @@
-import { useState } from 'react'
-import { api } from '../../lib/api'
 import { SPEECH_TARGET_PHRASE } from '../../lib/config'
 import { useMic } from '../../lib/media/micLevel'
-import { useSession } from '../../lib/session/store'
-import { recordSpeech } from '../../lib/speech/recorder'
+import { useSpeechProgress } from '../../lib/speech/speechProgressStore'
+import { useSpeechRunner } from '../../lib/speech/speechRunner'
 import { Button } from '../ui/Button'
 import { Icon } from '../ui/Icon'
 import { MicroLabel } from '../ui/Primitives'
 import { TestScreen } from './TestScreen'
 import { Waveform } from './Waveform'
 
-type Stage = 'ready' | 'recording' | 'analyzing' | 'failed'
-
 /**
  * "Read this out loud." No camera here: the patient is close to the screen and only the microphone matters.
  *
- * The recorder and the analysis endpoint belong to the speech module (docs/spec/03-speech.md); this screen only
- * drives them. While `recordSpeech` is still a stub the screen fails visibly and offers a retry and a skip,
- * rather than hanging or silently passing.
+ * This screen only DRIVES the speech module: `speechRunner.runSpeech()` (lib/speech, spec 03) records, analyses,
+ * stores the result through `completeTest`, and publishes a stage and a spoken-style retry hint to
+ * `useSpeechProgress`. The voice agent's `start_speech_test` calls the very same function.
+ * The runner always resolves (never throws), so a mic error or a bad recording shows up as a hint here rather
+ * than a crash; the skip hatch in TestScreen is the way out if it keeps failing.
  */
 export function SpeechTest() {
-  const completeTest = useSession((s) => s.completeTest)
-  const [stage, setStage] = useState<Stage>('ready')
-  const [error, setError] = useState<string | null>(null)
+  const { runSpeech, running } = useSpeechRunner()
+  const stage = useSpeechProgress((s) => s.stage)
+  const hint = useSpeechProgress((s) => s.hint)
   const { verdict } = useMic()
 
-  const run = async () => {
-    setError(null)
-    setStage('recording')
-    try {
-      const wav = await recordSpeech()
-      setStage('analyzing')
-      const result = await api.analyzeSpeech(wav, SPEECH_TARGET_PHRASE)
-      completeTest(result)
-    } catch (e) {
-      console.debug('[speech] capture or analysis failed', e)
-      setError(e instanceof Error ? e.message : String(e))
-      setStage('failed')
-    }
-  }
+  const status =
+    stage === 'listening'
+      ? 'Listening. Say the sentence now.'
+      : stage === 'analyzing'
+        ? 'Analysing your speech…'
+        : verdict.muted
+          ? 'Waiting for your microphone.'
+          : 'Ready when you are.'
 
   return (
     <TestScreen
@@ -50,49 +42,36 @@ export function SpeechTest() {
         <MicroLabel className="mb-4 text-center">The sentence</MicroLabel>
 
         {/* The phrase is the hero of this screen: the largest type in the app. */}
-        <blockquote className="text-balance text-center text-3xl font-semibold leading-tight tracking-tight sm:text-5xl sm:leading-[1.12]">
+        <blockquote className="text-balance text-center text-3xl leading-tight sm:text-5xl sm:leading-[1.12]">
           “{SPEECH_TARGET_PHRASE}”
         </blockquote>
 
         <div className="mt-8 rounded-[var(--radius-control)] bg-sunken px-4 py-3">
-          <Waveform active={stage === 'recording'} height={96} />
+          <Waveform active={stage === 'listening'} height={96} />
           <p className="mt-1 text-center text-[1rem] text-ink-3" role="status">
-            {stage === 'recording'
-              ? 'Listening — say the sentence now.'
-              : stage === 'analyzing'
-                ? 'Analysing your speech…'
-                : verdict.muted
-                  ? 'Waiting for your microphone.'
-                  : 'Ready when you are.'}
+            {status}
           </p>
         </div>
 
-        {error && (
+        {/* A retry hint from the last run (mic blocked, too quiet, cut off...). Cleared when a new run starts. */}
+        {hint && !running && (
           <p
-            className="mt-5 flex items-start gap-2.5 rounded-[var(--radius-control)] border border-danger/25 bg-danger-wash px-4 py-3 text-[1rem] text-danger"
+            className="mt-5 flex items-start gap-2.5 rounded-[var(--radius-control)] border border-caution/30 bg-caution-wash px-4 py-3 text-[1rem] text-caution"
             role="alert"
           >
             <Icon name="alert" size={18} className="mt-px shrink-0" />
-            <span>
-              That recording did not go through. <span className="font-medium">{error}</span>
-            </span>
+            {hint}
           </p>
         )}
 
         <div className="mt-6 flex flex-wrap justify-center gap-3">
           <Button
             size="lg"
-            icon={stage === 'failed' ? 'refresh' : 'mic'}
-            onClick={() => void run()}
-            disabled={stage === 'recording' || stage === 'analyzing'}
+            icon={hint && !running ? 'refresh' : 'mic'}
+            onClick={() => void runSpeech()}
+            disabled={running}
           >
-            {stage === 'recording'
-              ? 'Recording…'
-              : stage === 'analyzing'
-                ? 'Analysing…'
-                : stage === 'failed'
-                  ? 'Try again'
-                  : 'Start recording'}
+            {stage === 'listening' ? 'Recording…' : stage === 'analyzing' ? 'Analysing…' : hint ? 'Try again' : 'Start recording'}
           </Button>
         </div>
       </div>

@@ -84,5 +84,11 @@ Report what you found in chat and record any flag you flipped in `docs/STATUS.md
 ## 9. Help calibrate (a few minutes each, whole team)
 The tests' thresholds are guesses until tuned on real people. Record ~20 short runs following [CALIBRATION.md](CALIBRATION.md) (`?record=1`), drop the files in `frontend/recordings/`, and run `pnpm calibrate` to see how the scoring does.
 
+## Validation (whoever tunes; everyone recording)
+Use ONE consistent id per person when recording (it decides the tune/validate split) and fill in the conditions. The proof protocol is [VALIDATION.md](VALIDATION.md).
+
+## 10. Optional: phoneme scoring (PyTorch), laptop only
+Not needed for normal work. If you want to test/tune the advanced speech scoring: `pip install -r requirements-ml.txt` (~1 GB, CPU PyTorch), `python -m models.phoneme --download` (378 MB, once), set `PHONEME_SCORING=true` in `.env`. Without it everything still works (acoustic-only speech scoring).
+
 ## Map of the docs
-[STATUS.md](STATUS.md) live board · [CALIBRATION.md](CALIBRATION.md) recording + tuning · [spec/00-overview.md](spec/00-overview.md) scope and decisions · [spec/01-architecture.md](spec/01-architecture.md) contracts and APIs · [spec/02-vision.md](spec/02-vision.md) · [spec/03-speech.md](spec/03-speech.md) · [spec/04-voice-agent.md](spec/04-voice-agent.md) · [spec/05-risk-and-alerts.md](spec/05-risk-and-alerts.md) · [spec/06-frontend-ux.md](spec/06-frontend-ux.md) · [spec/07-workflow.md](spec/07-workflow.md) timeline, demo script
+[STATUS.md](STATUS.md) live board · [CALIBRATION.md](CALIBRATION.md) recording + tuning · [VALIDATION.md](VALIDATION.md) proof protocol · [spec/00-overview.md](spec/00-overview.md) scope and decisions · [spec/01-architecture.md](spec/01-architecture.md) contracts and APIs · [spec/02-vision.md](spec/02-vision.md) · [spec/03-speech.md](spec/03-speech.md) · [spec/04-voice-agent.md](spec/04-voice-agent.md) · [spec/05-risk-and-alerts.md](spec/05-risk-and-alerts.md) · [spec/06-frontend-ux.md](spec/06-frontend-ux.md) · [spec/07-workflow.md](spec/07-workflow.md) timeline, demo script

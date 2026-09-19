@@ -105,6 +105,8 @@ Enabled with `?demo=1` or `Shift+D`. Shows a floating **Demo Panel**:
 ## Known gaps in the UI (wired to stubs, fails visibly)
 - **Voice agent:** `TranscriptStrip` renders `store.transcript` and shows "not connected". `useAgent` should push
   utterances via `addTranscript('agent', text)` — no change needed here once it does.
-- **Speech recorder:** `SpeechTest` calls `recordSpeech()` (spec 03, still a stub) and surfaces the error inline with
-  a retry and the skip hatch, rather than hanging.
+- **Speech:** `SpeechTest` drives `speechRunner.runSpeech()` (lib/speech, spec 03): record, analyse, store via
+  `completeTest`, with the stage and a spoken-style retry hint read from `useSpeechProgress`. Not yet verified on a
+  real microphone. The waveform still reads `lib/media/micLevel` (the consent-time analyser), not the runner's own
+  level, so it works even before a run starts.
 - **Second-opinion consent checkbox** is not built; `PermissionsCard` covers camera/mic/location only.
