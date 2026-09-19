@@ -3,12 +3,17 @@
 Guided FAST stroke check (Face, Arms, Speech, Time) with an ElevenLabs voice assistant that calls for help when a risk score crosses a threshold.
 HopHacks demo — **not a medical device**. In the demo, alerts only go to a team-owned number.
 
+**New teammate? Start with [docs/GETTING-STARTED.md](docs/GETTING-STARTED.md).**
+
+**Where things stand:** [docs/STATUS.md](docs/STATUS.md) (kept current on every push).
+
 **Working with AI agents?** Read [AGENTS.md](AGENTS.md) and [docs/kickoff-prompts.md](docs/kickoff-prompts.md). Specs are in [docs/spec/](docs/spec/).
 
 ## Quickstart
 ```bash
 git clone https://github.com/majesticcoder14/StrokeShield.git && cd StrokeShield
 cp .env.example .env            # fill in keys (ask the team lead; never commit .env)
+bash scripts/setup-hooks.sh     # once: pushes that change code must also update docs/STATUS.md
 
 # backend (Python 3.11 or 3.12)
 python -m venv .venv && source .venv/bin/activate      # or: conda create -n StrokeShield python=3.11

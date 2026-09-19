@@ -1,6 +1,6 @@
 # 07 — Team Workflow, Timeline & Demo
 
-## Roles (4 people) — each owns the files in the linked spec
+## Roles (4 people) — a starting suggestion; **owners are fluid** (claim rows in `docs/STATUS.md`)
 | Role | Owns | Spec |
 |---|---|---|
 | **A. Frontend + Agent lead** | Vite app, state machine, dashboard, ElevenLabs agent + client tools, demo panel | 04, 06 |
@@ -22,6 +22,7 @@ Everyone: keep `docs/spec/*` updated when reality diverges. Cross-role hand-offs
 | T-6 h → | **Demo prep** | `DRY_RUN=false` on the demo deployment only, phones charged, backup video recorded, local fallback tested |
 
 ## Git rules
+- **Context stays current:** every code push updates `docs/STATUS.md` (module row + recent-changes line). Enforced by `.githooks/pre-push` (run `bash scripts/setup-hooks.sh` once per clone) and the CI `docs-context` job on PRs. Contracts change together (`contracts.ts` + `schemas.py` + spec 01). Bypass only with `[skip-docs]` for genuine hotfixes.
 - Trunk-based: `main` always demo-able. Branch per task `role/short-name` (e.g. `vision/face-metrics`). Small PRs, at least a quick review from another human or a `code-review` pass.
 - Contract change PR (touching `contracts.ts` / `schemas.py` / `01-architecture.md`) needs a heads-up in the team chat and a 👍 from the affected owners.
 - Rebase/merge `main` often; resolve conflicts in your own files, ask before touching others'.
@@ -39,7 +40,7 @@ Everyone: keep `docs/spec/*` updated when reality diverges. Cross-role hand-offs
 
 ## Demo script (~3 min)
 1. **Problem** (20 s): stroke = time-critical, most people can't self-assess; FAST is the standard.
-2. **Healthy run** (45 s): guided test, dashboard stays green, agent says checks look okay.
+2. **Healthy run** (45 s): guided test (close for face + speech, one step back for arms), dashboard stays green, agent says checks look okay.
 3. **Symptom run** (75 s): teammate mimics droop/arm drop/slurring (or demo panel "Simulate stroke"); agent announces, countdown, phone rings on stage, SMS with map link arrives.
 4. **Voice request** (20 s): "Call 911" mid-test → immediate countdown.
 5. **Tech + safety** (20 s): in-browser vision, DSP speech analysis, risk breakdown, demo-number guard, not a medical device.
@@ -48,6 +49,7 @@ Backup: pre-recorded video of the full flow; local run on laptop; demo panel to 
 ## Risks & mitigations
 | Risk | Mitigation |
 |---|---|
+| Not enough room to step back at the venue / arms out of frame | Scout the space early, floor mark at ~2 m, tune `FRAMING_LIMITS`, demo panel bypass |
 | Wifi/HTTPS/camera issues on demo day | Run locally on `localhost`; hotspot backup; recorded video |
 | Detection false positive/negative live | Demo panel; calibrated thresholds; confidence gating |
 | Agent talks over speech recording | Mic mute + agent waits for tool result; rehearse |

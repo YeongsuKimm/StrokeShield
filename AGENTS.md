@@ -3,6 +3,12 @@
 Canonical instructions for every AI coding agent (Claude Code, Codex, Gemini CLI, etc.) working in this repo.
 `CLAUDE.md` and `GEMINI.md` just point here. **Read this file, then the spec file for your module in `docs/spec/`.**
 
+New human teammate? Point them to `docs/GETTING-STARTED.md`.
+
+## Start here (every session)
+1. Read this file, then **`docs/STATUS.md`** (what's done, in progress, blocked, recent changes), then your module's spec in `docs/spec/`.
+2. Before you finish or push: **update `docs/STATUS.md`** (your module's row + one line in *Recent changes*) and any spec section your change made wrong (rule 10). A `pre-push` hook and CI enforce this.
+
 ## What we're building
 A web app for HopHacks that runs a guided **FAST stroke check** (Face, Arms, Speech, Time) on a webcam + mic,
 narrated by an **ElevenLabs voice agent**. Each test produces a severity score; a weighted **risk score** decides
@@ -18,6 +24,9 @@ It is a hackathon demo, **not a medical device**.
 
 ## Commands
 ```bash
+# once per clone: enable the docs/context pre-push check
+bash scripts/setup-hooks.sh
+
 # backend (from repo root)
 python -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt
 uvicorn backend.main:app --reload --port 8000
@@ -32,6 +41,7 @@ pnpm typecheck && pnpm lint
 ## Spec map (read only what you need)
 | File | Owns |
 |---|---|
+| `docs/STATUS.md` | **Living status board + recent changes. Read first, update on every push** |
 | `docs/spec/00-overview.md` | Product scope, decisions log, open questions |
 | `docs/spec/01-architecture.md` | Repo layout, **contracts (shared types)**, API endpoints, env vars |
 | `docs/spec/02-vision.md` | Face + arm detection, second-opinion vision |
@@ -51,6 +61,7 @@ pnpm typecheck && pnpm lint
 7. **Stay in your lane.** Edit files in your module. Cross-module changes → small PR + ping the owner.
 8. **Keep the demo path working.** If you break `main`, fix it first. Demo mode (`docs/spec/06-frontend-ux.md`) must always work.
 9. Don't add dependencies without a reason; note new ones in the PR. Don't refactor unrelated code.
+10. **Keep context current.** In the same change as your code: update `docs/STATUS.md`; update the matching `docs/spec/0X-*.md` if behavior, thresholds, protocol or decisions changed; record decisions in `docs/spec/00-overview.md`; change `contracts.ts`, `schemas.py` and `docs/spec/01-architecture.md` **together**. `scripts/check-docs.sh` (pre-push hook + CI) fails pushes that skip STATUS or split the contracts. Bypass only for real hotfixes: `[skip-docs]` in the commit message.
 
 ## Conventions
 - TypeScript strict; no `any` without a comment. Python: type hints, `ruff`-clean, Pydantic v2.
