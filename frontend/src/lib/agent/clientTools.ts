@@ -41,35 +41,35 @@ export const clientTools = {
   start_face_test: async (): Promise<string> => {
     const blocked = phaseFor('face')
     if (blocked) return blocked
-    updateAgent('Face check has started. Wait for the tool result before continuing.')
+    updateAgent('A website test has started. Wait for the tool result before continuing.')
     const result = await testRunner.runFace()
-    updateAgent('Face check complete. Continue to the next on-screen step.')
+    updateAgent('A website test has completed. Re-read the authoritative current website phase before speaking.')
     return summarize(result, 'Face test complete. Result recorded.')
   },
   start_eye_test: async (): Promise<string> => {
     const blocked = phaseFor('eyes')
     if (blocked) return blocked
-    updateAgent('Eye check has started. Wait for the tool result before continuing.')
+    updateAgent('A website test has started. Wait for the tool result before continuing.')
     const result = await testRunner.runEyes()
-    updateAgent('Eye check complete. Continue to the next on-screen step.')
+    updateAgent('A website test has completed. Re-read the authoritative current website phase before speaking.')
     return summarize(result, 'Eye test complete. Result recorded.')
   },
   start_arm_test: async (): Promise<string> => {
     const blocked = phaseFor('arms')
     if (blocked) return blocked
-    updateAgent('Arm check has started. Wait for the tool result before continuing.')
+    updateAgent('A website test has started. Wait for the tool result before continuing.')
     const result = await testRunner.runArms()
-    updateAgent('Arm check complete. This was the final physical check.')
+    updateAgent('A website test has completed. Re-read the authoritative current website phase before speaking.')
     return summarize(result, 'Arm test complete. Result recorded.')
   },
   start_speech_test: async (): Promise<string> => {
     const blocked = phaseFor('speech')
     if (blocked) return blocked
-    updateAgent('Speech check has started. Wait for the tool result before continuing.')
+    updateAgent('A website test has started. Wait for the tool result before continuing.')
     setAgentMicMuted?.(true)
     try {
       const result = await speechRunner.waitForUserResult()
-      updateAgent('Speech check complete. Continue to the next on-screen step.')
+      updateAgent('A website test has completed. Re-read the authoritative current website phase before speaking.')
       return summarize(result, 'Speech recorded.')
     } finally {
       setAgentMicMuted?.(false)

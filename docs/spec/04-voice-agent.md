@@ -32,6 +32,8 @@ the application flow still need live integration verification.
 | `cancel_emergency` | — | Cancels an active countdown (user said "cancel/I'm ok") |
 
 The app pushes context to the agent with `sendContextualUpdate` (e.g. `"Risk high; countdown started"`) so it stays in sync.
+Every phase change sends an authoritative invalidation; tool completion updates use test-neutral wording so a late result
+cannot cause the agent to discuss a previous test. The agent must re-check the latest phase before speaking after a tool result.
 
 ## Conversation flow (agent-facing)
 1. Greeting + consent reminder → "Are you ready? Let's do a quick check. I'll guide you."
