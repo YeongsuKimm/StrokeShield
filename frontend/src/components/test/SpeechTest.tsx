@@ -1,4 +1,5 @@
 import { SPEECH_TARGET_PHRASE } from '../../lib/config'
+import { smartQuotes } from '../../lib/typography'
 import { useMic } from '../../lib/media/micLevel'
 import { useSpeechProgress } from '../../lib/speech/speechProgressStore'
 import { useSpeechRunner } from '../../lib/speech/speechRunner'
@@ -48,7 +49,7 @@ export function SpeechTest() {
 
         {/* The phrase is the hero of this screen: the largest type in the app. */}
         <blockquote className="text-balance text-center text-3xl leading-tight sm:text-5xl sm:leading-[1.12]">
-          “{SPEECH_TARGET_PHRASE}”
+          “{smartQuotes(SPEECH_TARGET_PHRASE)}”
         </blockquote>
 
         <div className="mt-8 rounded-[var(--radius-control)] bg-sunken px-4 py-3">
@@ -65,7 +66,7 @@ export function SpeechTest() {
             role="alert"
           >
             <Icon name="alert" size={18} className="mt-px shrink-0" />
-            {hint}
+            {smartQuotes(hint)}
           </p>
         )}
 

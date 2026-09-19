@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useSession } from '../../lib/session/store'
+import { smartQuotes } from '../../lib/typography'
 import { Icon } from '../ui/Icon'
 
 /**
@@ -47,7 +48,7 @@ export function TranscriptStrip() {
             {transcript.map((line) => (
               <p key={line.id} className="text-[1rem] leading-snug">
                 <span className="label-micro mr-2 text-ink-3">{line.speaker === 'agent' ? 'Assistant' : 'You'}</span>
-                <span className={line.speaker === 'agent' ? 'text-ink' : 'text-ink-2'}>{line.text}</span>
+                <span className={line.speaker === 'agent' ? 'text-ink' : 'text-ink-2'}>{smartQuotes(line.text)}</span>
               </p>
             ))}
           </div>

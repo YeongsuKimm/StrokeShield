@@ -2,6 +2,7 @@ import { useEffect, useRef, type ReactNode } from 'react'
 import { captureAnnouncement } from '../lib/a11y/announce'
 import { useThrottledAnnouncement } from '../lib/a11y/useA11y'
 import { useSession } from '../lib/session/store'
+import { smartQuotes } from '../lib/typography'
 import { isDebugSearch } from '../lib/vision/frameUtils'
 import { useCaptureProgress } from '../lib/vision/progressStore'
 import { useMediaPipe } from '../lib/vision/useMediaPipe'
@@ -100,11 +101,11 @@ export function CameraView({ guide, overlay, hideGuideWhileCapturing = true }: P
   const spoken = !progress
     ? ''
     : progress.phase === 'intro'
-      ? (progress.caption ?? '')
+      ? smartQuotes(progress.caption ?? '')
       : progress.phase === 'cue'
-        ? (progress.caption ?? '')
+        ? smartQuotes(progress.caption ?? '')
         : hint
-          ? hint
+          ? smartQuotes(hint)
           : capturing || timed
             ? captureAnnouncement('', progress.secondsLeft)
             : framingOk
@@ -134,7 +135,7 @@ export function CameraView({ guide, overlay, hideGuideWhileCapturing = true }: P
               className="flex max-w-full items-center gap-2.5 rounded-full bg-caution px-5 py-3 text-center text-xl font-semibold text-white shadow-[var(--shadow-lift)] sm:text-2xl"
             >
               <Icon name="alert" size={22} className="shrink-0" />
-              {hint}
+              {smartQuotes(hint)}
             </p>
           </div>
         )}
@@ -164,7 +165,7 @@ export function CameraView({ guide, overlay, hideGuideWhileCapturing = true }: P
             <div
               className="pop max-w-[34rem] rounded-[var(--radius-panel)] bg-accent px-7 py-6 text-center text-white shadow-[var(--shadow-lift)]"
             >
-              <p className="text-balance text-2xl font-semibold leading-snug sm:text-3xl">{progress.caption}</p>
+              <p className="text-balance text-2xl font-semibold leading-snug sm:text-3xl">{smartQuotes(progress.caption)}</p>
               <p className="mt-3 text-[1rem] font-medium text-white/85">Starting in {progress.secondsLeft}…</p>
             </div>
           </div>
@@ -196,7 +197,7 @@ export function CameraView({ guide, overlay, hideGuideWhileCapturing = true }: P
           >
             {timed && <Ring fraction={progress.fraction} label={String(progress.secondsLeft)} size={56} stroke={5} tone="#ffffff" />}
             <p className="text-balance text-center text-2xl font-semibold leading-tight sm:text-3xl">
-              {progress.caption}
+              {smartQuotes(progress.caption)}
             </p>
           </div>
         )}
@@ -211,7 +212,7 @@ export function CameraView({ guide, overlay, hideGuideWhileCapturing = true }: P
                 </span>
                 <div role="alert">
                   <p className="text-lg font-semibold text-stage-ink">The camera did not start</p>
-                  <p className="mt-1 max-w-sm text-[1rem] text-stage-ink-2">{summary.error?.message}</p>
+                  <p className="mt-1 max-w-sm text-[1rem] text-stage-ink-2">{smartQuotes(summary.error?.message ?? '')}</p>
                 </div>
                 <Button tone="stage" icon="refresh" onClick={() => engine.restart()}>
                   Try the camera again
