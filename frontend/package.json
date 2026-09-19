@@ -14,7 +14,10 @@
     "test": "vitest run",
     "postinstall": "node scripts/copy-mediapipe-wasm.mjs",
     "fetch-models": "node scripts/fetch-models.mjs",
-    "calibrate": "vitest run --config vitest.calibrate.config.ts"
+    "calibrate": "vitest run --config vitest.calibrate.config.ts",
+    "tune": "vitest run --config vitest.tune.config.ts",
+    "validate": "vitest run --config vitest.validate.config.ts",
+    "freeze": "vitest run --config vitest.freeze.config.ts"
   },
   "dependencies": {
     "@elevenlabs/react": "^1.15.2",

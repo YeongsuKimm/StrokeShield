@@ -15,6 +15,85 @@ export type RecordingInputs =
   | { kind: 'arms'; frames: PoseFrame[]; aspectRatio: number }
   | { kind: 'eyes'; frames: EyeFrame[]; aspect: number }
 
+export type Lighting = 'bright' | 'normal' | 'dim'
+export type MicKind = 'laptop' | 'headset' | 'external'
+export type NoiseLevel = 'quiet' | 'moderate' | 'loud'
+
+/** Structured recording conditions (vision + speech share one type; each side fills its own keys). Every key optional/nullable. */
+export interface Conditions {
+  glasses?: boolean | null
+  facialHair?: boolean | null
+  lighting?: Lighting | null
+  distanceM?: number | null
+  device?: string | null // camera/laptop model, short free text
+  mic?: MicKind | null
+  noise?: NoiseLevel | null
+  nativeEnglish?: boolean | null
+}
+
+/** Auto-collected capture environment. Vision fills delegate/fps/videoSize; speech fills the track settings. */
+export interface RecordingEnv {
+  userAgent?: string
+  hardwareConcurrency?: number
+  deviceMemoryGB?: number | null
+  screen?: string
+  delegate?: string | null
+  fps?: number | null
+  videoSize?: string | null
+  sampleRate?: number | null
+  echoCancellation?: boolean | null
+  noiseSuppression?: boolean | null
+  autoGainControl?: boolean | null
+}
+
+export const LIGHTING_VALUES: readonly Lighting[] = ['bright', 'normal', 'dim']
+export const MIC_VALUES: readonly MicKind[] = ['laptop', 'headset', 'external']
+export const NOISE_VALUES: readonly NoiseLevel[] = ['quiet', 'moderate', 'loud']
+
+const bool = (v: unknown): boolean | null | undefined => (typeof v === 'boolean' || v === null ? v : undefined)
+const num = (v: unknown): number | null | undefined => (v === null || (typeof v === 'number' && Number.isFinite(v)) ? v : undefined)
+const str = (v: unknown): string | null | undefined => (v === null || typeof v === 'string' ? v : undefined)
+const oneOf = <T extends string>(v: unknown, allowed: readonly T[]): T | null | undefined =>
+  v === null ? null : typeof v === 'string' && (allowed as readonly string[]).includes(v) ? (v as T) : undefined
+const compact = <T extends object>(o: T): T => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as T
+
+/** Tolerant reader: unknown keys are dropped, wrongly-typed values are dropped, anything that is not an object gives undefined. */
+export function sanitizeConditions(raw: unknown): Conditions | undefined {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined
+  const r = raw as Record<string, unknown>
+  return compact<Conditions>({
+    glasses: bool(r.glasses),
+    facialHair: bool(r.facialHair),
+    lighting: oneOf(r.lighting, LIGHTING_VALUES),
+    distanceM: num(r.distanceM),
+    device: str(r.device),
+    mic: oneOf(r.mic, MIC_VALUES),
+    noise: oneOf(r.noise, NOISE_VALUES),
+    nativeEnglish: bool(r.nativeEnglish),
+  })
+}
+
+/** Tolerant reader for `env`, same rules as sanitizeConditions. */
+export function sanitizeEnv(raw: unknown): RecordingEnv | undefined {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined
+  const r = raw as Record<string, unknown>
+  const s = (v: unknown): string | undefined => (typeof v === 'string' ? v : undefined)
+  const n = (v: unknown): number | undefined => (typeof v === 'number' && Number.isFinite(v) ? v : undefined)
+  return compact<RecordingEnv>({
+    userAgent: s(r.userAgent),
+    hardwareConcurrency: n(r.hardwareConcurrency),
+    deviceMemoryGB: num(r.deviceMemoryGB),
+    screen: s(r.screen),
+    delegate: str(r.delegate),
+    fps: num(r.fps),
+    videoSize: str(r.videoSize),
+    sampleRate: num(r.sampleRate),
+    echoCancellation: bool(r.echoCancellation),
+    noiseSuppression: bool(r.noiseSuppression),
+    autoGainControl: bool(r.autoGainControl),
+  })
+}
+
 export interface Recording {
   schema: 1
   id: string
@@ -24,6 +103,10 @@ export interface Recording {
   expected: Expected
   expectedSide: ExpectedSide
   notes: string
+  /** Optional (old files have none): structured conditions for the per-condition validation breakdown. */
+  conditions?: Conditions
+  /** Optional: auto-collected device/browser environment. */
+  env?: RecordingEnv
   inputs: RecordingInputs
   /** What the live app computed at record time (for comparing with later replays after threshold changes). */
   liveResult: TestResult
@@ -90,7 +173,15 @@ export function validateRecording(raw: unknown, source = 'recording'): Recording
   if (i.kind === 'face' && !(Array.isArray(i.neutral) && Array.isArray(i.smile))) return fail('face inputs need neutral[] and smile[]')
   if (i.kind === 'arms' && !(Array.isArray(i.frames) && typeof i.aspectRatio === 'number')) return fail('arms inputs need frames[] and aspectRatio')
   if (i.kind === 'eyes' && !(Array.isArray(i.frames) && typeof i.aspect === 'number')) return fail('eyes inputs need frames[] and aspect')
-  return r as Recording
+  const out = { ...r } as Recording
+  // Optional, tolerant: absent or malformed conditions/env never make a recording unreadable.
+  const conditions = sanitizeConditions(r.conditions)
+  const env = sanitizeEnv(r.env)
+  if (conditions) out.conditions = conditions
+  else delete out.conditions
+  if (env) out.env = env
+  else delete out.env
+  return out
 }
 
 export const parseRecording = (text: string, source?: string): Recording => validateRecording(JSON.parse(text), source)
