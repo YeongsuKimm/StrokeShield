@@ -1,6 +1,6 @@
 // Microphone error classification (pure). Mirrors classifyCameraError in lib/vision/frameUtils.ts.
 
-export type MicErrorKind = 'permission-denied' | 'no-microphone' | 'mic-busy' | 'unsupported' | 'unknown'
+export type MicErrorKind = 'permission-denied' | 'no-microphone' | 'mic-busy' | 'unsupported' | 'muted' | 'unknown'
 
 /** Map a getUserMedia / AudioContext failure to a typed kind the UI and the runner can show. */
 export function classifyMicError(e: unknown): MicErrorKind {
@@ -29,7 +29,8 @@ export const MIC_ERROR_TEXT: Record<MicErrorKind, string> = {
   'permission-denied': 'Microphone permission was denied. Allow microphone access in the browser and try again.',
   'no-microphone': 'No microphone was found on this device.',
   'mic-busy': 'The microphone is in use by another app or tab.',
-  unsupported: 'This browser cannot open the microphone (needs HTTPS or localhost).',
+  unsupported: 'This browser cannot record audio here. Use a current Chrome, Edge, Firefox or Safari, and open the page over HTTPS (or localhost).',
+  muted: 'The microphone looks muted or blocked. Check the mute switch on your headset or laptop, and the input device in your system sound settings.',
   unknown: 'Could not start the microphone.',
 }
 

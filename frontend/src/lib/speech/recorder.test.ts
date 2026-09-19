@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { assessLevel, assessQc } from './qc'
+import { assessLevel, assessQc, looksMuted } from './qc'
 import { MicError, RecordingCancelled, recordSpeech, type MicCapture, type RecorderDeps } from './recorder'
 import { cat, chunked, room, tone, voice } from './synth'
 import { decodeWav } from './wav'
@@ -175,6 +175,18 @@ describe('recordSpeech', () => {
 })
 
 describe('qc', () => {
+  it('looksMuted: pure silence with no speech only', () => {
+    expect(looksMuted({ peak: 0, speechDetected: false })).toBe(true)
+    expect(looksMuted({ peak: 0.0004, speechDetected: false })).toBe(true)
+    expect(looksMuted({ peak: 0.01, speechDetected: false })).toBe(false) // a quiet room is not a muted mic
+    expect(looksMuted({ peak: 0, speechDetected: true })).toBe(false)
+  })
+
+  it('a soft voice (peak 0.025, raw mic without AGC) is passed to the backend, not rejected here', () => {
+    expect(assessLevel(0.025, 0)).toBe('ok')
+    expect(assessLevel(0.015, 0)).toBe('too-quiet')
+  })
+
   it('assessLevel thresholds', () => {
     expect(assessLevel(0.3, 0)).toBe('ok')
     expect(assessLevel(0.01, 0)).toBe('too-quiet')

@@ -10,6 +10,13 @@ export const SPEECH_CAPTURE = {
   minSeconds: 1.5,
   /** Auto-stop once this much silence follows detected speech (spec 03). */
   trailingSilenceSeconds: 1.2,
+  /**
+   * While the utterance so far is shorter than `earlyUtteranceSeconds` (a cough, a click, or a hesitant "you can't...") wait
+   * this much silence instead: a healthy person who pauses to think, or starts late after a cough, must not be cut off
+   * (the backend would then judge half a sentence).
+   */
+  earlyUtteranceSeconds: 1.2,
+  earlyTrailingSilenceSeconds: 2.0,
   /** Give up if nobody has spoken after this long. */
   noSpeechSeconds: 4,
   /** Silence kept around the utterance when trimming the clip before upload. */
@@ -36,8 +43,13 @@ export const VAD_CONFIG = {
 }
 
 export const SPEECH_QC = {
-  /** Peak below ~ -30 dBFS: too quiet for reliable jitter/shimmer/HNR (the backend also rejects low SNR). */
-  minPeak: 0.03,
+  /**
+   * Peak below ~ -34 dBFS: too quiet for reliable jitter/shimmer/HNR (the backend also rejects low SNR and RMS < -50 dBFS).
+   * Was 0.03; a soft voice on a raw (no AGC) laptop mic peaks at 0.02-0.05, and the backend is the better judge of that.
+   */
+  minPeak: 0.02,
+  /** Peak below ~ -60 dBFS over the whole take = digital silence: a muted, blocked or dead microphone, not a quiet room. */
+  silentPeak: 0.001,
   /** Fraction of samples at full scale. The backend rejects > 1 % clipping (spec 03), so we do too. */
   maxClipping: 0.01,
   /** |x| at or above this counts as clipped. */

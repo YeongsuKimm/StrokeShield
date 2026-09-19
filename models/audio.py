@@ -44,7 +44,7 @@ from models.transcribe import Transcriber, Transcript
 
 log = logging.getLogger("speech")
 
-__all__ = ["analyze_speech", "score_metrics", "compute_confidence", "Score", "ramp"]
+__all__ = ["analyze_speech", "score_metrics", "compute_confidence", "phoneme_trust", "severity_cap", "Score", "ramp"]
 
 
 # ----------------------------------------------------------------------------------------------------------
@@ -56,6 +56,8 @@ class Score:
     weighted_sum: float  # 0..1, renormalized weighted mean of the components
     components: dict[str, float] = field(default_factory=dict)  # component -> 0..1
     weights: dict[str, float] = field(default_factory=dict)  # renormalized weights actually used (sum to 1)
+    uncapped_severity: float = 0.0  # severity before the agreement cap
+    cap_reason: str = ""  # "", "quality-only", "timing-only" or "no-signal": which agreement rule limited the severity
 
 
 def _mean(vals: list[float]) -> float:
@@ -74,7 +76,7 @@ def component_scores(m: Mapping[str, float]) -> dict[str, float]:
     if "gop_mean" in m:
         art.append(ramp(m["gop_mean"], *R["gop_mean"]))
     if art:
-        out["articulation"] = _mean(art)
+        out["articulation"] = _mean(art) * min(1.0, max(0.0, m.get("phoneme_trust", 1.0)))
     if "articulation_rate" in m:
         out["rate"] = ramp(m["articulation_rate"], *R["articulation_rate"])
     pause = [ramp(m[k], *R[k]) for k in ("longest_pause_s", "pause_ratio") if k in m]
@@ -90,15 +92,63 @@ def component_scores(m: Mapping[str, float]) -> dict[str, float]:
     return out
 
 
+def phoneme_trust(snr_db: float, insertion_ratio: float | None = None) -> float:
+    """0..1 multiplier on the phoneme (articulation) component: noisy rooms and 'other voices heard' make it unreliable."""
+    lo, hi = C.PHONEME_SNR_DB
+    trust = C.PHONEME_TRUST_FLOOR + (1 - C.PHONEME_TRUST_FLOOR) * ramp(snr_db, lo, hi)
+    if insertion_ratio is not None and insertion_ratio > C.PHONEME_INSERTION_RATIO:
+        trust *= C.PHONEME_INSERTION_TRUST
+    return float(trust)
+
+
+def edge_missing(per_phone: list[tuple[str, float]]) -> tuple[bool, bool]:
+    """(start_missing, end_missing) from per-target-phone ln-posteriors: the first (or last) few phones all near the floor
+    while the rest of the sentence scored fine means the clip lost that end (late mic start, early stop), not slurring."""
+    n = C.PHONEME_EDGE_PHONES
+    lp = [float(v) for _, v in per_phone]
+    if len(lp) < 2 * n + 2:
+        return False, False
+
+    def missing(edge: list[float], rest: list[float]) -> bool:
+        return all(v <= C.PHONEME_EDGE_LOGP for v in edge) and sum(rest) / len(rest) >= C.PHONEME_EDGE_REST_LOGP
+
+    return missing(lp[:n], lp[n:]), missing(lp[-n:], lp[:-n])
+
+
+def severity_cap(components: Mapping[str, float]) -> tuple[float | None, str]:
+    """Agreement rule: (cap, reason); cap is None when the evidence is corroborated.
+
+    An ELEVATED (>= AGREE_MIN) QUALITY component (phoneme model, jitter/shimmer) needs at least one TIMING component
+    (rate, pausing, prosody, transcript) >= QUALITY_NEEDS_TIMING_MIN. An elevated TIMING component needs a second timing
+    component or a quality one >= TIMING_SUPPORT_MIN. Rooms, mics, accents and codecs move the quality group; they rarely move timing.
+    Otherwise severity is capped (config: QUALITY_ONLY_CAP / TIMING_ONLY_CAP / NO_SIGNAL_CAP)."""
+    g = components.get
+    q_hi = [k for k in C.QUALITY_COMPONENTS if g(k, 0.0) >= C.AGREE_MIN]
+    t_hi = [k for k in C.TIMING_COMPONENTS if g(k, 0.0) >= C.AGREE_MIN]
+    q_support = [k for k in C.QUALITY_COMPONENTS if g(k, 0.0) >= C.TIMING_SUPPORT_MIN]
+    t_support = [k for k in C.TIMING_COMPONENTS if g(k, 0.0) >= C.TIMING_SUPPORT_MIN]
+    t_corroborates = [k for k in C.TIMING_COMPONENTS if g(k, 0.0) >= C.QUALITY_NEEDS_TIMING_MIN]
+    if (q_hi and t_corroborates) or (t_hi and (len(t_support) >= 2 or q_support)):
+        return None, ""
+    if t_hi:
+        return max(C.TIMING_ONLY_CAP[k] for k in t_hi), "timing-only"
+    if q_hi:
+        return C.QUALITY_ONLY_CAP, "quality-only"
+    return C.NO_SIGNAL_CAP, "no-signal"
+
+
 def score_metrics(metrics: Mapping[str, float]) -> Score:
-    """metrics -> components -> weights renormalized over the available ones -> severity 0..1."""
+    """metrics -> components -> weights renormalized over the available ones -> severity 0..1 (then the agreement cap)."""
     comps = component_scores(metrics)
     total_w = sum(C.WEIGHTS[k] for k in comps)
     if not comps or total_w <= 0:
         return Score(0.0, 0.0)
     weights = {k: C.WEIGHTS[k] / total_w for k in comps}
     wsum = float(sum(weights[k] * comps[k] for k in comps))
-    return Score(severity=ramp(wsum, *C.SEVERITY_MAP), weighted_sum=wsum, components=comps, weights=weights)
+    raw = ramp(wsum, *C.SEVERITY_MAP)
+    cap, reason = severity_cap(comps)
+    sev = raw if cap is None else min(raw, cap)
+    return Score(severity=sev, weighted_sum=wsum, components=comps, weights=weights, uncapped_severity=raw, cap_reason=reason if sev < raw else "")
 
 
 def compute_confidence(snr_db: float, speech_s: float, voiced_fraction: float, has_transcript: bool, has_phoneme: bool) -> tuple[float, str]:
@@ -115,9 +165,11 @@ def compute_confidence(snr_db: float, speech_s: float, voiced_fraction: float, h
     return float(min(1.0, max(0.0, ceiling * quality))), min(terms, key=terms.get)
 
 
-def _flags_for(components: Mapping[str, float], metrics: Mapping[str, float], bad_phones: list[str]) -> list[str]:
+def _flags_for(components: Mapping[str, float], metrics: Mapping[str, float], bad_phones: list[str], quality_uncorroborated: bool = False) -> list[str]:
     t = C.FLAG_MIN_COMPONENT
     flags: list[str] = []
+    if quality_uncorroborated:  # do not headline findings the timing signals did not back up (room / mic / accent effects)
+        components = {k: v for k, v in components.items() if k not in C.QUALITY_COMPONENTS}
     if components.get("intelligibility", 0) >= t and "cer" in metrics:
         flags.append(f"transcript mismatch (CER {metrics['cer']:.2f})")
     if components.get("articulation", 0) >= t:
@@ -156,6 +208,12 @@ def _retry(reason: str, started_at: int, t0: float, metrics: Mapping[str, float]
     )
 
 
+REASON_BACKGROUND_VOICES = "I can hear other voices or sound in the background, please move somewhere quieter and try again"
+REASON_WRONG_SENTENCE = "that didn't sound like the sentence, please read it exactly as shown"
+REASON_TOO_LONG = "that recording was too long, please say just the sentence"
+FLAG_NOISY = "noisy room, this result may be unreliable"
+FLAG_PHONEME_UNAVAILABLE = "phoneme check unavailable, timing and voice only"
+
 _RETRY_FOR_TERM = {
     "snr": "too much background noise",
     "duration": "too short, please say the whole sentence",
@@ -167,16 +225,35 @@ _RETRY_FOR_TERM = {
 # Optional evidence
 # ----------------------------------------------------------------------------------------------------------
 def _phoneme_scores(samples: np.ndarray, target_phrase: str):
-    """Agent B's wav2vec2 scorer, or None if the module/torch is missing or it declines. Never raises."""
+    """Agent B's wav2vec2 scorer, or None if the module/torch is missing, it declines, or it is too slow. Never raises.
+
+    Runs in a worker thread with a budget (`PHONEME_TIMEOUT_S`) so a cold model load or a stuck inference degrades to a
+    DSP-only result instead of a whole-endpoint timeout. The worker cannot be cancelled; its result is discarded."""
+    pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix="phoneme")
     try:
         from models import (
             phoneme,  # lazy: may not exist, and importing it may pull torch
         )
 
-        return phoneme.score_phonemes(samples, C.SAMPLE_RATE, target_phrase)
+        fut = pool.submit(phoneme.score_phonemes, samples, C.SAMPLE_RATE, target_phrase)
+        return fut.result(timeout=C.PHONEME_TIMEOUT_S)
+    except FutureTimeout:
+        log.warning("phoneme scoring timed out after %.1fs, continuing without it", C.PHONEME_TIMEOUT_S)
+        return None
     except Exception as exc:  # noqa: BLE001 - ImportError, missing torch, model load, inference errors
         log.debug("phoneme scoring unavailable: %s", type(exc).__name__)
         return None
+    finally:
+        pool.shutdown(wait=False, cancel_futures=True)
+
+
+def _phoneme_wanted() -> bool:
+    try:
+        from models import phoneme
+
+        return phoneme.phoneme_scoring_enabled()
+    except Exception:  # noqa: BLE001
+        return False
 
 
 def _transcript_metrics(target: str, tr: Transcript) -> tuple[dict[str, float], list[str]]:
@@ -210,8 +287,10 @@ def analyze_speech(wav_bytes: bytes, target_phrase: str, transcriber: Transcribe
 
 def _analyze(wav_bytes: bytes, target_phrase: str, transcriber: Transcriber | None, started_at: int, t0: float) -> TestResult:
     sr = C.SAMPLE_RATE
-    samples, _err = load_wav(wav_bytes, sr)
+    samples, err = load_wav(wav_bytes, sr)
     if samples is None:
+        if err == "recording too long":
+            return _retry(REASON_TOO_LONG, started_at, t0)
         return _retry("couldn't read that recording, please try again", started_at, t0)
 
     total_s = samples.size / sr
@@ -253,6 +332,9 @@ def _analyze(wav_bytes: bytes, target_phrase: str, transcriber: Transcriber | No
         n_syll = choose_syllable_count(count_syllables(target_phrase), len(nuclei))
         metrics["syllable_count"] = float(n_syll)
         metrics["syllable_nuclei"] = float(len(nuclei))
+        target_syll = count_syllables(target_phrase)
+        if target_syll > 0:
+            metrics["nuclei_per_target_syllable"] = len(nuclei) / target_syll
         metrics["articulation_rate"] = n_syll / temporal["speaking_time_s"]
         if nuclei:
             metrics["articulation_rate_nuclei"] = len(nuclei) / temporal["speaking_time_s"]
@@ -266,7 +348,8 @@ def _analyze(wav_bytes: bytes, target_phrase: str, transcriber: Transcriber | No
         flags.extend(ac_flags)
 
         # Phoneme scores (agent B), optional
-        ph = _phoneme_scores(trimmed, target_phrase)
+        ph_wanted = _phoneme_wanted()
+        ph = _phoneme_scores(trimmed, target_phrase) if ph_wanted else None
         bad_phones: list[str] = []
         if ph is not None:
             try:
@@ -274,9 +357,20 @@ def _analyze(wav_bytes: bytes, target_phrase: str, transcriber: Transcriber | No
                 if all(math.isfinite(v) for v in got.values()):
                     metrics.update(got)
                     bad_phones = [str(p) for p in getattr(ph, "bad_phones", [])]
+                    try:
+                        start_gone, end_gone = edge_missing(list(getattr(ph, "per_phone", []) or []))
+                    except Exception:  # noqa: BLE001 - odd per_phone shape: no edge information
+                        start_gone = end_gone = False
+                    if start_gone or end_gone:
+                        metrics["phoneme_edge_missing"] = float(start_gone) + 2.0 * float(end_gone)  # 1 start, 2 end, 3 both
+                    n_target = len(str(getattr(ph, "target", "")).split())
+                    if n_target:
+                        metrics["phoneme_insertion_ratio"] = len(str(getattr(ph, "decoded", "")).split()) / n_target
             except Exception:  # noqa: BLE001 - malformed result object: treat as "no phoneme scores"
                 pass
         has_phoneme = "per" in metrics
+        if not has_phoneme and ph_wanted:
+            flags.append(FLAG_PHONEME_UNAVAILABLE)
 
         # Transcript, optional
         transcript: Transcript | None = None
@@ -310,18 +404,43 @@ def _analyze(wav_bytes: bytes, target_phrase: str, transcriber: Transcriber | No
             pool.shutdown(wait=False, cancel_futures=True)
 
     metrics = _finite(metrics)
+    if has_phoneme:
+        ins = metrics.get("phoneme_insertion_ratio")
+        trust = phoneme_trust(metrics["snr_db"], ins)
+        edge = int(metrics.get("phoneme_edge_missing", 0))
+        if edge:
+            trust *= C.PHONEME_EDGE_TRUST
+            flags.append(("the start" if edge == 1 else "the end" if edge == 2 else "the start and end") + " of the sentence may be missing from the recording")
+        metrics["phoneme_trust"] = round(trust, 4)
     score = score_metrics(metrics)
+    trust = metrics.get("phoneme_trust", 1.0)
+    mismatch = has_phoneme and metrics["per"] >= C.PHONEME_MISMATCH[0] and metrics["gop_mean"] <= C.PHONEME_MISMATCH[1]
+    timing_agrees = any(score.components.get(k, 0.0) >= C.AGREE_MIN for k in C.TIMING_COMPONENTS)
+    # Retry only when TIMING shows nothing wrong OR far more was said than the sentence (a real slow/halting speaker who also
+    # trips these checks is scored, so the patient is never told "move somewhere quiet" forever; slurring never ADDS syllables).
+    overrun = metrics.get("nuclei_per_target_syllable", 0.0) >= C.SYLLABLE_OVERRUN_RATIO
+    if has_phoneme and (not timing_agrees or overrun):
+        if metrics.get("phoneme_insertion_ratio", 0.0) >= C.PHONEME_BACKGROUND_RATIO:  # other voices dominate what the model "heard"
+            return _retry(REASON_BACKGROUND_VOICES, started_at, t0, metrics)
+        if mismatch:  # a different sentence (or none): the app cannot judge slurring from that
+            return _retry(REASON_WRONG_SENTENCE, started_at, t0, metrics)
     confidence, weakest = compute_confidence(
-        metrics["snr_db"], metrics["utterance_s"], metrics.get("voiced_fraction", 0.0), has_transcript, has_phoneme
+        metrics["snr_db"], metrics["utterance_s"], metrics.get("voiced_fraction", 0.0), has_transcript, has_phoneme and trust >= C.PHONEME_TRUSTED
     )
+    severity = score.severity
+    noisy = metrics["snr_db"] < C.NOISY_SNR_DB
+    if noisy:
+        severity = min(severity, C.POOR_CONDITIONS_SEVERITY_CAP)
+        confidence *= C.POOR_CONDITIONS_CONFIDENCE_FACTOR
+        flags.append(FLAG_NOISY)
     if confidence < C.MIN_CONFIDENCE:
         return _retry(_RETRY_FOR_TERM[weakest], started_at, t0, metrics, confidence)
 
-    flags = _flags_for(score.components, metrics, bad_phones) + flags
-    log.debug("speech severity=%.2f conf=%.2f components=%s", score.severity, confidence, score.components)
+    flags = _flags_for(score.components, metrics, bad_phones, quality_uncorroborated=severity_cap(score.components)[1] == "quality-only") + flags
+    log.debug("speech severity=%.2f conf=%.2f components=%s", severity, confidence, score.components)
     return TestResult(
         test="speech",
-        severity=round(score.severity, 4),
+        severity=round(severity, 4),
         confidence=round(confidence, 4),
         metrics=metrics,
         flags=flags,

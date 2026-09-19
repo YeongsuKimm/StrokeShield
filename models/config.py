@@ -108,3 +108,47 @@ NUCLEUS_RATIO_OK = (0.6, 1.5)  # nuclei / target-syllables inside this band -> t
 TRANSCRIBE_TIMEOUT_S = 6.0  # s, spec: if the transcriber is slower than this, go acoustic-only
 
 FLAG_MIN_COMPONENT = 0.4  # 0..1; a component at or above this adds a human-readable flag ("long pauses", ...)
+
+# ---------------------------------------------------------------------------------------------------------
+# Robustness (unknown voices, rooms and mics). UNCALIBRATED; validated only on TTS/synthetic variants
+# (tests/test_speech_robustness.py). Principle: when conditions are poor or the components disagree, LOWER the severity
+# or the confidence instead of reporting a confident wrong answer.
+#
+# Two evidence groups. QUALITY (articulation = phoneme model, voice_quality = jitter/shimmer) is what a room, a cheap or
+# Bluetooth mic, an accent, a different vocal tract or a codec change most: on TTS variants of a HEALTHY sentence these two
+# alone reached 0.5-0.9 (speed x1.25 0.45, other voice 0.67, reverb 0.6 s 0.54, TV in the room 0.46-0.54). TIMING (rate,
+# pausing, prosody, a real transcript) survives all of those. A quality-only elevation is therefore capped unless a timing
+# component agrees.
+# ---------------------------------------------------------------------------------------------------------
+QUALITY_COMPONENTS = ("articulation", "voice_quality")
+TIMING_COMPONENTS = ("rate", "pausing", "prosody", "intelligibility")
+AGREE_MIN = 0.3  # 0..1; a component at or above this is "elevated" and needs corroboration
+QUALITY_NEEDS_TIMING_MIN = 0.25  # 0..1; an elevated quality component needs a timing component at or above this (reverb 1.0 s smears pitch to ~0.23)
+TIMING_SUPPORT_MIN = 0.15  # 0..1; an elevated timing component needs a second timing one, or a quality one, at or above this
+# Severity caps (severity units, 0..1) when the two groups do NOT agree.
+QUALITY_ONLY_CAP = 0.20  # quality signals elevated, no timing component agrees
+TIMING_ONLY_CAP = {"rate": 0.35, "pausing": 0.30, "prosody": 0.20, "intelligibility": 0.40}  # a lone timing signal (max over the elevated ones)
+NO_SIGNAL_CAP = 0.15  # no component reaches AGREE_MIN
+
+# Phoneme evidence is trusted less as conditions worsen: articulation is multiplied by trust in 0..1.
+PHONEME_SNR_DB = (15.0, 25.0)  # dB: trust PHONEME_TRUST_FLOOR at the low end, 1 at the high end
+PHONEME_TRUST_FLOOR = 0.5  # 0..1
+PHONEME_INSERTION_RATIO = 1.35  # decoded phones / target phones above this: something else was "heard" (other voices, noise)
+PHONEME_INSERTION_TRUST = 0.5  # trust multiplier when the insertion ratio is above PHONEME_INSERTION_RATIO
+PHONEME_BACKGROUND_RATIO = 1.6  # above this: background speech dominates -> retry "other voices" (TV on: measured 2-3x)
+SYLLABLE_OVERRUN_RATIO = 1.4  # detected syllable nuclei / target syllables at or above this: more was said than the sentence (TV, chatter, a longer sentence; measured 1.5-2.1)
+PHONEME_TRUSTED = 0.75  # trust below this: the phoneme scores no longer raise the confidence ceiling
+PHONEME_MISMATCH = (0.75, -5.5)  # (per >=, gop_mean <=): a different sentence or no sentence, not slurring (TTS measured 0.8-1.5 / -6..-8)
+PHONEME_EDGE_PHONES = 3  # this many phones at the start (or end) all near the floor while the rest is fine = that end of the sentence is missing
+PHONEME_EDGE_LOGP = -5.0  # ln-posterior at or below which an edge phone counts as absent
+PHONEME_EDGE_REST_LOGP = -2.5  # the remaining phones must average at least this for the "edge missing" reading
+PHONEME_EDGE_TRUST = 0.5  # trust multiplier when an edge is missing (real first-run healthy clip lost "you can't": gop_min -9.9)
+
+# Poor conditions: noisy room. Severity is capped and confidence dented (never a confident verdict).
+NOISY_SNR_DB = 15.0  # dB; below this the room counts as noisy
+POOR_CONDITIONS_SEVERITY_CAP = 0.35  # severity units
+POOR_CONDITIONS_CONFIDENCE_FACTOR = 0.75  # multiplies confidence
+
+MAX_ACCEPT_S = 20.0  # s, a clip longer than this is refused up front (recorder stops at 6 s; MAX_ANALYSIS_S still truncates)
+PHONEME_TIMEOUT_S = 5.0  # s budget for the optional phoneme model within the 10 s endpoint budget (first call loads it)
+PHONEME_LOCK_WAIT_S = 3.0  # s a second simultaneous analysis waits for the model before going DSP-only

@@ -7,6 +7,8 @@ export interface SpeechProgress {
   stage: SpeechStage
   /** Live mic level, RMS 0..1 (0 when not listening). */
   level: number
+  /** True once the first audio chunk of this take arrived (the mic is really open); false while it is still opening. */
+  heard?: boolean
   /** Spoken-style retry hint from the last run (cleared when a new run starts). */
   hint?: string
 }

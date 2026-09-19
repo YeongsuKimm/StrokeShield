@@ -6,6 +6,7 @@ Client mistakes that no retry can fix (no file, too big, phrase too long) are 4x
 """
 import asyncio
 import logging
+import threading
 import time
 from collections.abc import Callable
 
@@ -28,6 +29,24 @@ ANALYZE_TIMEOUT_S = 10.0  # whole-endpoint budget from docs/spec/03-speech.md
 FLAG_UNUSABLE = "that recording wasn't usable, please try again"
 FLAG_TIMEOUT = "that took too long, please try again"
 FLAG_ERROR = "something went wrong, please try again"
+FLAG_BUSY = "the analysis service is busy, please try again in a moment"
+
+# At most this many analyses run at once (each can hold ~1.4 GB of torch activations plus a thread); extra requests wait a
+# few seconds for a slot and then get a normal retry result instead of piling up behind a slow one.
+MAX_CONCURRENT_ANALYSES = 2
+SLOT_WAIT_S = 4.0
+_SLOTS = threading.BoundedSemaphore(MAX_CONCURRENT_ANALYSES)
+
+
+def _analyze_limited(data: bytes, phrase: str) -> TestResult | None:
+    """Run one analysis inside a slot; None when no slot freed up in time. analyze_speech keeps no shared mutable state
+    (the phoneme model serialises its own forward passes), so overlapping analyses cannot corrupt each other."""
+    if not _SLOTS.acquire(timeout=SLOT_WAIT_S):
+        return None
+    try:
+        return analyze_speech(data, phrase)
+    finally:
+        _SLOTS.release()
 
 
 def _retry(flag: str, started_at: int) -> TestResult:
@@ -102,7 +121,7 @@ async def analyze(
 
     phrase = target_phrase.strip() or TARGET_PHRASE
     try:
-        result = await asyncio.wait_for(run_in_threadpool(analyze_speech, data, phrase), ANALYZE_TIMEOUT_S)
+        result = await asyncio.wait_for(run_in_threadpool(_analyze_limited, data, phrase), ANALYZE_TIMEOUT_S)
     except TimeoutError:
         # The worker thread cannot be cancelled and finishes in the background; its result is discarded.
         logger.warning("speech analyze timed out after %.1fs (%d bytes)", ANALYZE_TIMEOUT_S, len(data))
@@ -111,6 +130,9 @@ async def analyze(
         logger.error("speech analyze failed (%s)", type(exc).__name__)  # type only: a traceback/message could echo audio data
         return _retry(FLAG_ERROR, started_at)
 
+    if result is None:
+        logger.warning("speech analyze: no free analysis slot after %.1fs", SLOT_WAIT_S)
+        return _retry(FLAG_BUSY, started_at)
     logger.info(
         "speech analyze: %d bytes, %.0f ms, severity=%.2f confidence=%.2f retry=%s flags=%d",
         len(data),

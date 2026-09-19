@@ -27,6 +27,8 @@ export interface SilenceDetectorOptions {
   minSeconds: number
   trailingSilenceSeconds: number
   noSpeechSeconds: number
+  earlyUtteranceSeconds: number
+  earlyTrailingSilenceSeconds: number
 }
 
 export interface SilenceDetector {
@@ -39,6 +41,8 @@ const DEFAULT_OPTS: SilenceDetectorOptions = {
   minSeconds: SPEECH_CAPTURE.minSeconds,
   trailingSilenceSeconds: SPEECH_CAPTURE.trailingSilenceSeconds,
   noSpeechSeconds: SPEECH_CAPTURE.noSpeechSeconds,
+  earlyUtteranceSeconds: SPEECH_CAPTURE.earlyUtteranceSeconds,
+  earlyTrailingSilenceSeconds: SPEECH_CAPTURE.earlyTrailingSilenceSeconds,
 }
 
 const clamp = (x: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, x))
@@ -46,7 +50,8 @@ const clamp = (x: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, x
 /**
  * Stop rules (docs/spec/03-speech.md):
  *  - never before `minSeconds` of audio, EXCEPT the hard cap `maxSeconds` (which wins if the two conflict);
- *  - after speech was detected: stop once trailing silence >= `trailingSilenceSeconds`;
+ *  - after speech was detected: stop once trailing silence >= `trailingSilenceSeconds` (>= `earlyTrailingSilenceSeconds`
+ *    while the utterance is still shorter than `earlyUtteranceSeconds`, so a cough or a hesitant start is not the whole take);
  *  - hard stop at `maxSeconds` ('max-duration');
  *  - no speech at all by `noSpeechSeconds` -> 'no-speech'.
  */
@@ -84,6 +89,12 @@ export function createSilenceDetector(sampleRate: number, options: Partial<Silen
     return Math.sqrt(s / frameLen)
   }
 
+  /** Silence needed to stop: longer while the utterance is still tiny (a cough, or a hesitant start). */
+  function requiredSilenceS(): number {
+    const spanS = state.speechStartS !== null && state.lastVoicedEndS !== null ? state.lastVoicedEndS - state.speechStartS : 0
+    return spanS < opts.earlyUtteranceSeconds ? Math.max(opts.trailingSilenceSeconds, opts.earlyTrailingSilenceSeconds) : opts.trailingSilenceSeconds
+  }
+
   function processFrame(rms: number) {
     const idx = frames++
     const warm = idx < cfg.warmupFrames
@@ -112,7 +123,7 @@ export function createSilenceDetector(sampleRate: number, options: Partial<Silen
     const eps = 1e-9
     if (endS + eps >= opts.maxSeconds) state.stop = 'max-duration'
     else if (!state.speechDetected && endS + eps >= opts.noSpeechSeconds) state.stop = 'no-speech'
-    else if (state.speechDetected && endS + eps >= opts.minSeconds && state.trailingSilenceS + eps >= opts.trailingSilenceSeconds) state.stop = 'silence'
+    else if (state.speechDetected && endS + eps >= opts.minSeconds && state.trailingSilenceS + eps >= requiredSilenceS()) state.stop = 'silence'
   }
 
   function push(chunk: Float32Array): VadState {
