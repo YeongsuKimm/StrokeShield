@@ -1,7 +1,7 @@
 // Capture controller: PURE, injectable-clock state machine (no DOM, no timers, no MediaPipe).
 // The caller feeds it one `tick(now, { framing, frame })` per camera frame (plus a heartbeat with frame=null when the
 // camera stalls) and reads back a CaptureProgress for captions. Protocols are from docs/spec/02-vision.md:
-//   FACE : wait for framing OK held holdOkMs -> "Relax your face" 1.5 s neutral -> "Now smile..." 3 s smile -> analyze
+//   FACE : wait for framing OK held holdOkMs -> "Serious face, lips closed" neutral -> "Now smile..." 3 s smile -> analyze
 //   ARMS : wait for framing OK held holdOkMs -> 3-2-1 cue -> 10 s hold window -> analyze
 // Frames are collected only while framing is acceptable. Framing lost for too long / too much of a segment, or never
 // OK within waitTimeoutMs => a `needsRetry` result with a spoken-style first flag (never a guess).
@@ -286,11 +286,11 @@ export function createFaceCapture<F>(
 ): CaptureController<F> {
   return new CaptureController<F>({
     test: 'face',
-    introCaption: 'Get ready to smile. First relax your face, then smile as big as you can and hold it.',
+    introCaption: 'First hold a serious, neutral face with your lips closed. Then, when asked, smile as big as you can and hold it.',
     waitCaption: 'Look at the camera',
     waitTimeoutFlag: "I couldn't see your face clearly. Let's try again.",
     steps: [
-      { kind: 'capture', phase: 'neutral', ms: CAPTURE_TIMING.faceNeutralMs, caption: 'Relax your face' },
+      { kind: 'capture', phase: 'neutral', ms: CAPTURE_TIMING.faceNeutralMs, caption: 'Serious face, lips closed' },
       { kind: 'capture', phase: 'smile', ms: CAPTURE_TIMING.faceSmileMs, caption: 'Now smile as big as you can and hold' },
     ],
     analyze: ([neutral, smile]) => analyze(neutral, smile),

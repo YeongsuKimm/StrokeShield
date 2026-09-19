@@ -84,7 +84,7 @@ describe('FACE capture', () => {
     const c = createFaceCapture<Fr>(() => okResult('face'))
     drive(c, frame, () => OK, FRAMING_LIMITS.holdOkMs + 100)
     let p = c.tick(FRAMING_LIMITS.holdOkMs + 150, { framing: OK, frame: frame(0) })
-    expect(p.caption).toBe('Relax your face')
+    expect(p.caption).toBe('Serious face, lips closed')
     expect(p.secondsLeft).toBe(Math.ceil(T.faceNeutralMs / 1000))
     p = c.tick(FRAMING_LIMITS.holdOkMs + 150 + T.faceNeutralMs + 50, { framing: OK, frame: frame(0) })
     expect(p.phase).toBe('smile')
@@ -282,7 +282,7 @@ describe('intro card (face / eyes)', () => {
     const c = createFaceCapture<Fr>(() => okResult('face'), { introMs: 4000 })
     const early = c.tick(0, { framing: OK, frame: frame(0) })
     expect(early.phase).toBe('intro')
-    expect(early.caption).toMatch(/relax your face/i)
+    expect(early.caption).toMatch(/serious, neutral face/i)
     expect(early.secondsLeft).toBe(4)
     // framing is perfect the whole time, yet nothing starts until the card has gone
     expect(c.tick(3900, { framing: OK, frame: frame(1) }).phase).toBe('intro')

@@ -32,15 +32,15 @@ export function FaceTest() {
   return (
     <TestScreen
       test="face"
-      title={retryPending || relaxing ? 'Relax your face' : smiling ? 'Now smile big. Hold it.' : 'Look at the camera'}
+      title={retryPending || relaxing ? 'Serious face, lips closed' : smiling ? 'Now smile big. Hold it.' : 'Look at the camera'}
       lede={
         retryPending
-          ? 'Let your mouth rest completely. I will restart the check in a moment.'
+          ? 'Keep your lips gently closed with no smile. I will restart the check in a moment.'
           : relaxing
-            ? 'Let your mouth rest. Take your time; a big smile is next.'
+            ? 'A serious, neutral expression, like a passport photo. Take your time; the smile comes next.'
             : smiling
               ? 'As wide as you comfortably can, and keep it there.'
-              : 'Fit your face inside the outline. I will ask you to relax first, then smile.'
+              : 'Fit your face inside the outline. First a serious, neutral face, then I will ask you to smile.'
       }
       footer={<VisionRetryButton test="face" run={testRunner.runFace} />}
     >

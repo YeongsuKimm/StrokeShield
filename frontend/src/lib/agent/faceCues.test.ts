@@ -14,7 +14,8 @@ afterEach(() => useCaptureProgress.setState({ running: null, retryPending: null,
 
 describe('face briefing and smile cue', () => {
   it('the face briefing never asks for a smile up front', () => {
-    expect(FACE_BRIEFING).toMatch(/relaxed|resting/i)
+    expect(FACE_BRIEFING).toMatch(/serious, neutral/i)
+    expect(FACE_BRIEFING).toMatch(/no smile/i)
     expect(FACE_BRIEFING).toMatch(/do not mention smiling yet/i)
     expect(FACE_BRIEFING).not.toMatch(/and smile|then smile/i)
   })
