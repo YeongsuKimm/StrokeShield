@@ -41,7 +41,7 @@ Routing is `store.route` plus `store.phase` — no router library. `App.tsx` pic
   reset is dropped), and `requestEmergency` is ignored while an alert is in flight (no double SMS). After a FAILED alert `retryAlert()` (one-shot) re-sends without a countdown; the send itself lives in `lib/alertFlow.ts`, failure wording in `lib/alertFailure.ts` (spec 05).
 - The speech screen starts recording only from the user's **Start recording** button. The voice agent waits for that
   result and cannot start the microphone through its client tool.
-- **Info** (`InfoPage`): process (BE-FAST), why, stats (digits roll up from zero via `ui/SlotNumber` when scrolled into view), Q&A + hotlines, team (names + Johns Hopkins University). The header logo resets the session and returns home. Reached from the header menu too.
+- **Info** (`InfoPage`): process (BE-FAST), why, stats (digits roll up from zero via `ui/SlotNumber` when scrolled into view), Q&A + hotlines, team (names + Johns Hopkins University). The header logo resets the session and returns home. Reached from the header menu too. The stats section ends with a "Where to learn more" block of verified links (education pages, then the papers behind each figure, by DOI); every link is checked before it is added.
 - **Header menu** (`chrome/SiteHeader` + `ui/DrilldownMenu` + `chrome/menuTree.ts`): a drilldown list. Collapsed it shows
   ONE row, "Learn more" ("Sections" on the info page); opening it reveals the sections, and "The process" (Speech, Eyes,
   Face, Arms, Time) and "Questions & hotlines" (Hotlines, Common questions) drill one level deeper. The clicked row

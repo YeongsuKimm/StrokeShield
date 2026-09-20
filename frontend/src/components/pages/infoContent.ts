@@ -124,6 +124,74 @@ export const STATS: Stat[] = [
   },
 ]
 
+/**
+ * Links out of the numbers section. Every URL was opened and checked before it went in (a link that 404s on a page about
+ * a medical emergency is worse than no link). Two kinds:
+ * - "learn": plain-language education about the signs, from US public-health sources.
+ * - "research": the papers behind each figure above, linked by DOI so they keep working if a publisher reorganises.
+ * Adding one? Open it first, and keep the wording to what the page actually is.
+ */
+export interface Resource {
+  group: 'learn' | 'research'
+  /** Who publishes it. */
+  org: string
+  /** The page or paper title, as its publisher gives it. */
+  title: string
+  /** One plain line on what it is, or which number above it backs. */
+  detail: string
+  href: string
+}
+
+export const RESOURCE_GROUPS: Record<Resource['group'], { label: string; lede: string }> = {
+  learn: { label: 'Learn the signs', lede: 'Plain-language guides from US health organizations.' },
+  research: { label: 'The research behind the numbers', lede: 'The published papers each figure above comes from.' },
+}
+
+export const RESOURCES: Resource[] = [
+  {
+    group: 'learn',
+    org: 'American Stroke Association',
+    title: 'Stroke symptoms and warning signs',
+    detail: 'The warning signs of a stroke, including the F.A.S.T. check.',
+    href: 'https://www.stroke.org/en/about-stroke/stroke-symptoms',
+  },
+  {
+    group: 'learn',
+    org: 'National Institute of Neurological Disorders and Stroke',
+    title: 'Stroke',
+    detail: 'An overview of stroke from the U.S. National Institutes of Health.',
+    href: 'https://www.ninds.nih.gov/health-information/disorders/stroke',
+  },
+  {
+    group: 'learn',
+    org: 'MedlinePlus',
+    title: 'Stroke',
+    detail: 'Health information for patients from the U.S. National Library of Medicine.',
+    href: 'https://medlineplus.gov/stroke.html',
+  },
+  {
+    group: 'research',
+    org: 'Saver, Stroke (2006)',
+    title: 'Time Is Brain—Quantified',
+    detail: 'Where the 1.9 million neurons a minute comes from.',
+    href: 'https://doi.org/10.1161/01.STR.0000196957.55928.ab',
+  },
+  {
+    group: 'research',
+    org: 'Powers et al., Stroke (2019)',
+    title: 'Guidelines for the Early Management of Patients With Acute Ischemic Stroke: 2019 Update',
+    detail: 'Where the 4.5 hour and 24 hour treatment windows come from.',
+    href: 'https://doi.org/10.1161/STR.0000000000000211',
+  },
+  {
+    group: 'research',
+    org: 'Aroor, Singh and Goldstein, Stroke (2017)',
+    title: 'BE-FAST (Balance, Eyes, Face, Arm, Speech, Time): Reducing the Proportion of Strokes Missed Using the FAST Mnemonic',
+    detail: 'Where the 14% to 4% figure comes from. A study of the clinical scale, not of this app.',
+    href: 'https://doi.org/10.1161/STROKEAHA.116.015169',
+  },
+]
+
 export interface Faq {
   q: string
   a: string
