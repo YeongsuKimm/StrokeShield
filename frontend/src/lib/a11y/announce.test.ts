@@ -11,6 +11,11 @@ describe('countdownAnnouncement', () => {
     expect(countdownAnnouncement(3, 3)).toBe('Sending in 3 seconds.')
     expect(countdownAnnouncement(0, 3)).toBeNull()
   })
+
+  it('announces the countdown in Spanish', () => {
+    expect(countdownAnnouncement(3, 3, 'es')).toBe('Se enviar\u00e1 en 3 segundos.')
+    expect(countdownAnnouncement(1, 3, 'es')).toBe('Se enviar\u00e1 en 1 segundo.')
+  })
 })
 
 describe('captureAnnouncement', () => {

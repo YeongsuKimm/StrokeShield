@@ -3,6 +3,18 @@ import { ApiError, backendMessage, friendlyMessage, kindForStatus, kindForThrown
 import { useNetwork } from './resilience/network'
 import type { Locale } from './i18n'
 
+export interface PreflightResponse {
+  alertChannel: 'email_sms' | 'twilio'
+  dryRun: boolean
+  smtpConfigured: boolean
+  twilioConfigured: boolean
+  gatewayValid: boolean
+  agentConfigured: boolean
+  agentConfiguredEs: boolean
+  phonemeReady: boolean
+  secondOpinionEnabled: boolean
+}
+
 // Empty base = same origin (Vite proxies /api to :8000 in dev). Set VITE_API_BASE_URL in production.
 const BASE = import.meta.env?.VITE_API_BASE_URL ?? ''
 
@@ -97,6 +109,7 @@ const json = (body: unknown): RequestInit => ({
 
 export const api = {
   health: () => request<HealthResponse>('/api/health', undefined, { timeoutMs: API_TIMEOUTS_MS.health, what: 'the server check' }),
+  preflight: () => request<PreflightResponse>('/api/preflight', undefined, { timeoutMs: API_TIMEOUTS_MS.health, what: 'the demo readiness check' }),
   signedUrl: (lang: Locale = 'en') =>
     request<{ signedUrl: string }>(`/api/agent/signed-url?lang=${lang}`, undefined, {
       timeoutMs: API_TIMEOUTS_MS.signedUrl,

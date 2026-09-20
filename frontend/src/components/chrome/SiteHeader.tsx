@@ -120,7 +120,7 @@ export function SiteHeader() {
       </button>
       <div ref={wrapRef} className={`relative h-12 ${closedWidth}`}>
         <nav
-          aria-label="Site sections"
+          aria-label={pick(locale, 'Site sections', 'Secciones del sitio')}
           className={`absolute right-0 top-0 overflow-hidden rounded-[var(--radius-panel)] border border-line-strong bg-surface py-1.5 pr-3.5 transition-[width,padding,box-shadow] duration-300 ease-out ${
             // Open: extra left padding gives the breadcrumb's return arrow a gutter to sit in (it lives just left
             // of the label, so a tighter card would clip it). Both change together, so the label glides.
@@ -133,6 +133,7 @@ export function SiteHeader() {
             items={items}
             onDepthChange={setDepth}
             onSelect={collapse}
+            backLabel={locale === 'es' ? 'Volver a' : 'Back to'}
           />
         </nav>
       </div>

@@ -40,7 +40,7 @@ export function AlertPreview({ stage, className = '' }: { stage: 'before' | 'sen
     <div className={`rounded-[var(--radius-control)] border border-line px-4 py-3 text-left ${className}`}>
       <p className="text-[0.8125rem] font-medium text-ink-3">{pick(locale, PREVIEW_COPY[stage], ({ before: 'Este es el mensaje que se enviar\u00e1', sent: 'Este es el mensaje que se envi\u00f3', failed: 'Este es el mensaje que no se pudo enviar', demoSent: 'Este es el mensaje que enviar\u00eda una alerta real' } as const)[stage])}</p>
       <p className="mt-1 text-[0.9375rem] leading-snug text-ink-2 [overflow-wrap:anywhere]">{text}</p>
-      {locale === 'es' && <p className="mt-1 text-[0.8125rem] text-ink-3">El mensaje al contacto de demo se env\u00eda en ingl\u00e9s.</p>}
+      {locale === 'es' && <p className="mt-1 text-[0.8125rem] text-ink-3">El mensaje al contacto de demo se envía en inglés.</p>}
       {note && <p className="mt-1 text-[0.8125rem] text-ink-3">{pick(locale, note, mode === 'demo' || stage === 'demoSent' ? 'Modo demo: no se envi\u00f3 ning\u00fan mensaje.' : 'La entrega se realiza seg\u00fan disponibilidad.')}</p>}
     </div>
   )

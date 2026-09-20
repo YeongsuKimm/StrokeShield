@@ -125,7 +125,7 @@ export function TestScreen({ test, title, lede, children, rail, footer }: Props)
           <div className="pop flex items-center justify-between gap-3 rounded-[var(--radius-panel)] border-2 border-accent bg-surface p-3 shadow-[var(--shadow-lift)] sm:block sm:p-4">
             <div>
               <p className="text-lg font-semibold leading-tight">
-                {pick(locale, <>Stuck<span className="hidden sm:inline"> on this one</span>?</>, <>\u00bfAtascado<span className="hidden sm:inline"> en esta revisi\u00f3n</span>?</>)}
+                {pick(locale, <>Stuck<span className="hidden sm:inline"> on this one</span>?</>, <>¿Atascado<span className="hidden sm:inline"> en esta revisión</span>?</>)}
               </p>
               <p className="mb-3 mt-0.5 hidden text-[0.9375rem] text-ink-2 sm:block">{pick(locale, 'Skip it and keep going.', 'Om\u00edtela y contin\u00faa.')}</p>
             </div>

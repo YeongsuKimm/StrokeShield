@@ -37,7 +37,7 @@ export async function probeMediaPipe(): Promise<{ delegate: 'GPU' | 'CPU'; ms: n
 export function browserPreflightEnv(): PreflightEnv {
   return {
     health: () => api.health(),
-    signedUrl: () => api.signedUrl(),
+    preflight: () => api.preflight(),
     isSecureContext: () => globalThis.isSecureContext !== false,
     hostname: () => globalThis.location?.hostname ?? '',
     hasGetUserMedia: () => !!navigator.mediaDevices?.getUserMedia,

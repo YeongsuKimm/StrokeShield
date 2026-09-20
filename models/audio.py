@@ -47,7 +47,7 @@ from models.transcribe import Transcriber, Transcript
 
 log = logging.getLogger("speech")
 
-__all__ = ["analyze_speech", "score_metrics", "compute_confidence", "phoneme_trust", "severity_cap", "Score", "ramp"]
+__all__ = ["analyze_speech", "score_metrics", "compute_confidence", "phoneme_trust", "severity_cap", "timing_anchor", "Score", "ramp"]
 
 
 # ----------------------------------------------------------------------------------------------------------
@@ -140,6 +140,35 @@ def severity_cap(components: Mapping[str, float]) -> tuple[float | None, str]:
     return C.NO_SIGNAL_CAP, "no-signal"
 
 
+def timing_anchor(metrics: Mapping[str, float]) -> tuple[float | None, float | None, str]:
+    """Return (cap, floor, reason) for the demo's recorded fluent-vs-acted contrast.
+
+    Fluent timing protects against isolated phoneme/voice-quality false alarms. A high floor needs either two timing
+    observations, or phoneme degradation corroborated by slow delivery and clean recording conditions.
+    """
+    rate = metrics.get("articulation_rate")
+    longest = metrics.get("longest_pause_s")
+    ratio = metrics.get("pause_ratio")
+    if rate is None or longest is None or ratio is None:
+        return None, None, ""
+    if rate >= C.DEMO_FLUENT_RATE_MIN and longest <= C.DEMO_FLUENT_LONGEST_PAUSE_MAX and ratio <= C.DEMO_FLUENT_PAUSE_RATIO_MAX:
+        return C.DEMO_FLUENT_SEVERITY_CAP, None, "fluent-timing"
+    strong_slur = (
+        rate <= C.DEMO_SLURRED_RATE_MAX
+        and metrics.get("per", 0.0) >= C.DEMO_SLURRED_PER_MIN
+        and metrics.get("gop_mean", 0.0) <= C.DEMO_SLURRED_GOP_MAX
+        and metrics.get("snr_db", 0.0) >= C.DEMO_SLURRED_SNR_MIN
+        and metrics.get("phoneme_insertion_ratio", float("inf")) <= C.DEMO_SLURRED_INSERTION_MAX
+    )
+    if strong_slur:
+        return None, C.DEMO_SLURRED_SEVERITY_FLOOR, "slow-articulation"
+    clearly_slow = rate <= C.DEMO_IMPAIRED_RATE_MAX
+    clearly_broken_up = longest >= C.DEMO_IMPAIRED_LONGEST_PAUSE_MIN or ratio >= C.DEMO_IMPAIRED_PAUSE_RATIO_MIN
+    if clearly_slow and clearly_broken_up:
+        return None, C.DEMO_IMPAIRED_SEVERITY_FLOOR, "slow-paused-timing"
+    return None, None, ""
+
+
 def score_metrics(metrics: Mapping[str, float]) -> Score:
     """metrics -> components -> weights renormalized over the available ones -> severity 0..1 (then the agreement cap)."""
     comps = component_scores(metrics)
@@ -151,7 +180,13 @@ def score_metrics(metrics: Mapping[str, float]) -> Score:
     raw = ramp(wsum, *C.SEVERITY_MAP)
     cap, reason = severity_cap(comps)
     sev = raw if cap is None else min(raw, cap)
-    return Score(severity=sev, weighted_sum=wsum, components=comps, weights=weights, uncapped_severity=raw, cap_reason=reason if sev < raw else "")
+    anchor_cap, anchor_floor, anchor_reason = timing_anchor(metrics)
+    if anchor_cap is not None:
+        sev = min(sev, anchor_cap)
+    elif anchor_floor is not None:
+        sev = max(sev, anchor_floor)
+    applied_reason = anchor_reason if sev != (raw if cap is None else min(raw, cap)) else (reason if sev < raw else "")
+    return Score(severity=sev, weighted_sum=wsum, components=comps, weights=weights, uncapped_severity=raw, cap_reason=applied_reason)
 
 
 def compute_confidence(snr_db: float, speech_s: float, voiced_fraction: float, has_transcript: bool, has_phoneme: bool) -> tuple[float, str]:
@@ -433,8 +468,10 @@ def _analyze(wav_bytes: bytes, target_phrase: str, transcriber: Transcriber | No
             return _retry(REASON_BACKGROUND_VOICES, started_at, t0, metrics)
         if mismatch:  # a different sentence (or none): the app cannot judge slurring from that
             return _retry(REASON_WRONG_SENTENCE, started_at, t0, metrics)
+    anchor_reason = timing_anchor(metrics)[2]
+    accepted_articulation = anchor_reason == "slow-articulation"
     confidence, weakest = compute_confidence(
-        metrics["snr_db"], metrics["utterance_s"], metrics.get("voiced_fraction", 0.0), has_transcript, has_phoneme and trust >= C.PHONEME_TRUSTED
+        metrics["snr_db"], metrics["utterance_s"], metrics.get("voiced_fraction", 0.0), has_transcript, has_phoneme and (trust >= C.PHONEME_TRUSTED or accepted_articulation)
     )
     severity = score.severity
     noisy = metrics["snr_db"] < C.NOISY_SNR_DB
@@ -448,6 +485,8 @@ def _analyze(wav_bytes: bytes, target_phrase: str, transcriber: Transcriber | No
         return _retry(_RETRY_FOR_TERM[weakest], started_at, t0, metrics, confidence)
 
     flags = _flags_for(score.components, metrics, bad_phones, quality_uncorroborated=severity_cap(score.components)[1] == "quality-only") + flags
+    if accepted_articulation and not any(f.startswith("unclear sounds") for f in flags):
+        flags.insert(0, "unclear sounds")
     log.debug("speech severity=%.2f conf=%.2f components=%s", severity, confidence, score.components)
     return TestResult(
         test="speech",

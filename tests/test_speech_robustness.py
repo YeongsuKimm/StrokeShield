@@ -31,6 +31,7 @@ from models.audio import (
     phoneme_trust,
     score_metrics,
     severity_cap,
+    timing_anchor,
 )
 from tests.audio_synth import borderline, healthy, impaired, synth_speech, to_wav_bytes
 
@@ -108,6 +109,34 @@ def test_quality_signals_alone_are_capped_and_timing_corroboration_lifts_the_cap
     slow = {**quality_only, "articulation_rate": 1.6, "longest_pause_s": 1.0, "pause_ratio": 0.4}
     s2 = score_metrics(slow)
     assert s2.severity == s2.uncapped_severity and s2.severity >= 0.85 and s2.cap_reason == ""
+
+
+def test_demo_timing_anchors_protect_fluent_speech_and_require_slow_plus_paused_for_high():
+    fluent = {"articulation_rate": 2.7, "longest_pause_s": 0.2, "pause_ratio": 0.08}
+    assert timing_anchor(fluent) == (C.DEMO_FLUENT_SEVERITY_CAP, None, "fluent-timing")
+    noisy_quality = {**fluent, "per": 0.9, "gop_mean": -7.0, "jitter_rap": 0.04, "shimmer_apq3": 0.10}
+    assert score_metrics(noisy_quality).severity <= C.DEMO_FLUENT_SEVERITY_CAP
+
+    exaggerated = {"articulation_rate": 1.2, "longest_pause_s": 1.0, "pause_ratio": 0.4, "f0_sd_semitones": 0.7}
+    assert timing_anchor(exaggerated) == (None, C.DEMO_IMPAIRED_SEVERITY_FLOOR, "slow-paused-timing")
+    assert score_metrics(exaggerated).severity >= C.DEMO_IMPAIRED_SEVERITY_FLOOR
+
+    # One odd pause or slow-but-continuous speech is not enough to force a high result.
+    assert timing_anchor({"articulation_rate": 2.8, "longest_pause_s": 1.0, "pause_ratio": 0.15}) == (None, None, "")
+    assert timing_anchor({"articulation_rate": 1.4, "longest_pause_s": 0.3, "pause_ratio": 0.18}) == (None, None, "")
+
+
+def test_uploaded_demo_metrics_separate_normal_from_acted_slurring():
+    common = {"longest_pause_s": 0.0, "pause_ratio": 0.0, "snr_db": 24.0, "phoneme_insertion_ratio": 0.95}
+    normal = {**common, "articulation_rate": 3.4335, "per": 0.0909, "gop_mean": -0.6972}
+    fast = {**common, "articulation_rate": 4.7337, "per": 0.1818, "gop_mean": -0.8472}
+    quiet = {**common, "articulation_rate": 3.7383, "per": 0.2273, "gop_mean": -1.3844}
+    slurred = {**common, "articulation_rate": 1.8141, "per": 0.4091, "gop_mean": -2.2434, "phoneme_trust": 0.4766}
+    for healthy_metrics in (normal, fast, quiet):
+        assert score_metrics(healthy_metrics).severity <= C.DEMO_FLUENT_SEVERITY_CAP
+    slurred_score = score_metrics(slurred)
+    assert slurred_score.severity >= C.DEMO_SLURRED_SEVERITY_FLOOR
+    assert slurred_score.cap_reason == "slow-articulation"
 
 
 def test_a_lone_timing_signal_is_capped_by_its_own_reliability():

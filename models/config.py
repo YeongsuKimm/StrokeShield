@@ -144,6 +144,28 @@ QUALITY_ONLY_CAP = 0.20  # quality signals elevated, no timing component agrees
 TIMING_ONLY_CAP = {"rate": 0.35, "pausing": 0.30, "prosody": 0.20, "intelligibility": 0.40}  # a lone timing signal (max over the elevated ones)
 NO_SIGNAL_CAP = 0.15  # no component reaches AGREE_MIN
 
+# Demo anchors for the only contrast we can presently support with repeatable evidence: ordinary fluent delivery versus
+# an intentionally very slow, broken-up delivery. They do not claim to diagnose dysarthria. A fluent take is protected
+# from microphone/accent-driven phoneme false alarms; a high result requires BOTH slow articulation and long/excessive
+# pauses. Anything between these anchors keeps the normal multi-feature score. UNCALIBRATED on real patients.
+DEMO_FLUENT_RATE_MIN = 2.20  # target syllables / speaking second
+DEMO_FLUENT_LONGEST_PAUSE_MAX = 0.55  # s
+DEMO_FLUENT_PAUSE_RATIO_MAX = 0.24  # fraction
+DEMO_FLUENT_SEVERITY_CAP = 0.15
+DEMO_IMPAIRED_RATE_MAX = 1.65  # intentionally slow delivery
+DEMO_IMPAIRED_LONGEST_PAUSE_MIN = 0.75  # s; either this or the ratio threshold must agree
+DEMO_IMPAIRED_PAUSE_RATIO_MIN = 0.32  # fraction
+DEMO_IMPAIRED_SEVERITY_FLOOR = 0.85
+# A second acted-demo path catches slurring without long pauses. It requires the phoneme recognizer and independent
+# slowing, good SNR and no evidence of extra/background speech. Tuned only on one speaker's seven 2026-09-20 clips:
+# healthy PER 0.09-0.23; acted slur PER 0.41 at 1.81 syl/s; slow+imprecise PER 0.82 at 1.58 syl/s.
+DEMO_SLURRED_RATE_MAX = 1.95
+DEMO_SLURRED_PER_MIN = 0.35
+DEMO_SLURRED_GOP_MAX = -2.0
+DEMO_SLURRED_SNR_MIN = 20.0
+DEMO_SLURRED_INSERTION_MAX = 1.15
+DEMO_SLURRED_SEVERITY_FLOOR = 0.85
+
 # Spanish (lang != "en"): the phoneme model is English-only, so it is not run, and the timing ramps above were set on English
 # speech (a syllable-timed language like Spanish is spoken faster, so "slow" is called even less often). To stay conservative,
 # a non-English result is capped so that on its own it can never reach the result screen's caution band (speech weight 0.5 x

@@ -134,7 +134,7 @@ Setup: laptop on `http://localhost:5173/`, backend running, `DRY_RUN=false` (liv
 **T-60 min**
 - [ ] Charge the laptop and the demo phone; a **second teammate phone** on the same carrier as backup; tether/hotspot ready.
 - [ ] Pull `main`, `cd frontend && pnpm install && pnpm test && pnpm typecheck`; `pytest` green.
-- [ ] `.env` present (never in git): `DEMO_PHONE_NUMBER` = the consenting teammate's Verizon number; `ALERT_CHANNEL=email_sms`, `SMTP_USER`, `SMTP_APP_PASSWORD`, `ELEVENLABS_API_KEY`, `ELEVENLABS_AGENT_ID`; `.env.example` defaults `ALERT_CHANNEL=twilio`, so this must be set. `SECOND_OPINION=false`.
+- [ ] `.env` present (never in git): `DEMO_PHONE_NUMBER` = the consenting teammate's Verizon number; `ALERT_CHANNEL=email_sms`, `SMTP_USER`, `SMTP_APP_PASSWORD`, `ELEVENLABS_API_KEY`, `ELEVENLABS_AGENT_ID`; `SECOND_OPINION=false`.
 
 **T-30 min**
 - [ ] Start servers: `uvicorn backend.main:app --port 8000` and `cd frontend && pnpm dev` (or a production build); open `http://localhost:5173/`; check `http://localhost:8000/api/health`.
@@ -171,6 +171,6 @@ _Update 2026-09-19: the four `frontend/` rows below (ResultScreen banner, Result
 | `frontend/src/components/result/ResultScreen.tsx` | Action card "Send the alert to your emergency contact" implies a real contact; it only ever texts the demo number. |
 | `frontend/src/components/pages/infoContent.ts` | Speech `measured`: "Transcript accuracy against the target sentence" is not measured (no transcriber). Say "phoneme accuracy (optional model)" or drop it. |
 | `frontend/src/components/pages/infoContent.ts` | FAQ "Does it really call an ambulance?" says "one verified demo phone": "verified" was a Twilio concept; with email-to-SMS say "one pre-approved demo phone". |
-| `.env.example` | `ALERT_CHANNEL=twilio` is the default, while docs say use `email_sms`; `ELEVENLABS_STT_MODEL` is commented as used to transcribe the speech clip, but no such call exists. |
-| `backend/settings.py`, `scripts/sms_check.py` | Default channel is `twilio`; a fresh `.env` without `ALERT_CHANNEL` will silently try Twilio. The `sms_check.py` docstring still describes the Twilio path first. |
+| `.env.example` | `ELEVENLABS_STT_MODEL` is commented as used to transcribe the speech clip, but no such call exists. |
+| `scripts/sms_check.py` | The docstring still describes the legacy Twilio path first. |
 | ElevenLabs live agent | Prompt step 11 wording (above). Also `tel:911` is US-only; the info page hotlines are US-only. |

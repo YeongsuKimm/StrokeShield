@@ -34,13 +34,21 @@ export function AlertStatus() {
   if (alertStatus === 'none') return null
 
   if (failure) {
+    const failureEs = ({
+      network: 'No se envi\u00f3 ning\u00fan mensaje. Revisa la conexi\u00f3n a internet e int\u00e9ntalo de nuevo.',
+      rate_limited: `El servidor est\u00e1 limitando los intentos. Espera ${failure.retryAfterS || 60} segundos y vuelve a intentarlo.`,
+      server: 'No se confirm\u00f3 el env\u00edo. Int\u00e9ntalo de nuevo en un momento.',
+      not_configured: 'No se puede enviar ning\u00fan mensaje desde este servidor. Llama al 911.',
+      refused: 'El servidor rechaz\u00f3 el mensaje. Usa el bot\u00f3n para solicitar ayuda directamente.',
+      delivery: 'No se confirm\u00f3 el env\u00edo del mensaje.',
+    } as const)[failure.category]
     return (
       <div className="mt-4 rounded-[var(--radius-control)] border-2 border-danger bg-surface px-5 py-5" role="alert">
         <p className="flex items-center gap-2 text-lg font-semibold text-danger">
           <Icon name="alert" size={20} />
           {pick(locale, `The text did not go through: ${failure.title}`, 'El mensaje no se pudo enviar.')}
         </p>
-        <p className="mt-2 text-[1rem] text-ink-2">{failure.detail}</p>
+        <p className="mt-2 text-[1rem] text-ink-2">{pick(locale, failure.detail, failureEs)}</p>
         <div className="mt-4 flex flex-col gap-3 sm:flex-row">
           <Button as="a" href="tel:911" tone="danger" size="xl" icon="phone" className="sm:flex-1">
             {pick(locale, 'Call 911 now', 'Llama al 911 ahora')}

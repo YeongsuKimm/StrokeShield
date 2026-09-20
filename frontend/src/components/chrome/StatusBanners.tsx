@@ -66,17 +66,20 @@ export function ResumeNotice() {
  *   there would be the worst outcome of all.
  */
 export function BrowserBanner() {
+  const locale = useLocale((s) => s.locale)
   const [browser] = useState(currentBrowser)
   const [dismissed, setDismissed] = useState(false)
   if (browser.verdict === 'supported' || dismissed) return null
 
   if (browser.verdict === 'in-app') {
-    const how = browser.ios ? 'Tap the ⋯ or compass icon, then “Open in Safari”.' : 'Tap the ⋮ menu, then “Open in browser”.'
+    const how = browser.ios
+      ? pick(locale, 'Tap the ⋯ or compass icon, then “Open in Safari”.', 'Pulsa ⋯ o el icono de la br\u00fajula y luego “Abrir en Safari”.')
+      : pick(locale, 'Tap the ⋮ menu, then “Open in browser”.', 'Pulsa el men\u00fa ⋮ y luego “Abrir en el navegador”.')
     return (
       <div role="alert" className={`${pill} border-danger/40 bg-danger-wash text-danger`} data-testid="browser-banner">
-        <p className="font-semibold">The camera cannot start inside {browser.host ?? 'this app'}.</p>
+        <p className="font-semibold">{pick(locale, `The camera cannot start inside ${browser.host ?? 'this app'}.`, `La c\u00e1mara no puede iniciarse dentro de ${browser.host ?? 'esta aplicaci\u00f3n'}.`)}</p>
         <p className="mt-0.5 text-ink-2">
-          {how} Then run the check there. In an emergency, call 911 directly.
+          {how} {pick(locale, 'Then run the check there. In an emergency, call 911 directly.', 'Realiza la revisi\u00f3n all\u00ed. En una emergencia, llama directamente al 911.')}
         </p>
       </div>
     )
@@ -85,11 +88,11 @@ export function BrowserBanner() {
   return (
     <div role="status" className={`${pill} flex items-start gap-3 border-line-strong bg-surface text-ink`} data-testid="browser-banner">
       <p className="min-w-0 flex-1 text-ink-2">
-        <span className="font-semibold text-ink">This browser has not been tested.</span> The check should still work. If
-        the camera or microphone will not start, try Safari or Chrome.
+        <span className="font-semibold text-ink">{pick(locale, 'This browser has not been tested.', 'Este navegador no ha sido probado.')}</span>{' '}
+        {pick(locale, 'The check should still work. If the camera or microphone will not start, try Safari or Chrome.', 'La revisi\u00f3n deber\u00eda funcionar. Si la c\u00e1mara o el micr\u00f3fono no se inician, prueba Safari o Chrome.')}
       </p>
       <button type="button" onClick={() => setDismissed(true)} className="shrink-0 font-semibold text-accent underline underline-offset-2">
-        Got it
+        {pick(locale, 'Got it', 'Entendido')}
       </button>
     </div>
   )

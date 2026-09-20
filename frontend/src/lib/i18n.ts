@@ -64,7 +64,50 @@ const RUNTIME_ES: Record<string, string> = {
   "I didn't hear anything. Please try again and say the sentence clearly.": 'No o\u00ed nada. Int\u00e9ntalo de nuevo y di la frase con claridad.',
   "I couldn't hear you, please speak louder.": 'No pude o\u00edrte. Habla un poco m\u00e1s fuerte.',
   'That was too loud and distorted. Please speak a little softer, or move back from the microphone.': 'El sonido fue demasiado fuerte y se distorsion\u00f3. Habla m\u00e1s bajo o al\u00e9jate del micr\u00f3fono.',
+  "I can't hear any sound at all. Your microphone looks muted or blocked. Check the mute switch on your headset or laptop and the input device in your sound settings, then try again.": 'No se oye ning\u00fan sonido. El micr\u00f3fono parece silenciado o bloqueado. Revisa el interruptor de silencio y el dispositivo de entrada, y vuelve a intentarlo.',
+  'The analysis took too long, probably a slow connection. Please try again, or skip this step.': 'El an\u00e1lisis tard\u00f3 demasiado, probablemente por una conexi\u00f3n lenta. Int\u00e9ntalo de nuevo u omite este paso.',
+  "I couldn't reach the analysis service. The camera checks still work. Please try again, or skip this step.": 'No se pudo contactar el servicio de an\u00e1lisis. Las revisiones con c\u00e1mara siguen funcionando. Int\u00e9ntalo de nuevo u omite este paso.',
+  "You seem to be offline, so I can't analyze your speech. Check the connection and try again, or skip this step.": 'Parece que no tienes conexi\u00f3n, por lo que no se puede analizar el habla. Revisa la conexi\u00f3n e int\u00e9ntalo de nuevo, u omite este paso.',
+  'Microphone permission was denied. Allow microphone access in the browser and try again.': 'Se deneg\u00f3 el permiso del micr\u00f3fono. Perm\u00edtelo en el navegador y vuelve a intentarlo.',
+  'No microphone was found on this device.': 'No se encontr\u00f3 ning\u00fan micr\u00f3fono en este dispositivo.',
+  'The microphone is in use by another app or tab.': 'Otra aplicaci\u00f3n o pesta\u00f1a est\u00e1 usando el micr\u00f3fono.',
+  'Could not start the microphone.': 'No se pudo iniciar el micr\u00f3fono.',
+  'lost sight of your eyes: face the screen and add light': 'se perdieron de vista tus ojos: mira de frente a la pantalla y a\u00f1ade luz',
+  'too dark to see your eyes: add light in front of you': 'hay muy poca luz para ver tus ojos: a\u00f1ade luz delante de ti',
+  'eyes are hard to track: take off glasses if there is glare': 'es dif\u00edcil seguir tus ojos: qu\u00edtate los lentes si hay reflejos',
+  'your head moved: keep it still and move only your eyes': 'moviste la cabeza: mantenla quieta y mueve solo los ojos',
+  'look straight at the screen, then follow the dot with your eyes only': 'mira de frente a la pantalla y luego sigue el punto solo con los ojos',
+  'look at the dot, then follow it with your eyes only': 'mira el punto y s\u00edguelo solo con los ojos',
+  'too far from the screen: move a little closer': 'est\u00e1s demasiado lejos de la pantalla: ac\u00e9rcate un poco',
+  'too close to the screen: move back a little': 'est\u00e1s demasiado cerca de la pantalla: retrocede un poco',
+  'face not centered: center your face in the view': 'tu cara no est\u00e1 centrada: c\u00e9ntrala en la imagen',
+  'Face the screen straight on, about an arm\u2019s length away.': 'Mira de frente a la pantalla, aproximadamente a un brazo de distancia.',
+  'Add light in front of you (a window or lamp behind you makes it worse).': 'A\u00f1ade luz delante de ti; una ventana o l\u00e1mpara detr\u00e1s dificulta la medici\u00f3n.',
+  'Turn on a light in front of you.': 'Enciende una luz delante de ti.',
+  'Face the screen straight on.': 'Mira de frente a la pantalla.',
+  'Take off your glasses if the screen or a lamp reflects in them.': 'Qu\u00edtate los lentes si reflejan la pantalla o una l\u00e1mpara.',
+  'Use even light in front of you.': 'Usa una luz uniforme delante de ti.',
+  'Keep your head still, like a passport photo.': 'Mant\u00e9n la cabeza quieta, como en una foto de pasaporte.',
+  'Move only your eyes to follow the dot.': 'Mueve solo los ojos para seguir el punto.',
+  'Look straight at the screen before the dot starts.': 'Mira de frente a la pantalla antes de que empiece el punto.',
+  'Then follow the dot with your eyes only.': 'Luego sigue el punto solo con los ojos.',
+  'Watch the yellow dot the whole time.': 'Mira el punto amarillo durante toda la revisi\u00f3n.',
+  'Follow it with your eyes only, without moving your head.': 'S\u00edguelo solo con los ojos, sin mover la cabeza.',
+  'Sit about an arm\u2019s length from the screen.': 'Si\u00e9ntate aproximadamente a un brazo de distancia de la pantalla.',
+  'Center your face inside the outline.': 'Centra tu cara dentro del contorno.',
+  'The voice guide needs the microphone and it is blocked. Click the lock icon in the address bar, set Microphone to Allow, then reload and try again. The checks work without the guide.': 'La gu\u00eda de voz necesita el micr\u00f3fono, pero est\u00e1 bloqueado. Pulsa el candado de la barra de direcciones, permite el micr\u00f3fono, recarga la p\u00e1gina e int\u00e9ntalo de nuevo. Las revisiones funcionan sin la gu\u00eda.',
+  'No microphone was found for the voice guide. Plug one in and try again. The checks work without the guide.': 'No se encontr\u00f3 un micr\u00f3fono para la gu\u00eda de voz. Conecta uno e int\u00e9ntalo de nuevo. Las revisiones funcionan sin la gu\u00eda.',
+  'The microphone would not start for the voice guide. Another app or tab may be using it. The checks work without the guide.': 'No se pudo iniciar el micr\u00f3fono para la gu\u00eda de voz. Otra aplicaci\u00f3n o pesta\u00f1a puede estar us\u00e1ndolo. Las revisiones funcionan sin la gu\u00eda.',
+  'The voice guide could not start. Check your connection and that the microphone is allowed, then try again. The checks work without the guide.': 'No se pudo iniciar la gu\u00eda de voz. Revisa la conexi\u00f3n y el permiso del micr\u00f3fono, e int\u00e9ntalo de nuevo. Las revisiones funcionan sin la gu\u00eda.',
 }
 
-export const translateRuntimeText = (locale: Locale, value: string): string =>
-  locale === 'es' ? (RUNTIME_ES[value] ?? value) : value
+export const translateRuntimeText = (locale: Locale, value: string): string => {
+  if (locale !== 'es') return value
+  const exact = RUNTIME_ES[value]
+  if (exact) return exact
+  const normalized = value.trim().replace(/[.!?]+$/, '').toLowerCase()
+  const translated = RUNTIME_ES[normalized]
+  if (!translated) return value
+  const capitalized = /^[A-Z\u00bf\u00a1]/.test(value) ? translated.charAt(0).toUpperCase() + translated.slice(1) : translated
+  return /[.!?]$/.test(value) && !/[.!?]$/.test(capitalized) ? `${capitalized}.` : capitalized
+}

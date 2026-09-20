@@ -49,6 +49,7 @@ def snapshot() -> dict[str, bool | str]:
         "alertChannel": settings.alert_channel(),
         "dryRun": settings.dry_run(),
         "smtpConfigured": email_sms_service.smtp_config() is not None,
+        "twilioConfigured": all(os.getenv(k, "").strip() for k in ("TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_FROM_NUMBER")),
         "gatewayValid": settings.sms_gateway_address() is not None,
         "agentConfigured": _agent_configured(),
         "agentConfiguredEs": _agent_es_configured(),
@@ -74,7 +75,7 @@ def warnings() -> list[str]:
         if settings.demo_phone_number() is not None and settings.sms_gateway_address() is None:
             out.append("email-to-SMS needs a US (+1) DEMO_PHONE_NUMBER and a valid SMS_GATEWAY_DOMAIN: alerts will be refused")
     elif not all(os.getenv(k, "").strip() for k in ("TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_FROM_NUMBER")):
-        out.append("ALERT_CHANNEL is twilio (the default) but the Twilio credentials are incomplete: a live alert will fail")
+        out.append("ALERT_CHANNEL is twilio but the Twilio credentials are incomplete: a live alert will fail")
 
     if not _agent_configured():
         out.append("ELEVENLABS_API_KEY / ELEVENLABS_AGENT_ID missing: the voice guide is unavailable (the tests still work)")

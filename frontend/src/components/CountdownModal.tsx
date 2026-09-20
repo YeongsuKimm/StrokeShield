@@ -65,7 +65,7 @@ export function CountdownModal() {
 
         {/* Sparse spoken countdown (start, every 5 s, last 3 s): the ring below is decorative and never read out. */}
         <p role="status" className="sr-only">
-          {countdownAnnouncement(left, total)}
+          {countdownAnnouncement(left, total, locale)}
         </p>
 
         <div className="my-8 flex justify-center text-danger">
@@ -80,7 +80,7 @@ export function CountdownModal() {
         </div>
 
         <p id="countdown-body" className="mx-auto max-w-[38ch] text-lg text-ink-2">
-          {pick(locale, 'A text message with your location is about to go out. ', 'Est\u00e1 a punto de enviarse un mensaje con tu ubicaci\u00f3n. ')}
+          {pick(locale, 'A text message, with your location if available, is about to go out. ', 'Est\u00e1 a punto de enviarse un mensaje, con tu ubicaci\u00f3n si est\u00e1 disponible. ')}
           {agentConnected ? pick(locale, 'Say “cancel”, or press the button.', 'Di “cancelar” o pulsa el bot\u00f3n.') : pick(locale, 'Press the button to cancel.', 'Pulsa el bot\u00f3n para cancelar.')}
         </p>
 

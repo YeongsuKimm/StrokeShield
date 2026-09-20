@@ -1,9 +1,10 @@
 // Demo PREFLIGHT: one screen that says, before the judges arrive, whether this laptop + network can run the demo.
 // Every check is a small async function over an injected environment, returns green / amber / red with a one-line fix,
 // and NEVER throws or hangs (each is raced against a timeout). Nothing is captured, recorded or stored: the camera and
-// microphone are only *enumerated* and their permission *queried*; no stream is ever opened, and the voice guide is
-// only asked for a signed URL (no conversation is started).
+// microphone are only *enumerated* and their permission *queried*; no stream is ever opened. Backend readiness uses
+// a secret-free boolean snapshot; no voice conversation or alert is started.
 import type { HealthResponse } from '../contracts'
+import type { PreflightResponse } from '../api'
 
 export type CheckStatus = 'ok' | 'warn' | 'fail'
 
@@ -24,7 +25,7 @@ export interface CheckDef {
 /** Everything the checks need from the outside world, so tests can fake a browser. */
 export interface PreflightEnv {
   health: () => Promise<HealthResponse>
-  signedUrl: () => Promise<{ signedUrl: string }>
+  preflight: () => Promise<PreflightResponse>
   isSecureContext: () => boolean
   hostname: () => string
   hasGetUserMedia: () => boolean
@@ -153,16 +154,25 @@ export function buildChecks(env: PreflightEnv): CheckDef[] {
       },
     },
     {
-      id: 'voice',
-      label: 'Voice guide reachable',
+      id: 'live-services',
+      label: 'Live alerts and voice guides',
       run: async () => {
         try {
-          const r = await env.signedUrl()
-          return typeof r?.signedUrl === 'string' && r.signedUrl
-            ? { status: 'ok', detail: 'The voice service issued a session link (no conversation was started).', fix: '' }
-            : { status: 'fail', detail: 'The backend returned no session link.', fix: 'Check ELEVENLABS_API_KEY and ELEVENLABS_AGENT_ID in .env.' }
+          const r = await env.preflight()
+          const providerReady = r.alertChannel === 'email_sms' ? r.smtpConfigured : r.twilioConfigured
+          const alertReady = r.gatewayValid && (r.dryRun || providerReady)
+          const missing = [!alertReady && 'live alert', !r.agentConfigured && 'English guide', !r.agentConfiguredEs && 'Spanish guide'].filter(Boolean)
+          if (missing.length) {
+            return {
+              status: 'fail',
+              detail: `Not ready: ${missing.join(', ')}.`,
+              fix: 'Check DEMO_PHONE_NUMBER, alert credentials, ELEVENLABS_API_KEY and both agent IDs in .env.',
+            }
+          }
+          const alert = r.dryRun ? 'alerts are dry-run' : `${r.alertChannel} alerts are live`
+          return { status: 'ok', detail: `Both language guides are configured; ${alert}.`, fix: '' }
         } catch (e) {
-          return { status: 'fail', detail: fmtErr(e), fix: 'Check the backend is up and ELEVENLABS_API_KEY / ELEVENLABS_AGENT_ID are set. The checks work without the guide.' }
+          return { status: 'fail', detail: fmtErr(e), fix: 'Check the backend and the alert and ElevenLabs settings in .env.' }
         }
       },
     },

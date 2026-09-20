@@ -2,6 +2,7 @@ import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { clearAllLocalData } from '../lib/privacy/clearData'
 import { isChunkLoadError, recordError } from '../lib/resilience/errorLog'
 import { startOver, stopHardware } from '../lib/resilience/recovery'
+import { getLocale, pick, type Locale } from '../lib/i18n'
 
 interface Props {
   children: ReactNode
@@ -50,6 +51,7 @@ export class ErrorBoundary extends Component<Props, State> {
     return (
       <CrashScreen
         chunk={chunk}
+        locale={getLocale()}
         onStartOver={() => {
           startOver()
           this.recover()
@@ -65,35 +67,35 @@ export class ErrorBoundary extends Component<Props, State> {
 const btn =
   'inline-flex min-h-12 items-center justify-center rounded-full border border-line-strong bg-surface px-6 text-[1rem] font-semibold text-ink hover:bg-sunken'
 
-export function CrashScreen({ chunk, onStartOver, onClear }: { chunk: boolean; onStartOver: () => void; onClear: () => void }) {
+export function CrashScreen({ chunk, onStartOver, onClear, locale = 'en' }: { chunk: boolean; onStartOver: () => void; onClear: () => void; locale?: Locale }) {
   return (
     <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-paper p-6 text-center text-ink" role="alert" data-testid="crash-screen">
-      <h1 className="text-balance text-3xl font-semibold tracking-tight">Something went wrong on our side</h1>
+      <h1 className="text-balance text-3xl font-semibold tracking-tight">{pick(locale, 'Something went wrong on our side', 'Algo sali\u00f3 mal de nuestro lado')}</h1>
       <p className="mt-3 max-w-[46ch] text-pretty text-lg text-ink-2">
         {chunk
-          ? 'A part of the page could not load, probably a dropped connection. Check the connection, then reload.'
-          : 'The camera and microphone have been switched off. Nothing was sent anywhere. Pick one of these to carry on.'}
+          ? pick(locale, 'A part of the page could not load, probably a dropped connection. Check the connection, then reload.', 'Una parte de la p\u00e1gina no pudo cargarse, probablemente por una interrupci\u00f3n de la conexi\u00f3n. Revisa la conexi\u00f3n y recarga la p\u00e1gina.')
+          : pick(locale, 'The camera and microphone have been switched off. Nothing was sent anywhere. Pick one of these to carry on.', 'La c\u00e1mara y el micr\u00f3fono se apagaron. No se envi\u00f3 nada. Elige una opci\u00f3n para continuar.')}
       </p>
       <div className="mt-8 flex flex-wrap justify-center gap-3">
         <button type="button" className={`${btn} !bg-ink !text-white hover:!opacity-90`} onClick={() => window.location.reload()}>
-          Reload the page
+          {pick(locale, 'Reload the page', 'Recargar la p\u00e1gina')}
         </button>
         <button type="button" className={btn} onClick={onStartOver}>
-          Start over
+          {pick(locale, 'Start over', 'Empezar de nuevo')}
         </button>
         <button type="button" className={btn} onClick={onClear}>
-          Clear my data
+          {pick(locale, 'Clear my data', 'Borrar mis datos')}
         </button>
       </div>
       <p className="mt-8 max-w-[46ch] text-[0.9375rem] text-ink-3">
-        This is only a BE-FAST guide, not a medical device. If you think someone is having a stroke, do not wait for this page.
+        {pick(locale, 'This is only a BE-FAST guide, not a medical device. If you think someone is having a stroke, do not wait for this page.', 'Esto es solo una gu\u00eda BE-FAST, no un dispositivo m\u00e9dico. Si crees que alguien est\u00e1 sufriendo un derrame cerebral, no esperes a esta p\u00e1gina.')}
       </p>
       {/* Not `position: fixed`-dependent: always the biggest, reddest thing on the screen. */}
       <a
         href="tel:911"
         className="mt-4 inline-flex min-h-14 items-center justify-center rounded-full bg-danger px-8 text-xl font-semibold text-white hover:bg-danger-press"
       >
-        Call 911
+        {pick(locale, 'Call 911', 'Llama al 911')}
       </a>
     </div>
   )

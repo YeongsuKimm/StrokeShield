@@ -57,7 +57,7 @@ export function HomePage() {
           <p className="mt-5 max-w-[44ch] text-pretty text-lg leading-relaxed text-ink-2">
             {pick(locale,
               <>A voice guide walks you through {CHECK_COUNT_WORD[steps.length] ?? steps.length} short stroke symptom checks. If our checks flag something, it can text a demo phone we set up ahead of time, with your location if you allow it.</>,
-              <>Una gu\u00eda de voz te acompa\u00f1a por {steps.length} revisiones breves de s\u00edntomas. Si algo se marca, puede enviar un mensaje al tel\u00e9fono de demo que configuramos, con tu ubicaci\u00f3n si la autorizas.</>,
+              <>Una guía de voz te acompaña por {steps.length} revisiones breves de síntomas. Si algo se marca, puede enviar un mensaje al teléfono de demo que configuramos, con tu ubicación si la autorizas.</>,
             )}
           </p>
 

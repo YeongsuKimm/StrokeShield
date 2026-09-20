@@ -6,10 +6,11 @@
  * The dialog itself is announced when it opens (title + description), so this only speaks at the start,
  * every 5 seconds, and at 3, 2 and 1 (the last moments to cancel matter most).
  */
-export function countdownAnnouncement(left: number, total: number): string | null {
+export function countdownAnnouncement(left: number, total: number, locale: 'en' | 'es' = 'en'): string | null {
   if (left <= 0) return null
   const say = left === total || left % 5 === 0 || left <= 3
   if (!say) return null
+  if (locale === 'es') return left === 1 ? 'Se enviar\u00e1 en 1 segundo.' : `Se enviar\u00e1 en ${left} segundos.`
   return left === 1 ? 'Sending in 1 second.' : `Sending in ${left} seconds.`
 }
 

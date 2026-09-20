@@ -6,7 +6,7 @@ import { eyeAdvice } from '../../lib/vision/eyeAdvice'
 import { useCaptureProgress } from '../../lib/vision/progressStore'
 import { isVisionScreenActive, runVisionWithOneRetry, showsRetryButton, VISION_STUCK_GRACE_MS, visionActionState } from '../../lib/vision/retry'
 import { Button } from '../ui/Button'
-import { pick, useLocale } from '../../lib/i18n'
+import { pick, translateRuntimeText, useLocale } from '../../lib/i18n'
 
 interface Props {
   test: Extract<TestName, 'eyes' | 'face' | 'arms'>
@@ -50,8 +50,8 @@ export function VisionRetryButton({ test, run, skippable = false }: Props) {
     <div className="flex flex-col items-center gap-3" data-testid="vision-retry">
       {advice && (
         <div className="max-w-[48ch] text-center" role="status">
-          <p className="text-lg font-semibold">{smartQuotes(advice.headline)}</p>
-          {advice.tips.length > 0 && <p className="mt-1 text-[1rem] text-ink-2">{smartQuotes(advice.tips.join(' '))}</p>}
+          <p className="text-lg font-semibold">{smartQuotes(translateRuntimeText(locale, advice.headline))}</p>
+          {advice.tips.length > 0 && <p className="mt-1 text-[1rem] text-ink-2">{smartQuotes(advice.tips.map((tip) => translateRuntimeText(locale, tip)).join(' '))}</p>}
         </div>
       )}
       <div className="flex flex-wrap items-center justify-center gap-3">

@@ -4,7 +4,7 @@ import { guideStartProblemText } from '../lib/media/permissions'
 import { useAgent } from '../lib/agent/useAgent'
 import { VOICE_CONSENT_TEXT } from '../lib/privacy/consentText'
 import { useSession } from '../lib/session/store'
-import { pick, useLocale } from '../lib/i18n'
+import { pick, translateRuntimeText, useLocale } from '../lib/i18n'
 
 // Lives in its own lazy chunk (with the ElevenLabs SDK, the heaviest dependency): the checks never need it, so it must
 // not delay the first paint. See App.tsx, which loads it behind a Suspense + error boundary.
@@ -76,7 +76,7 @@ function AgentControl() {
           role="alert"
           className="absolute bottom-full right-0 mb-3 w-[min(20rem,calc(100vw-2.5rem))] rounded-[var(--radius-panel)] border border-line-strong bg-surface p-4 text-[0.9375rem] leading-snug text-danger shadow-[var(--shadow-lift)] sm:bottom-auto sm:left-1/2 sm:right-auto sm:top-full sm:mb-0 sm:mt-3 sm:-translate-x-1/2"
         >
-          {note}
+          {translateRuntimeText(locale, note)}
         </p>
       )}
       {asking && !connected && (

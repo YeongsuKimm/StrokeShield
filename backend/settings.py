@@ -44,8 +44,8 @@ def demo_phone_number() -> str | None:
 
 
 def alert_channel() -> str:
-    """How alerts are delivered: 'email_sms' (carrier email-to-text gateway over SMTP) or 'twilio' (legacy, the default)."""
-    return "email_sms" if os.getenv("ALERT_CHANNEL", "twilio").strip().lower() == "email_sms" else "twilio"
+    """How alerts are delivered: email-to-SMS by default, or legacy Twilio when explicitly selected."""
+    return "twilio" if os.getenv("ALERT_CHANNEL", "email_sms").strip().lower() == "twilio" else "email_sms"
 
 
 _GATEWAY_DOMAIN = re.compile(r"^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$")

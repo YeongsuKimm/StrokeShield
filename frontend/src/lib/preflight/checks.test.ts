@@ -4,7 +4,7 @@ import { isPreflightSearch } from './store'
 
 const healthy = (): PreflightEnv => ({
   health: async () => ({ ok: true, dryRun: true, demoMode: false }),
-  signedUrl: async () => ({ signedUrl: 'wss://example.invalid/secret-token' }),
+  preflight: async () => ({ alertChannel: 'email_sms', dryRun: true, smtpConfigured: false, twilioConfigured: false, gatewayValid: true, agentConfigured: true, agentConfiguredEs: true, phonemeReady: true, secondOpinionEnabled: false }),
   isSecureContext: () => true,
   hostname: () => 'localhost',
   hasGetUserMedia: () => true,
@@ -23,16 +23,18 @@ async function run(env: PreflightEnv): Promise<Record<string, CheckResult>> {
 describe('preflight checks', () => {
   it('everything healthy: all green, overall ok, one row per item in the brief', async () => {
     const r = await run(healthy())
-    expect(Object.keys(r).sort()).toEqual(['backend', 'browser', 'camera', 'mediapipe', 'microphone', 'secure', 'voice'])
+    expect(Object.keys(r).sort()).toEqual(['backend', 'browser', 'camera', 'live-services', 'mediapipe', 'microphone', 'secure'])
     for (const row of Object.values(r)) expect(row.status).toBe('ok')
     expect(overall(r)).toBe('ok')
     expect(r.backend.detail).toMatch(/DRY RUN/)
     expect(r.mediapipe.detail).toMatch(/GPU/)
   })
 
-  it('never leaks the signed URL into the panel (only says a link was issued; no conversation started)', async () => {
-    const r = await run(healthy())
-    expect(JSON.stringify(r)).not.toContain('secret-token')
+  it('fails when either language guide or the live alert path is not configured', async () => {
+    const base = await healthy().preflight()
+    const r = await run({ ...healthy(), preflight: async () => ({ ...base, dryRun: false, smtpConfigured: false, agentConfiguredEs: false }) })
+    expect(r['live-services']).toMatchObject({ status: 'fail' })
+    expect(r['live-services'].detail).toMatch(/live alert|Spanish guide/)
   })
 
   it('backend down: red with a hint that the camera checks still work', async () => {
@@ -79,9 +81,9 @@ describe('preflight checks', () => {
     expect(bad.mediapipe.fix).toMatch(/pnpm install/)
   })
 
-  it('voice guide: unreachable is red; the other checks still finish', async () => {
-    const r = await run({ ...healthy(), signedUrl: () => Promise.reject(new Error('The server took too long')) })
-    expect(r.voice.status).toBe('fail')
+  it('service readiness: unreachable is red; the other checks still finish', async () => {
+    const r = await run({ ...healthy(), preflight: () => Promise.reject(new Error('The server took too long')) })
+    expect(r['live-services'].status).toBe('fail')
     expect(r.camera.status).toBe('ok')
   })
 

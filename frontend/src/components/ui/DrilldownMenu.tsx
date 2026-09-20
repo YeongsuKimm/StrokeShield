@@ -44,6 +44,8 @@ interface DrilldownMenuProps {
   onSelect?: (item: DrilldownMenuItem, trail: DrilldownMenuItem[]) => void
   /** Fires with the number of open branches (0 = collapsed to the top level). */
   onDepthChange?: (depth: number) => void
+  /** Accessible prefix for breadcrumb rows. */
+  backLabel?: string
 }
 
 /** Near-critically damped: rows settle in about 300 ms with no overshoot, because every row carries a word being read. */
@@ -109,7 +111,7 @@ function resolvePath(items: DrilldownMenuItem[], ids: string[]): DrilldownMenuIt
   return trail
 }
 
-export function DrilldownMenu({ items, className, defaultPath, onSelect, onDepthChange }: DrilldownMenuProps) {
+export function DrilldownMenu({ items, className, defaultPath, onSelect, onDepthChange, backLabel = 'Back to' }: DrilldownMenuProps) {
   const [trail, setTrail] = useState<DrilldownMenuItem[]>(() => (defaultPath ? resolvePath(items, defaultPath) : []))
   const reduceMotion = useReducedMotion()
 
@@ -154,6 +156,7 @@ export function DrilldownMenu({ items, className, defaultPath, onSelect, onDepth
               key={item.id}
               onActivate={() => (isTrail ? setTrail((current) => current.slice(0, depth)) : handleItem(item))}
               reduceMotion={!!reduceMotion}
+              backLabel={backLabel}
             />
           ))}
         </AnimatePresence>
@@ -169,6 +172,7 @@ interface RowProps {
   isTrail: boolean
   onActivate: () => void
   reduceMotion: boolean
+  backLabel: string
 }
 
 /**
@@ -178,7 +182,7 @@ interface RowProps {
  * em units the position was authored in). The inner one owns presence, so it can orchestrate the characters in and
  * out on a stagger, and drives its own removal through `usePresence`, which is what lets the exit run per character.
  */
-function Row({ item, depth, index, isTrail, onActivate, reduceMotion }: RowProps) {
+function Row({ item, depth, index, isTrail, onActivate, reduceMotion, backLabel }: RowProps) {
   const [isPresent, safeToRemove] = usePresence()
   const opensBelow = !!item.items?.length
 
@@ -200,7 +204,7 @@ function Row({ item, depth, index, isTrail, onActivate, reduceMotion }: RowProps
       <motion.button
         animate={isPresent ? 'visible' : 'hidden'}
         // The label is split per character for the animation, so give the button its real name explicitly.
-        aria-label={isTrail ? `Back to ${item.label}` : item.label}
+        aria-label={isTrail ? `${backLabel} ${item.label}` : item.label}
         aria-expanded={opensBelow ? isTrail : undefined}
         initial="hidden"
         onAnimationComplete={() => {
