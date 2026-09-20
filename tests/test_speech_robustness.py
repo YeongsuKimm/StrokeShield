@@ -105,7 +105,8 @@ def test_quality_signals_alone_are_capped_and_timing_corroboration_lifts_the_cap
     quality_only = {"articulation_rate": 4.5, "longest_pause_s": 0.1, "pause_ratio": 0.05, "f0_sd_semitones": 3.0,
                     "per": 0.6, "gop_mean": -4.5, "jitter_rap": 0.03, "shimmer_apq3": 0.08}
     s = score_metrics(quality_only)
-    assert s.uncapped_severity > 0.4 and s.severity == C.QUALITY_ONLY_CAP and s.cap_reason == "quality-only"
+    # Fluent rate and pauses are stronger healthy evidence than the generic quality-only fallback.
+    assert s.uncapped_severity > 0.4 and s.severity == C.DEMO_FLUENT_SEVERITY_CAP and s.cap_reason == "fluent-timing"
     slow = {**quality_only, "articulation_rate": 1.6, "longest_pause_s": 1.0, "pause_ratio": 0.4}
     s2 = score_metrics(slow)
     assert s2.severity == s2.uncapped_severity and s2.severity >= 0.85 and s2.cap_reason == ""

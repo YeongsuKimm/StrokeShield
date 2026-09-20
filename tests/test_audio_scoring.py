@@ -346,7 +346,8 @@ def test_bad_transcript_raises_severity_and_flags_mismatch():
     fake = lambda b: Transcript("you can teach old dogs", [])  # noqa: E731
     r = analyze_speech(wav("healthy"), PHRASE, transcriber=fake)
     assert r.metrics["cer"] > 0.3
-    assert r.severity > run("healthy").severity + 0.15
+    # A bad transcript must materially raise severity, but fluent timing deliberately caps a transcript-only alarm.
+    assert r.severity >= run("healthy").severity + 0.15
     assert any(f.startswith("transcript mismatch (CER ") for f in r.flags)
 
 

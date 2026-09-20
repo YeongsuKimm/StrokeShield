@@ -45,6 +45,7 @@ Status values: `not started` · `in progress` · `blocked` · `done (untested li
 - All thresholds/weights are uncalibrated (see spec files). Calibrate on teammate fixtures around hour ~20.
 
 ## Recent changes (newest first)
+- 2026-09-20 — speech/ci — aligned two stale speech robustness assertions with the intentional 0.15 fluent-timing false-positive cap; the production scorer was already behaving as documented.
 - 2026-09-20 — frontend/demo-alert — made the final result action explicit in demo mode: judges can send the configured demo text regardless of a negative result, with the permitted location when available, while preserving the countdown and backend destination guard.
 - 2026-09-20 — docs/demo-readiness — refreshed the judge scorecard, attack points and top-improvements table to match the implemented bilingual flow, readiness panel, deployment artifacts, current risk threshold and honest one-actor speech evidence; removed the unused Scribe env knob and made the SMS checker describe email-to-SMS first.
 - 2026-09-20 — alerts/agent/privacy — fail closed on a misspelled alert provider, omit patient names from the legacy Twilio message, make preflight require the selected provider and distinguish configuration from live verification, correct cancel-tool wording, and align deployment/privacy guidance with both agents and the current Gmail/carrier path.
