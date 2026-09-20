@@ -9,7 +9,7 @@ import { Button } from '../ui/Button'
 import { Disclaimer } from '../ui/Disclaimer'
 import { Icon } from '../ui/Icon'
 import { MicroLabel, SectionHead } from '../ui/Primitives'
-import { FAQS, HOTLINES, INFO_SECTIONS, PROCESS_STEPS, STATS, TEAM, TIME_NOTE } from './infoContent'
+import { FAQS, HOTLINES, INFO_SECTIONS, PROCESS_STEPS, RESOURCE_GROUPS, RESOURCES, STATS, TEAM, TIME_NOTE } from './infoContent'
 
 const section = (id: string) => INFO_SECTIONS.find((s) => s.id === id)!
 
@@ -130,6 +130,39 @@ export function InfoPage() {
               <p className="mt-4 max-w-[34ch] leading-relaxed text-ink-body">{s.caption}</p>
               <p className="mt-3 text-[0.875rem] text-ink-3">{s.source}</p>
             </article>
+          ))}
+        </div>
+
+        {/* Where to read more: education first, then the papers behind the four figures above. */}
+        <div id="resources" className="mt-14 scroll-mt-28">
+          <h3 className="text-2xl tracking-tight sm:text-3xl">Where to learn more</h3>
+          {(Object.keys(RESOURCE_GROUPS) as (keyof typeof RESOURCE_GROUPS)[]).map((g) => (
+            <div key={g} className="mt-8">
+              <MicroLabel className="mb-1">{RESOURCE_GROUPS[g].label}</MicroLabel>
+              <p className="mb-4 max-w-[62ch] text-ink-body">{RESOURCE_GROUPS[g].lede}</p>
+              <ul className="grid gap-3 sm:grid-cols-3">
+                {RESOURCES.filter((r) => r.group === g).map((r) => (
+                  <li key={r.href} className="flex">
+                    <a
+                      href={r.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group flex min-h-11 w-full flex-col rounded-[var(--radius-panel)] border border-line bg-surface p-5 transition-colors hover:border-accent hover:bg-sunken"
+                    >
+                      <span className="flex items-start justify-between gap-3">
+                        <span className="text-[1.0625rem] font-semibold leading-snug tracking-tight text-ink group-hover:text-accent">
+                          {r.title}
+                        </span>
+                        <Icon name="arrowUpRight" size={18} className="mt-0.5 shrink-0 text-ink-3 group-hover:text-accent" />
+                      </span>
+                      <span className="mt-2 text-[0.9375rem] leading-snug text-ink-3">{r.org}</span>
+                      <span className="mt-3 text-[1rem] leading-snug text-ink-body">{r.detail}</span>
+                      <span className="sr-only">(opens in a new tab)</span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
           ))}
         </div>
       </section>

@@ -8,4 +8,4 @@ export const DISCLAIMER_SHORT =
 
 /** Full statement: home, consent panel, every result band, the info page. */
 export const DISCLAIMER_LONG =
-  'StrokeShield is only a tool to help guide someone through the BE-FAST stroke check. It is not clinically accurate, not a medical device, and cannot diagnose or rule out a stroke. If you think someone may be having a stroke, call 911 right away.'
+  'StrokeShield is only a tool to help guide someone through the BE-FAST stroke check and promote public awareness. It is not clinically accurate, not a medical device, and cannot diagnose or rule out a stroke. If you think someone may be having a stroke, call 911 right away.'

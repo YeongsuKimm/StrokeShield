@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { FAQS, HOTLINES, INFO_SECTIONS, PROCESS_STEPS, STATS, TIME_NOTE } from '../components/pages/infoContent'
+import { FAQS, HOTLINES, INFO_SECTIONS, PROCESS_STEPS, RESOURCES, STATS, TIME_NOTE } from '../components/pages/infoContent'
 import { DISCLAIMER_LONG, DISCLAIMER_SHORT } from './disclaimer'
 import {
   BROWSER_GRANT_NOTE,
@@ -83,6 +83,7 @@ describe('no overclaiming in user-facing copy', () => {
     ...STATS.map((s) => s.caption),
     ...FAQS.flatMap((f) => [f.q, f.a]),
     ...HOTLINES.map((h) => h.detail),
+    ...RESOURCES.flatMap((r) => [r.org, r.title, r.detail]),
     // Screens whose copy is inline JSX rather than data.
     src('components/pages/HomePage.tsx'),
     src('components/pages/InfoPage.tsx'),
