@@ -6,6 +6,7 @@ import { eyeAdvice } from '../../lib/vision/eyeAdvice'
 import { useCaptureProgress } from '../../lib/vision/progressStore'
 import { isVisionScreenActive, runVisionWithOneRetry, showsRetryButton, VISION_STUCK_GRACE_MS, visionActionState } from '../../lib/vision/retry'
 import { Button } from '../ui/Button'
+import { pick, useLocale } from '../../lib/i18n'
 
 interface Props {
   test: Extract<TestName, 'eyes' | 'face' | 'arms'>
@@ -24,6 +25,7 @@ interface Props {
  * it), so a positioned patient can never be left on a screen with nothing to press.
  */
 export function VisionRetryButton({ test, run, skippable = false }: Props) {
+  const locale = useLocale((s) => s.locale)
   const skipTest = useSession((s) => s.skipTest)
   const running = useCaptureProgress((s) => s.running)
   const retryPending = useCaptureProgress((s) => s.retryPending)
@@ -54,11 +56,11 @@ export function VisionRetryButton({ test, run, skippable = false }: Props) {
       )}
       <div className="flex flex-wrap items-center justify-center gap-3">
         <Button icon="refresh" onClick={() => void runVisionWithOneRetry(run, () => isVisionScreenActive(test))}>
-          Try again
+          {pick(locale, 'Try again', 'Intentar de nuevo')}
         </Button>
         {skippable && (
           <Button tone="quiet" icon="skip" onClick={() => skipTest(test)}>
-            Continue without this check
+            {pick(locale, 'Continue without this check', 'Continuar sin esta revisi\u00f3n')}
           </Button>
         )}
       </div>

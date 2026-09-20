@@ -4,6 +4,7 @@ import { clearAllLocalData } from '../../lib/privacy/clearData'
 import { setPendingAnchor } from '../../lib/anchorTarget'
 import { DrilldownMenu } from '../ui/DrilldownMenu'
 import { buildMenu } from './menuTree'
+import { pick, useLocale } from '../../lib/i18n'
 
 /** Mark: a shield silhouette cut by the FAST timeline. Drawn, not an image, so it stays crisp at any size. */
 export function BrandMark({ size = 28 }: { size?: number }) {
@@ -22,6 +23,8 @@ export function BrandMark({ size = 28 }: { size?: number }) {
  * click outside, and after a selection.
  */
 export function SiteHeader() {
+  const locale = useLocale((s) => s.locale)
+  const setLocale = useLocale((s) => s.setLocale)
   const setRoute = useSession((s) => s.setRoute)
   const route = useSession((s) => s.route)
   const [depth, setDepth] = useState(0)
@@ -64,6 +67,7 @@ export function SiteHeader() {
   const items = useMemo(
     () =>
       buildMenu({
+        locale,
         route,
         goToSection: (id) => {
           setRoute('info')
@@ -84,7 +88,7 @@ export function SiteHeader() {
         },
         goToCheck: () => setRoute('home'),
       }),
-    [route, setRoute],
+    [route, setRoute, locale],
   )
 
   return (
@@ -99,12 +103,22 @@ export function SiteHeader() {
           <BrandMark />
         </span>
         <span className="font-serif text-xl leading-none sm:text-2xl">StrokeShield</span>
-        <span className="sr-only">Back to the start</span>
+        <span className="sr-only">{pick(locale, 'Back to the start', 'Volver al inicio')}</span>
       </button>
 
       {/* The card is its own width at each level (a compact pill when collapsed, wider when open) rather than
           "auto", so the width can transition. On a phone it overlays the brand while open, which is fine for a menu. */}
-      <div ref={wrapRef} className={`pointer-events-auto relative h-12 ${closedWidth}`}>
+      <div className="pointer-events-auto ml-auto flex items-start gap-2">
+      <button
+        type="button"
+        onClick={() => setLocale(locale === 'en' ? 'es' : 'en')}
+        lang={locale === 'en' ? 'es' : 'en'}
+        aria-label={pick(locale, 'Cambiar el sitio a espa\u00f1ol', 'Switch the site to English')}
+        className="min-h-12 rounded-[var(--radius-control)] border border-line-strong bg-surface px-3 text-sm font-semibold shadow-[var(--shadow-panel)] hover:bg-sunken"
+      >
+        {locale === 'en' ? 'ES' : 'EN'}
+      </button>
+      <div ref={wrapRef} className={`relative h-12 ${closedWidth}`}>
         <nav
           aria-label="Site sections"
           className={`absolute right-0 top-0 overflow-hidden rounded-[var(--radius-panel)] border border-line-strong bg-surface py-1.5 pr-3.5 transition-[width,padding,box-shadow] duration-300 ease-out ${
@@ -121,6 +135,7 @@ export function SiteHeader() {
             onSelect={collapse}
           />
         </nav>
+      </div>
       </div>
     </header>
   )

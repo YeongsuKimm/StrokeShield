@@ -5,6 +5,7 @@ import { copyToClipboard } from '../../lib/copyToClipboard'
 import { useSession } from '../../lib/session/store'
 import { buildSummary } from '../../lib/summary'
 import { Button } from '../ui/Button'
+import { pick, useLocale } from '../../lib/i18n'
 
 const COPIED_FOR_MS = 4000
 
@@ -15,6 +16,7 @@ const COPIED_FOR_MS = 4000
  * refused (then it is shown selected in a text area so it can be copied by hand).
  */
 export function CopySummary({ band }: { band: ResultBand }) {
+  const locale = useLocale((s) => s.locale)
   const [state, setState] = useState<'idle' | 'copied' | 'failed'>('idle')
   const [manual, setManual] = useState('')
   const areaRef = useRef<HTMLTextAreaElement>(null)
@@ -38,21 +40,21 @@ export function CopySummary({ band }: { band: ResultBand }) {
   return (
     <>
       <Button tone="quiet" onClick={() => void copy()}>
-        {state === 'copied' ? SUMMARY_COPY.copied : SUMMARY_COPY.button}
+        {state === 'copied' ? pick(locale, SUMMARY_COPY.copied, 'Resumen copiado') : pick(locale, SUMMARY_COPY.button, 'Copiar resumen en ingl\u00e9s')}
       </Button>
       {/* Polite, always mounted so screen readers pick up the change; the button label shows it for everyone else. */}
       <p role="status" className="sr-only">
-        {state === 'copied' ? SUMMARY_COPY.copied : state === 'failed' ? SUMMARY_COPY.failed : ''}
+        {state === 'copied' ? pick(locale, SUMMARY_COPY.copied, 'Resumen copiado') : state === 'failed' ? pick(locale, SUMMARY_COPY.failed, 'No se pudo copiar autom\u00e1ticamente. Selecciona el texto de abajo y c\u00f3pialo.') : ''}
       </p>
       {state === 'failed' && manual && (
         <div className="basis-full">
-          <p className="text-[0.875rem] text-ink-3">{SUMMARY_COPY.failed}</p>
+          <p className="text-[0.875rem] text-ink-3">{pick(locale, SUMMARY_COPY.failed, 'No se pudo copiar autom\u00e1ticamente. Selecciona el texto de abajo y c\u00f3pialo.')}</p>
           <textarea
             ref={areaRef}
             readOnly
             rows={9}
             value={manual}
-            aria-label={SUMMARY_COPY.manualLabel}
+            aria-label={pick(locale, SUMMARY_COPY.manualLabel, 'Resumen para copiar')}
             className="mt-2 w-full rounded-[var(--radius-control)] border border-line bg-surface p-3 text-[0.875rem] leading-snug text-ink-2"
           />
         </div>

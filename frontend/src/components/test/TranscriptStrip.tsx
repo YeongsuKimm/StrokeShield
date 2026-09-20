@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { useSession } from '../../lib/session/store'
 import { smartQuotes } from '../../lib/typography'
 import { Icon } from '../ui/Icon'
+import { pick, useLocale } from '../../lib/i18n'
 
 /**
  * Captions of what the ElevenLabs assistant said, under the camera stage on every test screen. The spec calls for
@@ -10,6 +11,7 @@ import { Icon } from '../ui/Icon'
  * `useAgent` pushes each utterance through `useSession.getState().addTranscript(...)`; this strip only renders them.
  */
 export function TranscriptStrip() {
+  const locale = useLocale((s) => s.locale)
   const transcript = useSession((s) => s.transcript)
   const connected = useSession((s) => s.agentConnected)
   const boxRef = useRef<HTMLDivElement>(null)
@@ -22,10 +24,10 @@ export function TranscriptStrip() {
   }, [transcript.length])
 
   return (
-    <section aria-label="Assistant transcript" className="mt-4">
+    <section aria-label={pick(locale, 'Assistant transcript', 'Transcripci\u00f3n de la gu\u00eda')} className="mt-4">
       <div className="mb-2 flex items-center gap-2">
         <span className={`size-2 rounded-full ${connected ? 'bg-ok breathe' : 'bg-ink-3'}`} aria-hidden />
-        <p className="label-micro text-ink-3">{connected ? 'Assistant · live' : 'Assistant · not connected'}</p>
+        <p className="label-micro text-ink-3">{connected ? pick(locale, 'Assistant \u00b7 live', 'Gu\u00eda \u00b7 en vivo') : pick(locale, 'Assistant \u00b7 not connected', 'Gu\u00eda \u00b7 sin conexi\u00f3n')}</p>
       </div>
 
       <div
@@ -35,19 +37,19 @@ export function TranscriptStrip() {
         // A scrollable box must be reachable by keyboard so older captions can be read; it also needs its own name.
         // oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex
         tabIndex={0}
-        aria-label="Conversation so far"
+        aria-label={pick(locale, 'Conversation so far', 'Conversaci\u00f3n hasta ahora')}
         className="max-h-24 overflow-y-auto rounded-[var(--radius-control)] border border-line bg-surface px-4 py-3"
       >
         {transcript.length === 0 ? (
           <p className="flex items-center gap-2 text-[1rem] text-ink-3">
             <Icon name="waveform" size={17} />
-            What the assistant says appears here.
+            {pick(locale, 'What the assistant says appears here.', 'Lo que diga la gu\u00eda aparecer\u00e1 aqu\u00ed.')}
           </p>
         ) : (
           <div className="space-y-1.5">
             {transcript.map((line) => (
               <p key={line.id} className="text-[1rem] leading-snug">
-                <span className="label-micro mr-2 text-ink-3">{line.speaker === 'agent' ? 'Assistant' : 'You'}</span>
+                <span className="label-micro mr-2 text-ink-3">{line.speaker === 'agent' ? pick(locale, 'Assistant', 'Gu\u00eda') : pick(locale, 'You', 'T\u00fa')}</span>
                 <span className={line.speaker === 'agent' ? 'text-ink' : 'text-ink-2'}>{smartQuotes(line.text)}</span>
               </p>
             ))}

@@ -29,6 +29,7 @@ import { FACE_MODEL, POSE_MODEL, WASM_BASE } from './lib/vision/useMediaPipe'
 import { pageTitle } from './lib/a11y/pageTitle'
 import { markAppReady } from './lib/a11y/useA11y'
 import { testSequence } from './lib/config'
+import { pick, useLocale } from './lib/i18n'
 
 // Loaded on demand (each its own chunk): the checks themselves never need them, so they must not delay first paint.
 // The voice guide (with the ElevenLabs SDK, the heaviest dependency), the info document and the preflight panel.
@@ -115,6 +116,7 @@ function CurrentScreen({ route }: { route: 'home' | 'info' }) {
 }
 
 function AppContent() {
+  const locale = useLocale((s) => s.locale)
   const phase = useSession((s) => s.phase)
   const route = useSession((s) => s.route)
   const demoEnabled = useSession((s) => s.demoEnabled)
@@ -122,8 +124,8 @@ function AppContent() {
   const setPreflightOpen = usePreflightUi((s) => s.setOpen)
   // A unique <title> for every screen (WCAG 2.4.2); focus moves to each screen's heading (lib/a11y/useA11y.ts).
   useEffect(() => {
-    document.title = pageTitle(route, phase, testSequence())
-  }, [route, phase])
+    document.title = pageTitle(route, phase, testSequence(), locale)
+  }, [route, phase, locale])
   useEffect(markAppReady, [])
   useAlertOnExpiry()
   useDemoHotkey()
@@ -146,7 +148,7 @@ function AppContent() {
         href="#main"
         className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-ink focus:px-4 focus:py-2 focus:text-white"
       >
-        Skip to the main content
+        {pick(locale, 'Skip to the main content', 'Saltar al contenido principal')}
       </a>
       {/* Second in tab order on every screen, right after the skip link: help is the first thing a keyboard user reaches.
           It is fixed-position, so its place in the DOM does not change where it is drawn. */}
@@ -191,7 +193,7 @@ function AppContent() {
           onClick={() => setPreflightOpen(true)}
           className="mt-2 text-[0.75rem] text-ink-3 underline underline-offset-2 hover:text-ink"
         >
-          Demo preflight
+          {pick(locale, 'Demo preflight', 'Comprobaci\u00f3n de la demo')}
         </button>
       </footer>
       <ConnectivityBanner />

@@ -129,7 +129,7 @@ reading, unit tests and lint only; a real screen reader and browser pass is stil
   `aria-hidden`; the guides keep a text alternative. The emergency countdown speaks at the start, every 5 s and at 3, 2, 1
   (`countdownAnnouncement`). Retry/permission errors use `role="alert"`. The transcript is a keyboard-scrollable `role="log"`;
   everything the voice agent says is also on screen there.
-- **Structure:** `lang="en"`, header/nav/main/footer landmarks, one `h1` per screen (the info page has an sr-only one),
+- **Structure:** document `lang` follows the selected locale (`en` or `es`), header/nav/main/footer landmarks, one `h1` per screen (the info page has an sr-only one),
   progress is an `ol` with state in words (done / you are here / skipped / still to do) and different shapes, not colour only.
 - **Contrast:** every token pair is checked by `lib/a11y/contrast.test.ts`, which reads `index.css`. Muted ink `--color-ink-3`
   was darkened to 5.0:1 on the sunken well; `--color-control-edge` (>= 3:1) borders quiet buttons and the consent checkbox;
@@ -141,6 +141,13 @@ reading, unit tests and lint only; a real screen reader and browser pass is stil
 - **Lint:** oxlint runs the `jsx-a11y` plugin (`.oxlintrc.json`); `prefer-tag-over-role` is off on purpose.
 - **Not changed on purpose:** the emergency countdown is the only timed step; everything else has no time limit. Scroll-to-info
   hand-off (wheel) is a shortcut only; the "How it works" button is always there.
+
+## Localization
+- English is served at `/`; Spanish is served at `/es`. `lib/i18n.ts` owns the locale, exact speech phrases and shared runtime-caption translations. The persistent `EN` / `ES` header control updates the path and document language without resetting the check.
+- Both locales use the same components, state machine, analyzers and safety behavior. Localized surfaces include consent and permissions, the four checks, camera cues and retry actions, transcript chrome, countdown/results, emergency actions, disclaimers, and the methods/resources document. Developer-only demo, calibration and preflight panels remain English.
+- `api.signedUrl(locale)` selects the separate ElevenLabs agent. Changing locale ends a connected guide and withdraws its voice opt-in, preventing the old-language agent from continuing. `api.analyzeSpeech` posts the locale and exact locale-specific target phrase; Spanish scoring behavior is in spec 03.
+- Vercel rewrites a direct `/es` request to the SPA entry point. Locale is not stored; refresh derives it from the URL. The backend's alert body remains English, and the Spanish preview labels that fact.
+- Spanish copy was AI-written and still needs review by a native speaker, especially emergency wording and consistent formality. Localization does not change analyzer thresholds.
 
 ## Demo / simulation mode
 Enabled with `?demo=1` or `Shift+D`. Shows a floating **Demo Panel**:

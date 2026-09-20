@@ -1,5 +1,5 @@
-import { SPEECH_TARGET_PHRASE } from '../../lib/config'
 import { smartQuotes } from '../../lib/typography'
+import { pick, SPEECH_PHRASES, translateRuntimeText, useLocale } from '../../lib/i18n'
 import { useMic } from '../../lib/media/micLevel'
 import { useSpeechProgress } from '../../lib/speech/speechProgressStore'
 import { useSpeechRunner } from '../../lib/speech/speechRunner'
@@ -19,6 +19,7 @@ import { Waveform } from './Waveform'
  * than a crash; the skip hatch in TestScreen is the way out if it keeps failing.
  */
 export function SpeechTest() {
+  const locale = useLocale((s) => s.locale)
   const { runSpeech, running } = useSpeechRunner()
   const stage = useSpeechProgress((s) => s.stage)
   const hint = useSpeechProgress((s) => s.hint)
@@ -30,26 +31,26 @@ export function SpeechTest() {
   const status =
     stage === 'listening'
       ? heard
-        ? 'Listening. Say the sentence now.'
-        : 'Getting the microphone ready…'
+        ? pick(locale, 'Listening. Say the sentence now.', 'Escuchando. Di la frase ahora.')
+        : pick(locale, 'Getting the microphone ready\u2026', 'Preparando el micr\u00f3fono\u2026')
       : stage === 'analyzing'
-        ? 'Analyzing your speech…'
+        ? pick(locale, 'Analyzing your speech\u2026', 'Analizando tu habla\u2026')
         : verdict.muted
-          ? 'Waiting for your microphone.'
-          : 'Ready when you are.'
+          ? pick(locale, 'Waiting for your microphone.', 'Esperando el micr\u00f3fono.')
+          : pick(locale, 'Ready when you are.', 'Listo cuando t\u00fa lo est\u00e9s.')
 
   return (
     <TestScreen
       test="speech"
-      title="Read this out loud"
-      lede="Move back close to the screen, then say it once at your normal pace. No rush, no right accent."
+      title={pick(locale, 'Read this out loud', 'Lee esto en voz alta')}
+      lede={pick(locale, 'Move back close to the screen, then say it once at your normal pace. No rush, no right accent.', 'Vuelve a acercarte a la pantalla y dilo una vez a tu ritmo normal. Sin prisa; no hay un acento correcto.')}
     >
       <div className="rounded-[var(--radius-panel)] border border-line bg-surface p-6 shadow-[var(--shadow-panel)] sm:p-10">
-        <MicroLabel className="mb-4 text-center">The sentence</MicroLabel>
+        <MicroLabel className="mb-4 text-center">{pick(locale, 'The sentence', 'La frase')}</MicroLabel>
 
         {/* The phrase is the hero of this screen: the largest type in the app. */}
         <blockquote className="text-balance text-center text-3xl leading-tight sm:text-5xl sm:leading-[1.12]">
-          “{smartQuotes(SPEECH_TARGET_PHRASE)}”
+          “{smartQuotes(SPEECH_PHRASES[locale])}”
         </blockquote>
 
         <div className="mt-8 rounded-[var(--radius-control)] bg-sunken px-4 py-3">
@@ -66,7 +67,7 @@ export function SpeechTest() {
             role="alert"
           >
             <Icon name="alert" size={18} className="mt-px shrink-0" />
-            {smartQuotes(hint)}
+            {smartQuotes(translateRuntimeText(locale, hint))}
           </p>
         )}
 
@@ -78,7 +79,7 @@ export function SpeechTest() {
             onClick={() => !running && void runSpeech()}
             aria-disabled={running}
           >
-            {stage === 'listening' ? 'Recording…' : stage === 'analyzing' ? 'Analyzing…' : hint ? 'Try again' : 'Start recording'}
+            {stage === 'listening' ? pick(locale, 'Recording\u2026', 'Grabando\u2026') : stage === 'analyzing' ? pick(locale, 'Analyzing\u2026', 'Analizando\u2026') : hint ? pick(locale, 'Try again', 'Intentar de nuevo') : pick(locale, 'Start recording', 'Empezar a grabar')}
           </Button>
         </div>
       </div>

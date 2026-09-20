@@ -6,6 +6,7 @@ import { AlertPreview } from './result/AlertPreview'
 import { Button } from './ui/Button'
 import { Icon } from './ui/Icon'
 import { Ring } from './ui/Primitives'
+import { pick, useLocale } from '../lib/i18n'
 
 /**
  * The cancelable countdown before an alert goes out (docs/spec/05). Full-screen and unmistakable: the patient may
@@ -15,6 +16,7 @@ import { Ring } from './ui/Primitives'
  * "demo contact" rather than "911" so the demo never overstates what it does.
  */
 export function CountdownModal() {
+  const locale = useLocale((s) => s.locale)
   const alertReason = useSession((s) => s.alertReason)
   const agentConnected = useSession((s) => s.agentConnected)
   const cancelCountdown = useSession((s) => s.cancelCountdown)
@@ -54,11 +56,11 @@ export function CountdownModal() {
       <div className="m-auto w-full max-w-lg rounded-[var(--radius-panel)] bg-surface p-8 text-center shadow-[var(--shadow-lift)] sm:p-12">
         <p className="label-micro flex items-center justify-center gap-2 text-danger">
           <Icon name="alert" size={15} />
-          {alertReason === 'user_request' ? 'You asked for help' : 'Checks suggest urgent attention'}
+          {alertReason === 'user_request' ? pick(locale, 'You asked for help', 'Pediste ayuda') : pick(locale, 'Checks suggest urgent attention', 'Las revisiones sugieren atenci\u00f3n urgente')}
         </p>
 
         <h2 id="countdown-title" className="mt-4 text-balance text-3xl font-semibold leading-tight tracking-tight">
-          Texting the demo contact
+          {pick(locale, 'Texting the demo contact', 'Enviando mensaje al contacto de demo')}
         </h2>
 
         {/* Sparse spoken countdown (start, every 5 s, last 3 s): the ring below is decorative and never read out. */}
@@ -78,17 +80,17 @@ export function CountdownModal() {
         </div>
 
         <p id="countdown-body" className="mx-auto max-w-[38ch] text-lg text-ink-2">
-          A text message with your location is about to go out.{' '}
-          {agentConnected ? 'Say “cancel”, or press the button.' : 'Press the button to cancel.'}
+          {pick(locale, 'A text message with your location is about to go out. ', 'Est\u00e1 a punto de enviarse un mensaje con tu ubicaci\u00f3n. ')}
+          {agentConnected ? pick(locale, 'Say “cancel”, or press the button.', 'Di “cancelar” o pulsa el bot\u00f3n.') : pick(locale, 'Press the button to cancel.', 'Pulsa el bot\u00f3n para cancelar.')}
         </p>
 
         <Button id="countdown-cancel" size="xl" tone="neutral" block className="mt-8" onClick={cancelCountdown}>
-          Cancel the text
+          {pick(locale, 'Cancel the text', 'Cancelar el mensaje')}
         </Button>
 
         <a href="tel:911" className="mt-4 inline-flex items-center gap-2 font-medium text-danger underline underline-offset-4">
           <Icon name="phone" size={16} />
-          Or call 911 yourself, right now
+          {pick(locale, 'Or call 911 yourself, right now', 'O llama al 911 ahora mismo')}
         </a>
 
         {/* Below Cancel and 911 on purpose: a courtesy that never moves them, and never delays the countdown. */}

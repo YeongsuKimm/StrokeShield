@@ -3,6 +3,7 @@ import { describeAlertFailure, formatWait, isDemoNothingSent } from '../../lib/a
 import { useSession } from '../../lib/session/store'
 import { Button } from '../ui/Button'
 import { Icon } from '../ui/Icon'
+import { pick, useLocale } from '../../lib/i18n'
 
 /** Seconds left until `deadline` (ms epoch), ticking once a second. */
 function useSecondsUntil(deadline: number | null): number {
@@ -21,6 +22,7 @@ function useSecondsUntil(deadline: number | null): number {
  * choose a destination; the backend only ever texts DEMO_PHONE_NUMBER.
  */
 export function AlertStatus() {
+  const locale = useLocale((s) => s.locale)
   const alertStatus = useSession((s) => s.alertStatus)
   const alertResponse = useSession((s) => s.alertResponse)
   const retryAlert = useSession((s) => s.retryAlert)
@@ -36,15 +38,15 @@ export function AlertStatus() {
       <div className="mt-4 rounded-[var(--radius-control)] border-2 border-danger bg-surface px-5 py-5" role="alert">
         <p className="flex items-center gap-2 text-lg font-semibold text-danger">
           <Icon name="alert" size={20} />
-          The text did not go through: {failure.title}
+          {pick(locale, `The text did not go through: ${failure.title}`, 'El mensaje no se pudo enviar.')}
         </p>
         <p className="mt-2 text-[1rem] text-ink-2">{failure.detail}</p>
         <div className="mt-4 flex flex-col gap-3 sm:flex-row">
           <Button as="a" href="tel:911" tone="danger" size="xl" icon="phone" className="sm:flex-1">
-            Call 911 now
+            {pick(locale, 'Call 911 now', 'Llama al 911 ahora')}
           </Button>
           <Button tone="quiet" size="lg" icon="refresh" disabled={wait > 0} onClick={() => retryAlert()}>
-            {wait > 0 ? `Send again in ${formatWait(wait)}` : 'Try sending again'}
+            {wait > 0 ? pick(locale, `Send again in ${formatWait(wait)}`, `Volver a enviar en ${formatWait(wait)}`) : pick(locale, 'Try sending again', 'Intentar enviar de nuevo')}
           </Button>
         </div>
       </div>
@@ -63,13 +65,13 @@ export function AlertStatus() {
         className={alertStatus === 'sent' && !nothingSent ? 'text-ok' : 'text-ink-3'}
       />
       <p className="font-medium">
-        {alertStatus === 'sending' && 'Contacting the demo number…'}
-        {alertStatus === 'sent' && !nothingSent && 'Alert sent to the demo number.'}
-        {nothingSent && 'Demo mode: nothing was sent.'}
+        {alertStatus === 'sending' && pick(locale, 'Contacting the demo number\u2026', 'Contactando al n\u00famero de demo\u2026')}
+        {alertStatus === 'sent' && !nothingSent && pick(locale, 'Alert sent to the demo number.', 'Alerta enviada al n\u00famero de demo.')}
+        {nothingSent && pick(locale, 'Demo mode: nothing was sent.', 'Modo demo: no se envi\u00f3 nada.')}
       </p>
       {nothingSent && (
         <span className="text-[0.9375rem] text-ink-2">
-          The server is in dry-run mode and only logged the alert. No text message went out, so call 911 yourself if this is real.
+          {pick(locale, 'The server is in dry-run mode and only logged the alert. No text message went out, so call 911 yourself if this is real.', 'El servidor est\u00e1 en modo de prueba y solo registr\u00f3 la alerta. No sali\u00f3 ning\u00fan mensaje; llama al 911 si esto es real.')}
         </span>
       )}
     </div>

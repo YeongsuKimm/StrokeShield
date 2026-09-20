@@ -3,6 +3,7 @@ import { MIN_CONFIDENCE, SPEECH_TARGET_PHRASE } from '../config'
 import type { TestResult } from '../contracts'
 import { useSession } from '../session/store'
 import { ApiError } from '../resilience/apiErrors'
+import { SPEECH_PHRASES } from '../i18n'
 import { MicError, RecordingCancelled } from './micErrors'
 import type { RecordSpeechOptions, SpeechRecording } from './recorder'
 import { useSpeechProgress } from './speechProgressStore'
@@ -24,7 +25,7 @@ interface Harness {
   hints: (string | undefined)[]
   published: unknown[]
   record: ReturnType<typeof vi.fn<(o: RecordSpeechOptions) => Promise<SpeechRecording>>>
-  analyze: ReturnType<typeof vi.fn<(w: Blob, p: string) => Promise<TestResult>>>
+  analyze: ReturnType<typeof vi.fn<(w: Blob, p: string, lang?: 'en' | 'es') => Promise<TestResult>>>
   onRecorded: ReturnType<typeof vi.fn<SpeechRunnerDeps['onRecorded']>>
 }
 
@@ -33,7 +34,7 @@ function harness(over: Partial<SpeechRunnerDeps> = {}): Harness {
   const hints: (string | undefined)[] = []
   const published: unknown[] = []
   const record = vi.fn<(o: RecordSpeechOptions) => Promise<SpeechRecording>>(() => Promise.resolve(recording()))
-  const analyze = vi.fn<(w: Blob, p: string) => Promise<TestResult>>(() => Promise.resolve(okResult))
+  const analyze = vi.fn<(w: Blob, p: string, lang?: 'en' | 'es') => Promise<TestResult>>(() => Promise.resolve(okResult))
   const onRecorded = vi.fn<SpeechRunnerDeps['onRecorded']>()
   const deps: SpeechRunnerDeps = {
     record,
@@ -74,6 +75,12 @@ describe('createSpeechRunner', () => {
     expect(runner.running).toBe(false)
     expect(h.published).toContainEqual(expect.objectContaining({ stage: 'analyzing' }))
     expect(h.published.at(-1)).toMatchObject({ running: false, stage: 'idle' })
+  })
+
+  it('resolves the Spanish phrase and language together when a run starts', async () => {
+    const h = harness({ targetPhrase: () => SPEECH_PHRASES.es, lang: () => 'es' })
+    await createSpeechRunner(h.deps).runSpeech()
+    expect(h.analyze).toHaveBeenCalledWith(expect.any(Blob), SPEECH_PHRASES.es, 'es')
   })
 
   it('publishes heard=true only once the first audio chunk arrives (so the UI does not ask for speech while the mic is opening)', async () => {

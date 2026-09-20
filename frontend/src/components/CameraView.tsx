@@ -11,6 +11,7 @@ import { drawOverlay } from './overlayDraw'
 import { Button } from './ui/Button'
 import { Icon } from './ui/Icon'
 import { Ring } from './ui/Primitives'
+import { pick, translateRuntimeText, useLocale } from '../lib/i18n'
 
 const DEBUG = isDebugSearch(globalThis.location?.search ?? '')
 
@@ -27,6 +28,7 @@ interface Props {
 // (landmark math elsewhere is RAW/unmirrored). The frame reads as a dark viewfinder inset into the light page;
 // its border carries the framing verdict (neutral → amber → green).
 export function CameraView({ guide, overlay, hideGuideWhileCapturing = true }: Props) {
+  const locale = useLocale((s) => s.locale)
   const { engine, summary } = useMediaPipe()
   const progress = useCaptureProgress((s) => s.progress)
   const hint = useSession((s) => s.hint)
@@ -101,15 +103,15 @@ export function CameraView({ guide, overlay, hideGuideWhileCapturing = true }: P
   const spoken = !progress
     ? ''
     : progress.phase === 'intro'
-      ? smartQuotes(progress.caption ?? '')
+      ? smartQuotes(translateRuntimeText(locale, progress.caption ?? ''))
       : progress.phase === 'cue'
-        ? smartQuotes(progress.caption ?? '')
+        ? smartQuotes(translateRuntimeText(locale, progress.caption ?? ''))
         : hint
-          ? smartQuotes(hint)
+          ? smartQuotes(translateRuntimeText(locale, hint))
           : capturing || timed
             ? captureAnnouncement('', progress.secondsLeft)
             : framingOk
-              ? 'Hold it right there'
+              ? pick(locale, 'Hold it right there', 'Mantente justo ah\u00ed')
               : ''
   const announced = useThrottledAnnouncement(spoken)
 
@@ -135,7 +137,7 @@ export function CameraView({ guide, overlay, hideGuideWhileCapturing = true }: P
               className="flex max-w-full items-center gap-2.5 rounded-full bg-caution px-5 py-3 text-center text-xl font-semibold text-white shadow-[var(--shadow-lift)] sm:text-2xl"
             >
               <Icon name="alert" size={22} className="shrink-0" />
-              {smartQuotes(hint)}
+              {smartQuotes(translateRuntimeText(locale, hint))}
             </p>
           </div>
         )}
@@ -143,7 +145,7 @@ export function CameraView({ guide, overlay, hideGuideWhileCapturing = true }: P
           <div className="absolute inset-x-3 top-3 flex justify-center">
             <p className="flex items-center gap-2.5 rounded-full bg-ok px-5 py-3 text-xl font-semibold text-white shadow-[var(--shadow-lift)] sm:text-2xl">
               <Icon name="check" size={22} />
-              Hold it right there
+              {pick(locale, 'Hold it right there', 'Mantente justo ah\u00ed')}
             </p>
           </div>
         )}
@@ -153,7 +155,7 @@ export function CameraView({ guide, overlay, hideGuideWhileCapturing = true }: P
         {progress?.test === 'face' && progress.phase === 'smile' && (
           <div className="absolute inset-x-3 top-3 flex justify-center">
             <p className="pop rounded-full bg-accent px-7 py-2.5 text-3xl font-extrabold tracking-wide text-white shadow-[var(--shadow-lift)] sm:text-4xl">
-              SMILE!
+              {pick(locale, 'SMILE!', '\u00a1SONR\u00cdE!')}
             </p>
           </div>
         )}
@@ -165,8 +167,8 @@ export function CameraView({ guide, overlay, hideGuideWhileCapturing = true }: P
             <div
               className="pop max-w-[34rem] rounded-[var(--radius-panel)] bg-accent px-7 py-6 text-center text-white shadow-[var(--shadow-lift)]"
             >
-              <p className="text-balance text-2xl font-semibold leading-snug sm:text-3xl">{smartQuotes(progress.caption)}</p>
-              <p className="mt-3 text-[1rem] font-medium text-white/85">Starting in {progress.secondsLeft}…</p>
+              <p className="text-balance text-2xl font-semibold leading-snug sm:text-3xl">{smartQuotes(translateRuntimeText(locale, progress.caption))}</p>
+              <p className="mt-3 text-[1rem] font-medium text-white/85">{pick(locale, `Starting in ${progress.secondsLeft}\u2026`, `Comienza en ${progress.secondsLeft}\u2026`)}</p>
             </div>
           </div>
         )}
@@ -197,7 +199,7 @@ export function CameraView({ guide, overlay, hideGuideWhileCapturing = true }: P
           >
             {timed && <Ring fraction={progress.fraction} label={String(progress.secondsLeft)} size={56} stroke={5} tone="#ffffff" />}
             <p className="text-balance text-center text-2xl font-semibold leading-tight sm:text-3xl">
-              {smartQuotes(progress.caption)}
+              {smartQuotes(translateRuntimeText(locale, progress.caption))}
             </p>
           </div>
         )}
@@ -211,13 +213,13 @@ export function CameraView({ guide, overlay, hideGuideWhileCapturing = true }: P
                   <Icon name="camera" size={24} />
                 </span>
                 <div role="alert">
-                  <p className="text-lg font-semibold text-stage-ink">The camera did not start</p>
+                  <p className="text-lg font-semibold text-stage-ink">{pick(locale, 'The camera did not start', 'La c\u00e1mara no se inici\u00f3')}</p>
                   <p className="mt-1 max-w-sm text-[1rem] text-stage-ink-2">{smartQuotes(summary.error?.message ?? '')}</p>
                 </div>
                 <Button tone="stage" icon="refresh" onClick={() => engine.restart()}>
-                  Try the camera again
+                  {pick(locale, 'Try the camera again', 'Intentar con la c\u00e1mara de nuevo')}
                 </Button>
-                <p className="text-xs text-stage-ink-2">You can still skip this check, or add ?demo=1 to rehearse without a camera.</p>
+                <p className="text-xs text-stage-ink-2">{pick(locale, 'You can still skip this check, or add ?demo=1 to rehearse without a camera.', 'Puedes omitir esta revisi\u00f3n o a\u00f1adir ?demo=1 para ensayar sin c\u00e1mara.')}</p>
               </>
             ) : (
               <>
@@ -225,7 +227,7 @@ export function CameraView({ guide, overlay, hideGuideWhileCapturing = true }: P
                   <Icon name="camera" size={24} className="breathe" />
                 </span>
                 <p className="text-[1rem] text-stage-ink-2">
-                  {summary.status === 'starting' ? 'Starting the camera and loading the models…' : 'The camera is off.'}
+                  {summary.status === 'starting' ? pick(locale, 'Starting the camera and loading the models\u2026', 'Iniciando la c\u00e1mara y cargando los modelos\u2026') : pick(locale, 'The camera is off.', 'La c\u00e1mara est\u00e1 apagada.')}
                 </p>
               </>
             )}

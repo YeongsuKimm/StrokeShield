@@ -10,8 +10,8 @@
 //
 // React entry point: `useSpeechRunner()` returns { runSpeech, cancel, running }.
 import { api } from '../api'
-import { SPEECH_TARGET_PHRASE } from '../config'
 import type { TestResult } from '../contracts'
+import { getLocale, SPEECH_PHRASES, type Locale } from '../i18n'
 import { isApiError } from '../resilience/apiErrors'
 import { useSession } from '../session/store'
 import { MIC_ERROR_TEXT, MicError, RecordingCancelled } from './micErrors'
@@ -33,25 +33,27 @@ export const SPEECH_HINTS = {
 
 export interface SpeechRunnerDeps {
   record: (opts: RecordSpeechOptions) => Promise<SpeechRecording>
-  analyze: (wav: Blob, targetPhrase: string) => Promise<TestResult>
+  analyze: (wav: Blob, targetPhrase: string, lang?: Locale) => Promise<TestResult>
   completeTest: (r: TestResult) => void
   setHint: (h?: string) => void
   publish: (p: Partial<SpeechProgress> & { running?: boolean }) => void
   /** Epoch ms. */
   now: () => number
-  targetPhrase: string
+  targetPhrase: string | (() => string)
+  lang?: () => Locale
   /** Called once per recorded clip that contained speech (calibration recorder; no-op unless `?record=1`). */
   onRecorded: (rec: SpeechRecording, result: TestResult) => void
 }
 
 const defaultDeps = (): SpeechRunnerDeps => ({
   record: (opts) => recordSpeech(opts),
-  analyze: (wav, phrase) => api.analyzeSpeech(wav, phrase),
+  analyze: (wav, phrase, lang) => api.analyzeSpeech(wav, phrase, lang),
   completeTest: (r) => useSession.getState().completeTest(r),
   setHint: (h) => useSession.getState().setHint(h),
   publish: (p) => useSpeechProgress.getState().set(p),
   now: () => Date.now(),
-  targetPhrase: SPEECH_TARGET_PHRASE,
+  targetPhrase: () => SPEECH_PHRASES[getLocale()],
+  lang: getLocale,
   onRecorded: recordSpeechRun,
 })
 
@@ -135,7 +137,8 @@ export function createSpeechRunner(overrides: Partial<SpeechRunnerDeps> = {}): S
     deps.publish({ stage: 'analyzing', level: 0 })
     let result: TestResult
     try {
-      const outcome = await Promise.race([deps.analyze(rec.wav, deps.targetPhrase), abortPromise])
+      const phrase = typeof deps.targetPhrase === 'function' ? deps.targetPhrase() : deps.targetPhrase
+      const outcome = await Promise.race([deps.analyze(rec.wav, phrase, deps.lang?.() ?? 'en'), abortPromise])
       if (outcome === 'aborted') return cancelled()
       if (!looksLikeResult(outcome)) throw new Error('malformed speech result')
       result = outcome

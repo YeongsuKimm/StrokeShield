@@ -4,6 +4,7 @@ import { useSession } from '../lib/session/store'
 import type { TestName, TestResult } from '../lib/contracts'
 import { Icon } from './ui/Icon'
 import { Meter, MicroLabel, Pill } from './ui/Primitives'
+import { pick, TEST_LABELS, translateRuntimeText, useLocale } from '../lib/i18n'
 
 const TEST_LABEL: Record<TestName, string> = { speech: 'Speech', eyes: 'Eyes', face: 'Face', arms: 'Arms' }
 const pct = (n: number) => `${Math.round(n * 100)}%`
@@ -20,6 +21,7 @@ function statusOf(r: TestResult | undefined, skipped: boolean): Status {
 const severityTone = (s: number) => (s >= 0.6 ? 'danger' : s >= 0.3 ? 'caution' : 'ok')
 
 function TestCard({ test }: { test: TestName }) {
+  const locale = useLocale((s) => s.locale)
   const result = useSession((s) => s.results[test])
   const skipped = useSession((s) => s.skipped.includes(test))
   const [open, setOpen] = useState(false)
@@ -29,17 +31,17 @@ function TestCard({ test }: { test: TestName }) {
   return (
     <article className="bg-surface p-5">
       <div className="flex items-start justify-between gap-3">
-        <h3 className="font-semibold tracking-tight">{TEST_LABEL[test]}</h3>
+        <h3 className="font-semibold tracking-tight">{locale === 'es' ? TEST_LABELS.es[test] : TEST_LABEL[test]}</h3>
         {status === 'scored' && result ? (
-          <Pill tone={severityTone(result.severity)}><span className="tnum">{pct(result.severity)}</span> severity</Pill>
+          <Pill tone={severityTone(result.severity)}><span className="tnum">{pct(result.severity)}</span> {pick(locale, 'severity', 'gravedad')}</Pill>
         ) : status === 'skipped' ? (
-          <Pill tone="neutral">Skipped</Pill>
+          <Pill tone="neutral">{pick(locale, 'Skipped', 'Omitido')}</Pill>
         ) : status === 'unmeasured' ? (
           <Pill tone="caution" icon="alert">
-            Not measured
+            {pick(locale, 'Not measured', 'No medido')}
           </Pill>
         ) : (
-          <Pill tone="neutral">Not run yet</Pill>
+          <Pill tone="neutral">{pick(locale, 'Not run yet', 'A\u00fan no realizado')}</Pill>
         )}
       </div>
 
@@ -47,15 +49,15 @@ function TestCard({ test }: { test: TestName }) {
         <Meter
           value={status === 'scored' && result ? result.severity : 0}
           tone={status === 'scored' && result ? severityTone(result.severity) : 'neutral'}
-          label={`${TEST_LABEL[test]} severity`}
+          label={pick(locale, `${TEST_LABEL[test]} severity`, `Gravedad: ${TEST_LABELS.es[test]}`)}
         />
       </div>
 
       <p className="mt-2 flex items-center gap-1.5 text-[0.875rem] text-ink-3">
-        <span className="label-micro">Confidence</span>
+        <span className="label-micro">{pick(locale, 'Confidence', 'Confianza')}</span>
         <span className="tnum">{result && !result.needsRetry ? pct(result.confidence) : '—'}</span>
         <span className="text-line-strong">·</span>
-        <span className="label-micro">Counts up to</span>
+        <span className="label-micro">{pick(locale, 'Counts up to', 'Peso m\u00e1ximo')}</span>
         <span className="tnum">{MAX_WEIGHTS[test].toFixed(2)}</span>
       </p>
 
@@ -64,7 +66,7 @@ function TestCard({ test }: { test: TestName }) {
           {result.flags.map((f) => (
             <li key={f} className="flex gap-2 text-[0.9375rem] leading-snug text-ink-2">
               <span className="mt-1.5 size-1 shrink-0 rounded-full bg-ink-3" aria-hidden />
-              {f}
+              {translateRuntimeText(locale, f)}
             </li>
           ))}
         </ul>
@@ -78,7 +80,7 @@ function TestCard({ test }: { test: TestName }) {
             aria-expanded={open}
             className="mt-3 flex items-center gap-1 text-[0.9375rem] font-medium text-accent"
           >
-            {open ? 'Hide' : 'Show'} the {metrics.length} raw numbers
+            {pick(locale, `${open ? 'Hide' : 'Show'} the ${metrics.length} raw numbers`, `${open ? 'Ocultar' : 'Mostrar'} los ${metrics.length} valores sin procesar`)}
             <Icon name="chevronDown" size={14} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
           </button>
           {open && (
@@ -102,11 +104,12 @@ function TestCard({ test }: { test: TestName }) {
  * This is the judge-facing explanation of why the app did or did not call for help (docs/spec/06).
  */
 export function Dashboard() {
+  const locale = useLocale((s) => s.locale)
   const risk = useSession((s) => s.risk)
   const counted = risk?.contributions.length ?? 0
 
   return (
-    <section aria-label="Risk breakdown" className="space-y-4">
+    <section aria-label={pick(locale, 'Risk breakdown', 'Desglose del riesgo')} className="space-y-4">
       <div className="grid gap-px overflow-hidden rounded-[var(--radius-sheet)] border border-line bg-line sm:grid-cols-2">
         {testSequence().map((t) => (
           <TestCard key={t} test={t} />
@@ -116,14 +119,14 @@ export function Dashboard() {
       <div className="rounded-[var(--radius-panel)] border border-line bg-surface p-6">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <MicroLabel>Combined risk</MicroLabel>
+            <MicroLabel>{pick(locale, 'Combined risk', 'Riesgo combinado')}</MicroLabel>
             <p className="tnum mt-1 font-serif text-5xl leading-none">
               {risk ? pct(risk.risk) : '—'}
             </p>
           </div>
           <p className="text-[0.9375rem] text-ink-3">
-            Alert threshold <span className="tnum">{pct(risk?.threshold ?? 0.5)}</span> ·{' '}
-            {counted} of {testSequence().length} checks counted
+            {pick(locale, 'Alert threshold', 'Umbral de alerta')} <span className="tnum">{pct(risk?.threshold ?? 0.5)}</span> ·{' '}
+            {pick(locale, `${counted} of ${testSequence().length} checks counted`, `${counted} de ${testSequence().length} revisiones incluidas`)}
           </p>
         </div>
 
@@ -133,17 +136,17 @@ export function Dashboard() {
             tone={risk?.triggered ? 'danger' : 'ok'}
             mark={risk?.threshold ?? 0.5}
             height="h-3"
-            label="Combined check score (uncalibrated)"
+            label={pick(locale, 'Combined check score (uncalibrated)', 'Puntaje combinado (sin calibrar)')}
           />
         </div>
 
         {counted > 0 && (
           <details className="mt-5 border-t border-line pt-4">
-            <summary className="text-[0.9375rem] font-medium text-ink-2">How the score is worked out</summary>
+            <summary className="text-[0.9375rem] font-medium text-ink-2">{pick(locale, 'How the score is worked out', 'C\u00f3mo se calcula el puntaje')}</summary>
             <dl className="mt-3 space-y-2">
               {risk?.contributions.map((c) => (
                 <div key={c.test} className="flex items-baseline justify-between gap-3 text-[0.875rem]">
-                  <dt className="capitalize text-ink-2">{c.test}</dt>
+                  <dt className="capitalize text-ink-2">{locale === 'es' ? (c.test === 'vision' ? 'Visi\u00f3n' : TEST_LABELS.es[c.test]) : c.test}</dt>
                   <dd className="tnum text-ink-3">
                     {c.weight.toFixed(2)} × {c.severity.toFixed(2)} × {c.confidence.toFixed(2)} ={' '}
                     <span className="text-ink">{c.contribution.toFixed(3)}</span>
@@ -152,8 +155,7 @@ export function Dashboard() {
               ))}
             </dl>
             <p className="pt-3 text-[0.875rem] leading-snug text-ink-3">
-              Combined with a noisy-OR, so one strong signal is enough on its own. Thresholds and weights are
-              uncalibrated.
+              {pick(locale, 'Combined with a noisy-OR, so one strong signal is enough on its own. Thresholds and weights are uncalibrated.', 'Se combina con una funci\u00f3n OR probabil\u00edstica, por lo que una se\u00f1al fuerte puede bastar por s\u00ed sola. Los umbrales y pesos no est\u00e1n calibrados.')}
             </p>
           </details>
         )}

@@ -1,6 +1,7 @@
 import { testSequence } from '../../lib/config'
 import { useSession } from '../../lib/session/store'
 import type { TestName } from '../../lib/contracts'
+import { pick, TEST_LABELS, useLocale } from '../../lib/i18n'
 
 const LABEL: Record<TestName, string> = { speech: 'Speech', eyes: 'Eyes', face: 'Face', arms: 'Arms' }
 
@@ -13,6 +14,7 @@ const STATE_WORDS: Record<StepState, string> = { done: 'done', current: 'you are
  * info document. Purely a status display — it is not a navigation control, since the order is fixed.
  */
 export function ProgressDots() {
+  const locale = useLocale((s) => s.locale)
   const phase = useSession((s) => s.phase)
   const results = useSession((s) => s.results)
   const skipped = useSession((s) => s.skipped)
@@ -30,8 +32,8 @@ export function ProgressDots() {
     : 'todo'
 
   const steps: { key: string; label: string; state: StepState }[] = [
-    ...sequence.map((t) => ({ key: t, label: LABEL[t], state: stateOf(t) })),
-    { key: 'result', label: 'Result', state: resultState },
+    ...sequence.map((t) => ({ key: t, label: locale === 'es' ? TEST_LABELS.es[t] : LABEL[t], state: stateOf(t) })),
+    { key: 'result', label: pick(locale, 'Result', 'Resultado'), state: resultState },
   ]
 
   const currentIndex = steps.findIndex((s) => s.state === 'current')
@@ -41,7 +43,7 @@ export function ProgressDots() {
   return (
     <ol
       className="flex items-center justify-center gap-2 sm:gap-3"
-      aria-label={`Progress: step ${currentIndex + 1} of ${steps.length}`}
+      aria-label={pick(locale, `Progress: step ${currentIndex + 1} of ${steps.length}`, `Progreso: paso ${currentIndex + 1} de ${steps.length}`)}
     >
       {steps.map((s) => (
         <li key={s.key} className="group flex items-center gap-2" aria-current={s.state === 'current' ? 'step' : undefined}>
@@ -57,7 +59,7 @@ export function ProgressDots() {
             }`}
             aria-hidden
           />
-          <span className="sr-only">{`${s.label}: ${STATE_WORDS[s.state]}`}</span>
+          <span className="sr-only">{`${s.label}: ${locale === 'es' ? ({ done: 'completado', current: 'est\u00e1s aqu\u00ed', skipped: 'omitido', todo: 'pendiente' } as const)[s.state] : STATE_WORDS[s.state]}`}</span>
           <span className={`label-micro hidden sm:inline ${s.state === 'current' ? 'text-accent' : 'text-ink-3'}`} aria-hidden>
             {s.state === 'current' ? s.label : ''}
           </span>

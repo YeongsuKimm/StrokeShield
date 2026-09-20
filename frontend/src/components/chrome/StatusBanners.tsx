@@ -3,6 +3,7 @@ import { connectivityOf, useNetwork } from '../../lib/resilience/network'
 import { useLifecycle } from '../../lib/resilience/lifecycle'
 import { useSession } from '../../lib/session/store'
 import { useSpeechProgress } from '../../lib/speech/speechProgressStore'
+import { pick, useLocale } from '../../lib/i18n'
 
 const pill =
   'pointer-events-auto fixed inset-x-4 top-[4.75rem] z-40 mx-auto max-w-xl rounded-[var(--radius-control)] border px-4 py-3 text-[0.9375rem] leading-snug shadow-[var(--shadow-lift)] sm:top-24'
@@ -12,16 +13,16 @@ const pill =
  * the speech analysis, voice guide and alert text need the connection. Call 911 is always the fallback.
  */
 export function ConnectivityBanner() {
+  const locale = useLocale((s) => s.locale)
   const online = useNetwork((s) => s.online)
   const failStreak = useNetwork((s) => s.failStreak)
   const c = connectivityOf({ online, failStreak })
   if (c === 'ok') return null
   return (
     <div role="status" className={`${pill} border-caution/40 bg-caution-wash text-caution`} data-testid="connectivity-banner">
-      <p className="font-semibold">{c === 'offline' ? 'You are offline.' : 'Cannot reach the server.'}</p>
+      <p className="font-semibold">{c === 'offline' ? pick(locale, 'You are offline.', 'No tienes conexi\u00f3n.') : pick(locale, 'Cannot reach the server.', 'No se puede contactar al servidor.')}</p>
       <p className="mt-0.5 text-ink-2">
-        The face, arm and eye checks still work. The speech analysis, voice guide and alert text need the connection. If this
-        is an emergency, call 911 directly.
+        {pick(locale, 'The face, arm and eye checks still work. The speech analysis, voice guide and alert text need the connection. If this is an emergency, call 911 directly.', 'Las revisiones de cara, brazos y ojos siguen funcionando. El an\u00e1lisis del habla, la gu\u00eda de voz y el mensaje de alerta necesitan conexi\u00f3n. Si es una emergencia, llama directamente al 911.')}
       </p>
     </div>
   )
@@ -29,6 +30,7 @@ export function ConnectivityBanner() {
 
 /** Shown after a check was paused because the tab went into the background. */
 export function ResumeNotice() {
+  const locale = useLocale((s) => s.locale)
   const interrupted = useLifecycle((s) => s.interrupted)
   const phase = useSession((s) => s.phase)
   const speechRunning = useSpeechProgress((s) => s.running)
@@ -47,8 +49,8 @@ export function ResumeNotice() {
   return (
     <div role="status" className={`${pill} border-line-strong bg-surface text-ink`} data-testid="resume-notice">
       {interrupted === 'speech'
-        ? 'Paused while this tab was in the background. Press Start recording when you are ready.'
-        : 'Paused while this tab was in the background. Picking the check back up now.'}
+        ? pick(locale, 'Paused while this tab was in the background. Press Start recording when you are ready.', 'Se paus\u00f3 mientras esta pesta\u00f1a estaba en segundo plano. Pulsa Empezar a grabar cuando est\u00e9s listo.')
+        : pick(locale, 'Paused while this tab was in the background. Picking the check back up now.', 'Se paus\u00f3 mientras esta pesta\u00f1a estaba en segundo plano. Reanudando la revisi\u00f3n.')}
     </div>
   )
 }

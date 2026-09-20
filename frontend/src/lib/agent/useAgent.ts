@@ -7,13 +7,17 @@ import { clientTools, isSpeechToolPending, registerAgentContextualUpdate } from 
 import { registerAgentEnd } from './agentSession'
 import { bindAgentToFaceCapture, FACE_BRIEFING } from './faceCues'
 import { bindAgentToSpeechRecording } from './speechAudioGate'
+import { useLocale } from '../i18n'
 
 type AgentMessage = { message?: string; source?: string }
 
 export function useAgent() {
+	const locale = useLocale((s) => s.locale)
 	const setAgentConnected = useSession((s) => s.setAgentConnected)
 	const addTranscript = useSession((s) => s.addTranscript)
+	const setVoiceConsent = useSession((s) => s.setVoiceConsent)
 	const lastPromptedPhase = useRef<string | null>(null)
+	const previousLocale = useRef(locale)
 	const conversation = useConversation({
 		clientTools,
 		onConnect: () => setAgentConnected(true),
@@ -56,6 +60,15 @@ export function useAgent() {
 
 	// Read the members once so the effect depends on exactly what it uses (same values the closure saw before).
 	const { status, sendContextualUpdate, sendUserMessage } = conversation
+
+	// The English and Spanish guides are separate ElevenLabs agents. A locale switch ends the old conversation so the
+	// next Start guide request cannot leave an English agent speaking over a Spanish interface (or vice versa).
+	useEffect(() => {
+		if (previousLocale.current === locale) return
+		previousLocale.current = locale
+		setVoiceConsent(false)
+		if (latest.current.status === 'connected') void latest.current.endSession()
+	}, [locale, setVoiceConsent])
 
 	useEffect(() => {
 		// A new conversation knows nothing about the step the website is on: forget what the last one was told, so
@@ -151,7 +164,7 @@ export function useAgent() {
 	const start = async () => {
 		// Consent gate: nothing contacts the backend or ElevenLabs, or opens the microphone, without the voice opt-in.
 		if (!useSession.getState().voiceConsent) return
-		const { signedUrl } = await api.signedUrl()
+		const { signedUrl } = await api.signedUrl(locale)
 		await conversation.startSession({ signedUrl })
 	}
 

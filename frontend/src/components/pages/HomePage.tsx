@@ -8,10 +8,12 @@ import { Button } from '../ui/Button'
 import { Icon } from '../ui/Icon'
 import { Disclaimer } from '../ui/Disclaimer'
 import { PermissionsCard } from './PermissionsCard'
+import { pick, TEST_LABELS, useLocale } from '../../lib/i18n'
 
 const CHECK_COUNT_WORD: Record<number, string> = { 1: 'one', 2: 'two', 3: 'three', 4: 'four', 5: 'five' }
 
 export function HomePage() {
+  const locale = useLocale((s) => s.locale)
   const start = useSession((s) => s.beginTests)
   const setRoute = useSession((s) => s.setRoute)
   const phase = useSession((s) => s.phase)
@@ -49,26 +51,28 @@ export function HomePage() {
           style={{ '--i': 2 } as CSSProperties}
         >
           <h1 ref={headingRef} tabIndex={-1} className="text-balance text-4xl outline-none font-semibold leading-[1.05] tracking-tight sm:text-6xl">
-            A guided BE-FAST check, in about two minutes.
+            {pick(locale, 'A guided BE-FAST check, in about two minutes.', 'Una revisi\u00f3n BE-FAST guiada, en unos dos minutos.')}
           </h1>
 
           <p className="mt-5 max-w-[44ch] text-pretty text-lg leading-relaxed text-ink-2">
-            A voice guide walks you through {CHECK_COUNT_WORD[steps.length] ?? steps.length} short stroke symptom checks. If our checks
-            flag something, it can text a demo phone we set up ahead of time, with your location if you allow it.
+            {pick(locale,
+              <>A voice guide walks you through {CHECK_COUNT_WORD[steps.length] ?? steps.length} short stroke symptom checks. If our checks flag something, it can text a demo phone we set up ahead of time, with your location if you allow it.</>,
+              <>Una gu\u00eda de voz te acompa\u00f1a por {steps.length} revisiones breves de s\u00edntomas. Si algo se marca, puede enviar un mensaje al tel\u00e9fono de demo que configuramos, con tu ubicaci\u00f3n si la autorizas.</>,
+            )}
           </p>
 
           <div className="mt-8 flex flex-wrap items-center gap-3 [@media(max-height:800px)]:mt-6">
             <Button size="xl" icon="arrowRight" onClick={start} disabled={!consented} aria-describedby={consented ? undefined : 'start-hint'}>
-              Start the check
+              {pick(locale, 'Start the check', 'Empezar la revisi\u00f3n')}
             </Button>
             <Button size="xl" tone="quiet" onClick={() => setRoute('info')}>
-              How it works
+              {pick(locale, 'How it works', 'C\u00f3mo funciona')}
             </Button>
           </div>
 
           {/* One quiet line, no card and no icons: what happens next, in about a dozen words. */}
-          <p className="mt-3 text-pretty text-[0.9375rem] leading-snug text-ink-3">{homeStepsHint(CHECK_COUNT_WORD[steps.length] ?? String(steps.length))}</p>
-          {!consented && <p id="start-hint" className="mt-1 text-[0.9375rem] text-ink-3">Read and tick the consent box first.</p>}
+          <p className="mt-3 text-pretty text-[0.9375rem] leading-snug text-ink-3">{pick(locale, homeStepsHint(CHECK_COUNT_WORD[steps.length] ?? String(steps.length)), `Primero da tu consentimiento; despu\u00e9s completa ${steps.length} revisiones cortas y recibe un resultado.`)}</p>
+          {!consented && <p id="start-hint" className="mt-1 text-[0.9375rem] text-ink-3">{pick(locale, 'Read and tick the consent box first.', 'Lee y marca primero la casilla de consentimiento.')}</p>}
 
           <ol className="mt-10 flex flex-wrap items-center gap-x-2 gap-y-3 border-t border-line pt-6 [@media(max-height:800px)]:mt-7 [@media(max-height:800px)]:pt-5">
             {steps.map((t, i) => (
@@ -76,7 +80,7 @@ export function HomePage() {
                 <span aria-hidden className="font-serif tnum text-[1.0625rem] text-ink-3">
                   {i + 1}
                 </span>
-                <span className="text-[1rem] capitalize">{t}</span>
+                <span className="text-[1rem] capitalize">{TEST_LABELS[locale][t]}</span>
                 {i < steps.length - 1 && <Icon name="arrowRight" size={14} className="ml-1 text-line-strong" />}
               </li>
             ))}
@@ -96,7 +100,7 @@ export function HomePage() {
           onClick={() => setRoute('info')}
           className="flex flex-col items-center gap-1.5 text-ink-2 transition-colors hover:text-ink"
         >
-          <span className="text-[1rem] font-medium">How it works</span>
+          <span className="text-[1rem] font-medium">{pick(locale, 'How it works', 'C\u00f3mo funciona')}</span>
           <Icon name="arrowDown" size={18} className={pull > 0.05 ? 'translate-y-0.5' : ''} />
         </button>
         <div className="h-0.5 w-24 overflow-hidden rounded-full bg-line" aria-hidden>

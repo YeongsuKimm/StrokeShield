@@ -16,6 +16,7 @@ import { Button } from '../ui/Button'
 import { Icon } from '../ui/Icon'
 import { Disclaimer } from '../ui/Disclaimer'
 import { MicroLabel } from '../ui/Primitives'
+import { pick, useLocale } from '../../lib/i18n'
 
 // The detail dashboard is below the fold and never needed to act: it loads after the verdict and Call 911 are on screen.
 const Dashboard = lazyChunk(() => import('../Dashboard').then((m) => ({ default: m.Dashboard })))
@@ -24,8 +25,14 @@ const Dashboard = lazyChunk(() => import('../Dashboard').then((m) => ({ default:
 const HOSPITAL_SEARCH = 'https://www.google.com/maps/search/emergency+room+near+me'
 
 function Banner({ band, risk, headingRef }: { band: ResultBand; risk: number; headingRef: RefObject<HTMLHeadingElement | null> }) {
+  const locale = useLocale((s) => s.locale)
+  const spanish = {
+    high: { label: 'Las revisiones marcaron posibles signos', body: 'Una o m\u00e1s revisiones dieron un resultado anormal. No es un diagn\u00f3stico, pero tr\u00e1talo como una emergencia: llama al 911 ahora.' },
+    caution: { label: 'Una revisi\u00f3n fue dudosa', body: 'Esta herramienta no puede decir qu\u00e9 significa. Si es algo nuevo o te preocupa, llama al 911 o busca atenci\u00f3n inmediatamente.' },
+    low: { label: 'Estas revisiones no marcaron nada', body: 'Eso no significa que no haya un derrame cerebral: estas revisiones no pueden descartarlo. Si tienes s\u00edntomas o aparecen o cambian, llama al 911 de inmediato.' },
+  }
   const copy = {
-    ...RESULT_BAND_COPY[band],
+    ...(locale === 'es' ? spanish[band] : RESULT_BAND_COPY[band]),
     tone: { high: 'bg-danger text-white', caution: 'bg-caution text-white', low: 'bg-ink text-white' /* neutral, not green: green could reassure someone who then delays care */ }[band],
   }
 
@@ -33,7 +40,7 @@ function Banner({ band, risk, headingRef }: { band: ResultBand; risk: number; he
     <div className={`rounded-[var(--radius-panel)] p-8 sm:p-10 ${copy.tone}`}>
       <div className="flex items-center gap-2 text-white/85">
         <Icon name="alert" size={17} />
-        <span className="label-micro">Result</span>
+        <span className="label-micro">{pick(locale, 'Result', 'Resultado')}</span>
       </div>
       {/* Focus lands here when the result appears; aria-describedby makes the advice underneath be read with it. */}
       <h1
@@ -45,7 +52,7 @@ function Banner({ band, risk, headingRef }: { band: ResultBand; risk: number; he
         {copy.label}
       </h1>
       <p id="result-advice" className="mt-4 max-w-[52ch] text-pretty text-lg leading-relaxed text-white/90">{copy.body}</p>
-      <p className="tnum mt-6 text-[0.9375rem] text-white/85">Combined check score {Math.round(risk * 100)}% (uncalibrated)</p>
+      <p className="tnum mt-6 text-[0.9375rem] text-white/85">{pick(locale, `Combined check score ${Math.round(risk * 100)}% (uncalibrated)`, `Puntaje combinado ${Math.round(risk * 100)}% (sin calibrar)`)}</p>
       <Disclaimer className="mt-2 max-w-[60ch] text-[0.9375rem] font-medium text-white/95" />
     </div>
   )
@@ -106,6 +113,7 @@ function ActionCard({
  * cancelled or the alert was sent — an untouched high-risk result goes straight to the countdown from the store.
  */
 export function ResultScreen() {
+  const locale = useLocale((s) => s.locale)
   const risk = useSession((s) => s.risk)
   const phase = useSession((s) => s.phase)
   const requestEmergency = useSession((s) => s.requestEmergency)
@@ -140,33 +148,33 @@ export function ResultScreen() {
         <ActionCard
           icon="phone"
           tone="danger"
-          title="Call 911"
-          body="Ambulance now. Paramedics can start treatment before you reach the hospital."
-          action="Dial now"
+          title={pick(locale, 'Call 911', 'Llama al 911')}
+          body={pick(locale, 'Ambulance now. Paramedics can start treatment before you reach the hospital.', 'Pide una ambulancia ahora. Los param\u00e9dicos pueden empezar el tratamiento antes de llegar al hospital.')}
+          action={pick(locale, 'Dial now', 'Llamar ahora')}
           href="tel:911"
         />
         <ActionCard
           icon="user"
-          title="Text the demo contact"
-          body="Send a text to the demo phone we set up ahead of time, with your location if you allowed it and what the checks found. It does not reach emergency services."
-          action="Send the text"
+          title={pick(locale, 'Text the demo contact', 'Escribir al contacto de demo')}
+          body={pick(locale, 'Send a text to the demo phone we set up ahead of time, with your location if you allowed it and what the checks found. It does not reach emergency services.', 'Env\u00eda un mensaje al tel\u00e9fono de demo configurado, con tu ubicaci\u00f3n si la autorizaste y lo que encontraron las revisiones. No contacta a emergencias.')}
+          action={pick(locale, 'Send the text', 'Enviar mensaje')}
           onClick={() => requestEmergency('user_request')}
         />
         <ActionCard
           icon="hospital"
-          title="Emergency rooms nearby"
-          body="Find the closest emergency department. Do not drive yourself."
-          action="Open the map"
+          title={pick(locale, 'Emergency rooms nearby', 'Salas de emergencia cercanas')}
+          body={pick(locale, 'Find the closest emergency department. Do not drive yourself.', 'Encuentra el servicio de urgencias m\u00e1s cercano. No conduzcas t\u00fa.')}
+          action={pick(locale, 'Open the map', 'Abrir el mapa')}
           href={HOSPITAL_SEARCH}
         />
       </div>
 
       <div className="mt-6 flex flex-wrap gap-3">
         <Button tone="quiet" icon="arrowUpRight" onClick={() => setRoute('info')}>
-          Stroke resources and hotlines
+          {pick(locale, 'Stroke resources and hotlines', 'Recursos y l\u00edneas de ayuda')}
         </Button>
         <Button tone="quiet" icon="refresh" onClick={reset}>
-          Run the check again
+          {pick(locale, 'Run the check again', 'Repetir la revisi\u00f3n')}
         </Button>
         <CopySummary band={band} />
       </div>
@@ -174,7 +182,7 @@ export function ResultScreen() {
 
       <section className="mt-14">
         <MicroLabel level={2} className="mb-4">
-          What the checks measured
+          {pick(locale, 'What the checks measured', 'Lo que midieron las revisiones')}
         </MicroLabel>
         <MeasuredPanel />
         <LazyBoundary what="The details" reset={Dashboard.reset}>

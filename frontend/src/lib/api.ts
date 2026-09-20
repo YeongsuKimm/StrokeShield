@@ -1,6 +1,7 @@
 import type { AlertRequest, AlertResponse, HealthResponse, TestResult, VisionOpinion } from './contracts'
 import { ApiError, backendMessage, friendlyMessage, kindForStatus, kindForThrown } from './resilience/apiErrors'
 import { useNetwork } from './resilience/network'
+import type { Locale } from './i18n'
 
 // Empty base = same origin (Vite proxies /api to :8000 in dev). Set VITE_API_BASE_URL in production.
 const BASE = import.meta.env?.VITE_API_BASE_URL ?? ''
@@ -96,8 +97,8 @@ const json = (body: unknown): RequestInit => ({
 
 export const api = {
   health: () => request<HealthResponse>('/api/health', undefined, { timeoutMs: API_TIMEOUTS_MS.health, what: 'the server check' }),
-  signedUrl: () =>
-    request<{ signedUrl: string }>('/api/agent/signed-url', undefined, {
+  signedUrl: (lang: Locale = 'en') =>
+    request<{ signedUrl: string }>(`/api/agent/signed-url?lang=${lang}`, undefined, {
       timeoutMs: API_TIMEOUTS_MS.signedUrl,
       what: 'the voice guide',
       retries: 1,
@@ -105,10 +106,11 @@ export const api = {
   // No retries: a response lost after the server sent the text would otherwise send a second one.
   sendAlert: (req: AlertRequest) =>
     request<AlertResponse>('/api/alert', json(req), { timeoutMs: API_TIMEOUTS_MS.alert, what: 'the alert' }),
-  analyzeSpeech: (wav: Blob, targetPhrase: string) => {
+  analyzeSpeech: (wav: Blob, targetPhrase: string, lang: Locale = 'en') => {
     const form = new FormData()
     form.append('audio', wav, 'speech.wav')
     form.append('target_phrase', targetPhrase)
+    form.append('lang', lang)
     return request<TestResult>('/api/speech/analyze', { method: 'POST', body: form }, { timeoutMs: API_TIMEOUTS_MS.speech, what: 'the speech analysis' })
   },
   secondOpinion: (images: { kind: 'face' | 'arms'; jpegBase64: string }[]) =>

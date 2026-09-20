@@ -10,6 +10,7 @@ import { Disclaimer } from '../ui/Disclaimer'
 import { Icon } from '../ui/Icon'
 import { ProgressDots } from './ProgressDots'
 import { TranscriptStrip } from './TranscriptStrip'
+import { pick, useLocale } from '../../lib/i18n'
 
 /**
  * Offers a way out once the patient has been on a step for SKIP_OFFER_MS without finishing it, so a framing gate
@@ -29,14 +30,15 @@ function useSkipOffer(key: string): boolean {
 
 /** Shown on every test screen while the microphone is muted or silent — the assistant cannot hear anything. */
 function MuteWarning() {
+  const locale = useLocale((s) => s.locale)
   const { verdict } = useMic()
   // Only warn about a microphone we actually hold. 'no-mic' means we never opened one, which the consent card
   // covers — claiming "I cannot hear you" there would be a false alarm.
   if (verdict.reason !== 'track-off' && verdict.reason !== 'no-sound') return null
   const text =
     verdict.reason === 'track-off'
-      ? 'Your microphone is muted. Unmute it so the assistant can hear you.'
-      : 'I cannot hear anything. Check that the right microphone is selected and unmuted.'
+      ? pick(locale, 'Your microphone is muted. Unmute it so the assistant can hear you.', 'Tu micr\u00f3fono est\u00e1 silenciado. Act\u00edvalo para que la gu\u00eda pueda o\u00edrte.')
+      : pick(locale, 'I cannot hear anything. Check that the right microphone is selected and unmuted.', 'No se oye nada. Comprueba que el micr\u00f3fono correcto est\u00e9 seleccionado y activado.')
   return (
     <p
       className="flex items-start gap-2.5 rounded-[var(--radius-control)] border border-caution/30 bg-caution-wash px-4 py-3 text-[1rem] text-caution"
@@ -67,6 +69,7 @@ interface Props {
  * Layout is a single centred column, with an optional narrow rail on the left at desktop widths.
  */
 export function TestScreen({ test, title, lede, children, rail, footer }: Props) {
+  const locale = useLocale((s) => s.locale)
   const skipTest = useSession((s) => s.skipTest)
   const offered = useSkipOffer(test)
   const headingRef = useRef<HTMLHeadingElement>(null)
@@ -115,17 +118,17 @@ export function TestScreen({ test, title, lede, children, rail, footer }: Props)
           className="fixed inset-x-4 bottom-24 z-30 sm:inset-x-auto sm:bottom-7 sm:right-7 sm:w-72"
           role="region"
           aria-live="polite"
-          aria-label="Skip this check"
+          aria-label={pick(locale, 'Skip this check', 'Omitir esta revisi\u00f3n')}
         >
           <div className="pop flex items-center justify-between gap-3 rounded-[var(--radius-panel)] border-2 border-accent bg-surface p-3 shadow-[var(--shadow-lift)] sm:block sm:p-4">
             <div>
               <p className="text-lg font-semibold leading-tight">
-                Stuck<span className="hidden sm:inline"> on this one</span>?
+                {pick(locale, <>Stuck<span className="hidden sm:inline"> on this one</span>?</>, <>\u00bfAtascado<span className="hidden sm:inline"> en esta revisi\u00f3n</span>?</>)}
               </p>
-              <p className="mb-3 mt-0.5 hidden text-[0.9375rem] text-ink-2 sm:block">Skip it and keep going.</p>
+              <p className="mb-3 mt-0.5 hidden text-[0.9375rem] text-ink-2 sm:block">{pick(locale, 'Skip it and keep going.', 'Om\u00edtela y contin\u00faa.')}</p>
             </div>
             <Button tone="accent" size="lg" className="sm:w-full" iconAfter="arrowRight" onClick={() => skipTest(test)}>
-              Skip this check
+              {pick(locale, 'Skip this check', 'Omitir esta revisi\u00f3n')}
             </Button>
           </div>
         </div>
