@@ -42,6 +42,19 @@ export const TEST_LABELS: Record<Locale, Record<TestName, string>> = {
 
 const RUNTIME_ES: Record<string, string> = {
   'Starting the camera\u2026': 'Iniciando la c\u00e1mara\u2026',
+  'camera/models took too long to load': 'La cámara o los modelos tardaron demasiado en cargar.',
+  'Camera access is blocked. Click the lock icon in the address bar, set Camera to Allow, then reload this page.': 'El acceso a la cámara está bloqueado. Pulsa el candado de la barra de direcciones, permite la cámara y vuelve a cargar la página.',
+  'No camera was found on this device.': 'No se encontró ninguna cámara en este dispositivo.',
+  'The camera is in use by another app or tab.': 'Otra aplicación o pestaña está usando la cámara.',
+  'This browser cannot open the camera (needs HTTPS or localhost).': 'Este navegador no puede abrir la cámara; se necesita HTTPS o localhost.',
+  'Could not start the camera.': 'No se pudo iniciar la cámara.',
+  'The camera stopped. It may have been unplugged, blocked in the address bar (lock icon), or taken by another app.': 'La cámara se detuvo. Puede que se haya desconectado, bloqueado desde la barra de direcciones o que otra aplicación la esté usando.',
+  'The face/pose models could not load. Check the connection and reload; you can also skip this check.': 'Los modelos de cara y postura no se cargaron. Revisa la conexión y vuelve a cargar la página; también puedes omitir esta revisión.',
+  'Face/pose detection keeps failing.': 'La detección de cara o postura sigue fallando.',
+  'Make your face serious. Smile when prompted.': 'Pon una expresión seria. Sonríe cuando se te indique.',
+  'Keep your head still. Follow the dot with your eyes only.': 'Mantén la cabeza quieta. Sigue el punto solo con los ojos.',
+  "I couldn't see your face clearly. Let's try again.": 'No pude ver tu cara con claridad. Intentémoslo de nuevo.',
+  "I couldn't see both hands. Let's try again.": 'No pude ver ambas manos. Intentémoslo de nuevo.',
   Done: 'Listo',
   "I can't get the camera image.": 'No puedo obtener la imagen de la c\u00e1mara.',
   "I can't see your face. Look at the camera.": 'No puedo ver tu cara. Mira a la c\u00e1mara.',
@@ -105,6 +118,11 @@ export const translateRuntimeText = (locale: Locale, value: string): string => {
   if (locale !== 'es') return value
   const exact = RUNTIME_ES[value]
   if (exact) return exact
+  const cameraFailurePrefix = "I couldn't start the camera. "
+  if (value.startsWith(cameraFailurePrefix)) {
+    const reason = translateRuntimeText(locale, value.slice(cameraFailurePrefix.length))
+    return `No pude iniciar la cámara. ${reason}`
+  }
   const normalized = value.trim().replace(/[.!?]+$/, '').toLowerCase()
   const translated = RUNTIME_ES[normalized]
   if (!translated) return value

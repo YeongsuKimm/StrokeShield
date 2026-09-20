@@ -15,9 +15,9 @@ Contents: [1 Scorecard](#1-scorecard) · [2 Strengths and attack points](#2-stre
 | Innovation / creativity | 6.5 | Browser-only MediaPipe + voice-guided flow + speech DSP + email-to-SMS is a nice integration. Every individual piece is known technique; the eye-tracking-dot and phoneme-scoring touches lift it. |
 | Technical difficulty and execution | 8 | Real signal processing (landmarks to severities, DSP features, optional wav2vec2 phoneme scoring), a noisy-OR risk fn, hardened backend (rate limits, dry-run fail-safe, destination-from-env), ~480 frontend + ~280 backend test cases, CI, held-out validation tooling. Unusually mature for a hackathon. |
 | Design and UX | 7.5 | Considered visual system (one blue accent, red reserved for emergency, neutral low band that refuses to reassure, skip hatches, retry paths, a11y basics). Risks: many screens and gestures (scroll hand-off, drilldown menu) are polish, not core; the "what the AI saw" story is thin. |
-| Completeness / does it work live | 5.5 | Almost everything is marked "done (untested live)": left/right mapping never confirmed on a real camera, eyes test unverified, real mic barely exercised, the voice agent never verified end to end in a full run, no deployment (backend runs on the laptop). The demo panel saves you; the live path is a gamble until rehearsed. |
-| Responsible AI / ethics / safety | 8 | Best area: one shared disclaimer, no all-clear, destination locked to one env number, DRY_RUN fails safe, consent before capture, PRIVACY.md with vendor terms and honest gaps, live ElevenLabs retention reduced. Docked for the agent saying "contacting emergency services" (it isn't) and zero validation data. |
-| Presentation readiness | 6 | Docs are strong, but there is no pitch deck/backup video in the repo, no readiness screen, no committed validation report (`docs/validation/` is empty), and the demo script in spec 07 is stale (Twilio). Use section 4 below. |
+| Completeness / does it work live | 6.5 | The full state machine, bilingual UI/agents, preflight, retry paths and one-click fallback exist. Real speech was exercised on seven acted clips, but left/right mapping, eyes, both live agents, carrier delivery and the intended demo devices still need one rehearsed end-to-end pass. |
+| Responsible AI / ethics / safety | 8.5 | Best area: one shared disclaimer, no all-clear, destination locked to one env number, invalid provider values fail closed, DRY_RUN fails safe, consent before capture, minimal data flow, and honest vendor/privacy documentation. Docked for zero clinical validation and unresolved vendor account controls. |
+| Presentation readiness | 7.5 | The repo has a readiness panel, rehearsed fallback controls, deployment artifacts and a detailed demo script. Still missing: a backup video, a committed validation report, and recorded proof that the exact demo hardware, agents and live delivery work together. |
 | **Overall** | **~6.9** | A strong engineering + ethics story whose weakest point is live reliability and the absence of any validation numbers. Rehearsal, not features, is what moves the score. |
 
 ---
@@ -37,16 +37,16 @@ Contents: [1 Scorecard](#1-scorecard) · [2 Strengths and attack points](#2-stre
 | Attack | Honest answer |
 |---|---|
 | **"What is the sensitivity/specificity?"** | Unknown. There are no validation reports (`docs/validation/` is empty), thresholds are uncalibrated, and volunteers mimicking a droop are not stroke patients. Say so first. Point to the tooling and the plan (VALIDATION.md). |
-| **False positives** | Real risk. By the config's own maths, four checks all at the "healthy" ceiling of severity 0.15 (confidence 0.9) already combine to about 24% risk, above `CAUTION_RISK` 0.2, so a fully healthy person could land in "Something showed up". A single clear face or arm result (0.54) alone crosses the 0.5 alert trigger. Mitigation today: confidence gating, 10 s cancel, alert goes to a demo number only. |
+| **False positives** | Real risk. The caution threshold was raised to `0.3` so four results at the healthy anchor no longer enter the caution band, and fluent speech now has a conservative demo cap. A single clear face or arm result can still cross the alert trigger by design. Mitigations: confidence gating, 10 s cancel, and a demo-number-only alert. |
 | **False negatives** | Worse and undetectable: a clear speech-only deficit (0.45) never alerts; the eyes test can never alert alone (max 0.3); Balance is not checked; posterior-circulation strokes and many real presentations will not show in these four checks. Hence the "cannot rule out" wording everywhere. |
-| **Camera/mic environment** | Lighting, glasses, facial hair, head yaw, distance (arms at about 3 ft is unverified against a real webcam field of view), background noise (a 10 dB SNR TTS clip scored 0.32), cheap mics, accents and non-native speakers. Speech is confidence-capped at 0.6 without the phoneme model and cannot alert alone, by design. |
+| **Camera/mic environment** | Lighting, glasses, facial hair, head yaw, camera field of view, background noise, cheap mics, accents and non-native speakers remain risks. The arm screen uses a live framing outline rather than promising a distance. The acted-slur demo requires the phoneme preflight to be green; DSP-only fallback is deliberately conservative. |
 | **Left/right mapping unverified** | True: GETTING-STARTED section 8 (`?debug=1`) has not been run on hardware. Do it before demo day (5 minutes). |
 | **Email-to-SMS is best-effort** | True: no delivery receipt, Verizon-only (AT&T and T-Mobile closed their gateways; Verizon's ends 2027-03-31), carriers may delay/filter. It was chosen because Twilio trial numbers are blocked by US carriers and registration needs a paid account, which the rules forbid. Backup: the result screen shows "Alert sent" only for what the server accepted, and a teammate watching the phone. |
 | **Free-tier limits** | ElevenLabs agent minutes/credits, Gmail SMTP daily limits, Gemini free tier (off by default, may train on submissions). Plan and limits for ElevenLabs are still an open item in spec 00. |
-| **Single-person testing** | Yes: one healthy demo runner and teammates. Thresholds were tuned on whoever recorded; no diversity of skin tone, age, facial hair, disability, or dysarthria. |
+| **Single-person testing** | Yes: speech demo anchors use seven clips from one actor (healthy variants plus acted deficits). There is no meaningful diversity of voice, accent, skin tone, age, facial hair, disability, camera or real dysarthria. |
 | **Voice agent latency/reliability** | Third-party streaming LLM: expect 1-2 s turn latency, occasional talk-over, and it has never been verified end to end. The app state machine, not the agent, owns the flow, and every step has on-screen text. The documented "browser speechSynthesis fallback" does not exist in code. |
-| **Overclaim risk** | The agent prompt (and the live agent) says "I'm contacting emergency services" / "starting the emergency call": untrue, it sends one text to a demo number. The Info page says speech "transcript accuracy" is measured, but no transcriber is implemented. See section 7. |
-| **"Where is the deployment?"** | Not deployed (STATUS: Deploy not started; no Dockerfile). The demo runs on the laptop (`localhost` needs no HTTPS). Say that plainly. |
+| **Overclaim risk** | Current UI and agent copy say one alert text goes to the configured demo contact and explicitly tell the user to call 911; speech copy describes the optional phoneme check, not a nonexistent transcript. The remaining risk is a stale live-agent dashboard configuration, so run the probe before presenting. |
+| **"Where is the deployment?"** | Vercel/Railway artifacts and instructions exist, but the final backend origin is not recorded and the CSP still uses a Railway wildcard. Prefer the rehearsed laptop path until the deployed preflight and CORS checks pass. |
 | **Privacy of the voice guide** | ElevenLabs sees mic audio while connected. Retention was cut to 1 day with recording off (per STATUS), but account-level training opt-out and zero-retention mode are not done. Disclosed at consent. |
 | **No licence file** | Repo has no `LICENSE`. Third-party: MediaPipe models Apache-2.0; phoneme model has no declared licence (base wav2vec2 Apache-2.0, TIMIT fine-tune), credit it; fonts are OFL; the drilldown menu is adapted from 21st.dev (ruixen.ui). |
 
@@ -59,17 +59,17 @@ Ranked by (judging impact) / effort. "<1h safe" = low risk of breaking the demo 
 | # | Improvement | Component | Effort | <1h safe? |
 |---|---|---|---|---|
 | 1 | **Rehearse the live path 3 times** on the demo laptop and log results in STATUS: `?debug=1` left/right check (GETTING-STARTED section 8), arms distance at the demo spot, real-mic speech run, one full agent conversation. Nothing else on this list matters if this fails. | All | M | Yes (no code) |
-| 2 | **Pre-demo readiness screen** (extend the `/api/health` call already used by `components/DemoPanel.tsx`): green/red rows for backend up, DRY_RUN vs LIVE, camera, mic, location, agent signed-URL, alert channel configured. Shown on `?demo=1` only. | Frontend + backend | M | Yes if gated behind `?demo=1` |
+| 2 | **Pre-demo readiness screen**: backend, browser/media, MediaPipe, alert provider/destination, both agents and phoneme inference. | Frontend + backend | Done | **Done** (`?preflight=1` or footer) |
 | 3 | **Record a 2-minute backup video** of the full happy path plus the phone receiving the text; keep it on the laptop desktop and a phone. Also save a screen recording of the demo panel run. | Presentation | S | Yes |
-| 4 | **Fix the agent's false claims**: change "I'm contacting emergency services" / "starting the emergency call" to "I'm sending an alert text to the demo contact" in `docs/agent-prompt.md` (done in docs) AND in the live ElevenLabs agent prompt (`scripts/elevenlabs_privacy.py`-style API patch, or dashboard). | Agent | S | Yes |
-| 5 | **Fix the healthy-run band**: at the anchors, four healthy checks produce about 24% risk, i.e. "Something showed up". Either lower per-test weights for low severities, raise `CAUTION_RISK` (`frontend/src/lib/config.ts`) to about 0.3, or require at least two non-trivial signals for the caution band; add a test to `risk.test.ts`. Needs a team decision (thresholds). | Risk | S | Yes, but decide first |
+| 4 | **Fix the agent's false claims**: the app and saved prompt now say an alert text goes to the demo contact, never that emergency services are being contacted. | Agent | Done | **Probe the live agent before stage** |
+| 5 | **Fix the healthy-run band**: `CAUTION_RISK` is now `0.3`, pinned by a regression test so healthy-anchor inputs remain in the low band. | Risk | Done | **Done** |
 | 6 | **"What the AI saw" panel** on the result screen: replay the drawn landmarks (`overlayDraw.ts`) as a small still/loop and show the two numbers behind each verdict (mouth-corner lift L vs R, arm angle L vs R). Numbers only, no video stored (memory only). Makes the explainability visible to non-engineers. | Vision + UX | M | Partly (numbers-only version is <1h) **Done 2026-09-19: numbers-only version (collapsed "The numbers behind each check" panel, no replay)** |
 | 7 | **A clear 3-step explanation on the home screen** ("1 Allow camera and mic  2 Do four 20-second checks  3 See what was flagged; a text goes to the demo contact only if the score is high"), above the consent panel in `HomePage.tsx`. | UX | S | Yes **Done 2026-09-19: one quiet line under Start the check, not a card** |
 | 8 | **Shareable results summary that keeps no health data**: a "Copy summary" button on `ResultScreen.tsx` that builds a plain-text block client-side (checks run, flags, time, disclaimer) into the clipboard for a paramedic/family member; nothing is sent or stored, and Clear my data wipes it. | UX / privacy | S | Yes **Done 2026-09-19: Copy summary button on the result screen** |
 | 9 | **Demo-safe alert preview**: in the countdown modal and result screen show the exact SMS text that will be sent (the backend already builds it, `services/email_sms_service.py`), plus "Delivery is best-effort" when live. Turns the flakiest step into a legible one. | Alerts | S | Yes **Done 2026-09-19: alert preview in the countdown and result screen (golden-vector tested)** |
 | 10 | **Commit any validation numbers you have**, even tiny ("0 false alarms in N healthy runs, upper 95% bound X%") to `docs/validation/` via `pnpm validate` / `python -m models.validate`, and quote them with the "mimicked, not patients" caveat. Even N=20 healthy runs beats none. | Validation | M | Yes (data collection ~1h) |
-| 11 | **Multilingual voice guide (Spanish first)**: ElevenLabs agents support language settings; add Spanish agent prompt + on-screen test-instruction strings. Big equity story; keep English as the default. Not safe in <1h for the on-screen text; do the agent side only as a stretch. | Agent + UX | L | No |
-| 12 | **Deploy or state clearly**: add a Dockerfile and a Railway/Vercel deploy so a judge can open a link on their own phone; otherwise put "runs locally; deploy is a documented next step" on a slide. Also add a `LICENSE` and a `THIRD-PARTY.md` (MediaPipe Apache-2.0, wav2vec2 phoneme model note, OFL fonts, 21st.dev menu). | Deploy / legal | M | LICENSE and credits yes; deploy no |
+| 11 | **Multilingual voice guide (Spanish first)**: Spanish UI, prompt, agent selection and failure paths are implemented. | Agent + UX | Done | **Native-speaker/live-agent review remains** |
+| 12 | **Deploy or state clearly**: Docker/Railway and Vercel configuration exist. Replace the CSP wildcard with the real backend origin and verify the deployed preflight before sharing a URL. A license/third-party attribution file remains useful. | Deploy / legal | M | Verify, do not improvise on stage |
 
 Other cheap polish: a visible "Demo / not a medical device" ribbon in the header while `?demo=1`; a large-type/high-contrast toggle and captions for the agent (transcript strip already exists) for the accessibility story; a Balance self-report question at the end (see Q&A) clearly labelled as not measured.
 
@@ -120,7 +120,7 @@ Setup: laptop on `http://localhost:5173/`, backend running, `DRY_RUN=false` (liv
 4. **Why free APIs?** "The event rules only allow free/public ones. It's also why alerts use email-to-SMS instead of Twilio, whose trial numbers US carriers block and whose registration is paid. In production you'd pay for a registered sender."
 5. **What happens in a real emergency?** "Today, an alert goes only to a demo number, never to emergency services, and the red button dials 911 from the person's own phone. We don't dial 911 for you, deliberately. Anyone with real symptoms should call 911 first, not use this."
 6. **False alarms?** "Expected, and we measure them: the validation tooling reports false alarms on healthy runs with an upper 95% bound. Right now the honest answer is that a healthy person can land in the 'caution' band, and one strong signal can trigger the countdown, which is cancelable in 10 s and only texts a teammate."
-7. **Accessibility?** "The UI is keyboard-reachable, high-contrast, respects reduced motion, and every voice step also has on-screen text with skip paths. Gaps: only English, camera-based checks assume a person can sit or stand in frame, and speech checks aren't valid for people with speech differences unrelated to stroke. Multilingual and non-visual alternatives are roadmap."
+7. **Accessibility?** "The UI is keyboard-reachable, high-contrast, respects reduced motion, and every voice step also has on-screen text with skip paths. English and Spanish flows exist. Gaps: the Spanish copy needs native review, camera checks assume a person can sit or stand in frame, and speech checks are not valid for speech differences unrelated to stroke."
 8. **Who benefits?** "Bystanders and people alone who freeze and can't remember the checklist; caregivers; and as an education tool for BE-FAST. It is not for patients to rely on."
 9. **Roadmap?** "Deploy; record N volunteers, tune, freeze, validate on held-out people; verify left/right and framing on many cameras; multilingual voice; real contacts with consent and a registered SMS sender; clinician review of wording and thresholds."
 10. **What would make it clinical?** "Prospective data on real patients and controls against a clinical reference (stroke-team exam, imaging), regulatory review (FDA/CE software as a medical device), quality system, security and privacy compliance (BAAs, HIPAA/GDPR), usability testing, and post-market monitoring. None of that exists yet."
@@ -134,7 +134,7 @@ Setup: laptop on `http://localhost:5173/`, backend running, `DRY_RUN=false` (liv
 **T-60 min**
 - [ ] Charge the laptop and the demo phone; a **second teammate phone** on the same carrier as backup; tether/hotspot ready.
 - [ ] Pull `main`, `cd frontend && pnpm install && pnpm test && pnpm typecheck`; `pytest` green.
-- [ ] `.env` present (never in git): `DEMO_PHONE_NUMBER` = the consenting teammate's Verizon number; `ALERT_CHANNEL=email_sms`, `SMTP_USER`, `SMTP_APP_PASSWORD`, `ELEVENLABS_API_KEY`, `ELEVENLABS_AGENT_ID`; `SECOND_OPINION=false`.
+- [ ] `.env` present (never in git): `DEMO_PHONE_NUMBER` = the consenting teammate's Verizon number; `ALERT_CHANNEL=email_sms`, `SMTP_USER`, `SMTP_APP_PASSWORD`, `ELEVENLABS_API_KEY`, `ELEVENLABS_AGENT_ID`, `ELEVENLABS_AGENT_ID_ES`; `SECOND_OPINION=false`.
 
 **T-30 min**
 - [ ] Start servers: `uvicorn backend.main:app --port 8000` and `cd frontend && pnpm dev` (or a production build); open `http://localhost:5173/`; check `http://localhost:8000/api/health`.
@@ -143,34 +143,24 @@ Setup: laptop on `http://localhost:5173/`, backend running, `DRY_RUN=false` (liv
 - [ ] Confirm the badge on the demo panel (`?demo=1`) says the intended mode ("live texts armed" vs dry run).
 - [ ] Chrome: allow camera, mic, location for `localhost`; pick the right camera/mic; close other apps using the camera; disable notifications.
 - [ ] `?debug=1`: raise right hand / left hand / smile on one side; labels must follow the correct side.
-- [ ] Mark the arms floor spot (about 3 ft back, both wrists in frame); front light on the face, no window behind you, no strong backlight, glasses glare check.
+- [ ] Mark an arms floor spot where the live outline turns green and both wrists remain in frame; front light on the face, no window behind you, no strong backlight, glasses glare check.
 - [ ] Run one full healthy pass + one demo-panel "Simulate stroke" + cancel. If phoneme scoring is on (`PHONEME_SCORING=true`), confirm warm-up finished and RAM is fine.
 - [ ] Screen recording of a complete run saved locally and on a phone; the `?demo=1` path rehearsed as the camera fallback.
-- [ ] Agent: Start guide once, confirm it speaks and responds; volume set; ElevenLabs credits not exhausted.
+- [ ] Open `?preflight=1`; resolve every red row. Remember that it verifies configuration, not carrier delivery or a full ElevenLabs conversation.
+- [ ] Agent: Start each English and Spanish guide once, confirm it speaks and responds; volume set; ElevenLabs credits not exhausted.
 - [ ] Notifications off, network stable, clear old tabs; note venue Wi-Fi vs hotspot.
 - [ ] Teammate who owns the receiving phone knows the exact time and stays reachable; agree on the phrase to confirm the text out loud.
 - [ ] Slides/pitch include the disclaimer, "not validated", and "Balance not checked".
 
 ---
 
-## 7. Factual problems found
+## 7. Factual consistency pass
 
-### Fixed in docs (this branch)
-- `README.md`: said `DRY_RUN` means it logs instead of "calling/texting" (there is no call); did not mention that alerts go by email-to-SMS; now points to this file.
-- `docs/spec/00-overview.md`: claimed the speech check uses an "ElevenLabs Scribe transcript" and that location is "spoken on the call"; no Scribe/transcriber is implemented and there is no call. Stale Twilio open items and assumptions corrected.
-- `docs/spec/04-voice-agent.md` and `docs/agent-prompt.md`: the agent line "I'm contacting emergency services in ten seconds" / "starting the emergency call" is untrue (one text to a demo number); a `speechSynthesis` fallback was described but does not exist. **The live ElevenLabs agent prompt still needs the same edit.**
-- `docs/PRIVACY.md`: alert row attributed delivery to Twilio, and the ElevenLabs config was stale (recording off / 1-day retention since the 2026-09-19 privacy pass); marked with an update note.
-- `docs/spec/07-workflow.md`, `docs/STATUS.md`: Twilio-blocked notes replaced by the current email-to-SMS state.
+The earlier review found stale emergency-call, transcript, Twilio, deployment, bilingual and threshold claims. Those have
+been corrected across the app, agent prompts, environment template, specs, privacy map and this runbook. Before judging,
+the remaining consistency check is operational rather than editorial:
 
-### In-app copy and config (code, for the lead to fix; not edited here)
-
-_Update 2026-09-19: the four `frontend/` rows below (ResultScreen banner, ResultScreen action card, infoContent Speech `measured`, infoContent FAQ) are fixed in `docs/HUMAN-POLISH.md` batch A. The `.env.example`, `backend/` and live-agent rows are still open._
-| File | Problem |
-|---|---|
-| `frontend/src/components/result/ResultScreen.tsx` | High-band banner says "Several checks came back abnormal", but a single clear face or arm result (about 0.54) triggers it. Suggest "The checks flagged possible signs". |
-| `frontend/src/components/result/ResultScreen.tsx` | Action card "Send the alert to your emergency contact" implies a real contact; it only ever texts the demo number. |
-| `frontend/src/components/pages/infoContent.ts` | Speech `measured`: "Transcript accuracy against the target sentence" is not measured (no transcriber). Say "phoneme accuracy (optional model)" or drop it. |
-| `frontend/src/components/pages/infoContent.ts` | FAQ "Does it really call an ambulance?" says "one verified demo phone": "verified" was a Twilio concept; with email-to-SMS say "one pre-approved demo phone". |
-| `.env.example` | `ELEVENLABS_STT_MODEL` is commented as used to transcribe the speech clip, but no such call exists. |
-| `scripts/sms_check.py` | The docstring still describes the legacy Twilio path first. |
-| ElevenLabs live agent | Prompt step 11 wording (above). Also `tel:911` is US-only; the info page hotlines are US-only. |
+- Probe both saved ElevenLabs agents and confirm their live prompts/tools match `docs/agent-prompt*.md`.
+- Confirm the configured provider sends only to `DEMO_PHONE_NUMBER`; configuration readiness is not delivery proof.
+- Keep the geographic limitation explicit: `tel:911`, linked hotlines and carrier gateway guidance are US-specific.
+- Never describe the seven acted speech recordings as clinical validation or the optional phoneme score as a transcript.

@@ -9,8 +9,7 @@ Calm guide. It **speaks instructions, answers questions, asks last-known-well, a
 ## Setup
 1. Create the agent in the ElevenLabs dashboard: voice = calm/clear, LLM = a fast model, first message = short greeting, `turn` settings tuned for short replies.
 2. Register **client tools** in the dashboard (names/params must match the frontend exactly).
-3. Frontend starts the session with a signed URL from `GET /api/agent/signed-url` (or `VITE_ELEVENLABS_AGENT_ID` if the agent is public). Start on a user gesture (button) — browsers block audio otherwise.
-4. Pass dynamic variables (e.g. `patient_name`) at session start.
+3. Frontend starts the session with a signed URL from `GET /api/agent/signed-url?lang=en|es`. Start on a user gesture (button) — browsers block audio otherwise. Agent IDs and the API key stay on the backend; there is no public-agent fallback.
 
 ## Implementation status
 The backend signed-URL endpoint, frontend `useAgent` hook, transcript-ready session state, and client tools are
@@ -28,7 +27,7 @@ the application flow still need live integration verification.
 | `start_eye_test` | — | Runs only while the website is on `eyes` and `FEATURES.eyesTest` is enabled. |
 | `record_last_known_well` | `description: string` | Saves free text for the alert |
 | `get_session_status` | — | Returns phase + which tests are done (no scores) |
-| `call_emergency` | `reason: string` | **User-requested help.** Starts the 10 s countdown immediately (see 05) |
+| `call_emergency` | `reason?: string` | **User-requested help.** Starts the 3 s confirmation countdown immediately (see 05) |
 | `cancel_emergency` | — | Cancels an active countdown (user said "cancel/I'm ok") |
 
 The app pushes context to the agent with `sendContextualUpdate` (e.g. `"Risk high; countdown started"`) so it stays in sync.
@@ -48,7 +47,7 @@ cannot cause the agent to discuss a previous test. The agent must re-check the l
 ## System prompt essentials (paste into agent config, keep in `docs/agent-prompt.md` if edited)
 - Persona: calm, warm, brief (1–2 short sentences), plain words, no medical jargon.
 - Never diagnose, never say the person is or isn't having a stroke. Say "I'm seeing signs" / "nothing was flagged", and always add that the checks cannot rule out a stroke. Never say the person is fine or all clear. If asked how accurate the check is: it is only a guide through BE-FAST, not clinically accurate, cannot diagnose or rule out a stroke (see "Always be honest about what this is" in `docs/agent-prompt.md`; the live agent prompt must match).
-- The order is face, speech, then arms (the patient steps back only once). Relay positioning hints from tool results/context updates in short plain words ("a little closer", "step back").
+- The order is eyes, face, arms, then speech. Relay positioning hints from tool results/context updates in short plain words ("a little closer", "step back").
 - Follow the flow above in order; call the tool right after giving the instruction; **do not speak while a test tool is running** (wait for the tool result).
 - If the user sounds confused, distressed, or asks for help/ambulance/911 at any point: call `call_emergency` immediately.
 - If the user says cancel/stop during a countdown: call `cancel_emergency`.
@@ -69,4 +68,3 @@ The agent prompt carries a short "Stroke facts" section (`docs/agent-prompt.md`)
 
 ## Spanish agent
 A second agent, "StrokeShield (Español)" (`ELEVENLABS_AGENT_ID_ES`), is a copy of the English agent with the Spanish prompt in `docs/agent-prompt.es.md` (formal "usted", language `es`, voice "Ana María" es-MX on `eleven_v3_conversational`, language detection off so it stays Spanish, same 8 client tools and privacy settings: no audio saved, 1-day retention). `GET /api/agent/signed-url?lang=es` picks it (`lang` is `en` or `es`, anything else is a 422; a missing Spanish id is a 503, never a silent fallback to the English agent). The website still sends its state updates and step briefings in English; the Spanish agent understands them and answers the user in Spanish. Fixed on-screen phrases the agent repeats: "Empezar la revisión", "Empezar a grabar", and the speech sentence "No se le pueden enseñar trucos nuevos a un perro viejo." (the Spanish site must use exactly these). The translation is AI-written and needs a native speaker's review before a public demo. Keep `agent-prompt.md` and `agent-prompt.es.md` aligned. Probe result on 2026-09-19 (text mode): face briefing in Spanish with no mention of smiling, the smile cue says to smile, honest accuracy answer, "nothing flagged" ends with "estas pruebas no pueden descartar un derrame cerebral... llame al 911", aspirin refused, emergency phrase calls `call_emergency` and adds "llame usted también al 911".
-

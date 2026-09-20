@@ -45,6 +45,7 @@ describe('describeAlertFailure (server ok:false messages)', () => {
     ['email-to-SMS needs a US DEMO_PHONE_NUMBER and a valid SMS_GATEWAY_DOMAIN', 'not_configured'],
     ['email-to-SMS is not configured (SMTP_USER / SMTP_APP_PASSWORD)', 'not_configured'],
     ['Twilio credentials are not configured', 'not_configured'],
+    ['ALERT_CHANNEL is invalid; alert refused', 'not_configured'],
     ['risk below threshold; alert refused', 'refused'],
     ['Alert could not be sent', 'delivery'],
     ['SMS could not be sent (Twilio error 30034)', 'delivery'],

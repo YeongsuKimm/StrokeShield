@@ -30,13 +30,17 @@ export function DemoPanel() {
     speechRunner.cancel()
   }
 
-  const run = (v: Severities) => runDemoScenario(v, stopRunners)
+  const run = (v: Severities) => {
+    runDemoScenario(v, stopRunners)
+    // The panel is useful to launch a scenario, but on a phone it would cover much of the result/countdown screen.
+    setOpen(false)
+  }
 
   const armed = health && !health.dryRun
 
   return (
-    <aside className="fixed bottom-5 right-5 z-40 w-72 overflow-hidden rounded-[var(--radius-panel)] border border-ink/15 bg-surface shadow-[var(--shadow-lift)]">
-      <div className="flex items-center justify-between gap-2 border-b border-line px-4 py-2.5">
+    <aside className="fixed bottom-[calc(5.75rem+var(--safe-b))] right-4 z-40 flex max-h-[calc(100dvh-7rem-var(--safe-b))] w-72 flex-col overflow-hidden rounded-[var(--radius-panel)] border border-ink/15 bg-surface shadow-[var(--shadow-lift)] sm:bottom-5 sm:right-5 sm:max-h-[calc(100dvh-2.5rem)]">
+      <div className="flex shrink-0 items-center justify-between gap-2 border-b border-line px-4 py-2.5">
         <p className="label-micro">Demo panel</p>
         <div className="flex items-center gap-2">
           <span
@@ -53,7 +57,7 @@ export function DemoPanel() {
       </div>
 
       {open && (
-        <div className="space-y-3 p-4">
+        <div className="min-h-0 space-y-3 overflow-y-auto p-4">
           {testSequence().map((t) => (
             // The label does have text ({t} below); the rule cannot see through the expression.
             // oxlint-disable-next-line jsx-a11y/label-has-associated-control
@@ -78,7 +82,14 @@ export function DemoPanel() {
             <Button size="sm" onClick={() => run(sev)}>
               Run these
             </Button>
-            <Button size="sm" tone="quiet" onClick={() => s.requestEmergency('user_request')}>
+            <Button
+              size="sm"
+              tone="quiet"
+              onClick={() => {
+                setOpen(false)
+                s.requestEmergency('user_request')
+              }}
+            >
               Countdown
             </Button>
             <Button size="sm" tone="danger" onClick={() => run(STROKE)}>

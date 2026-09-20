@@ -48,6 +48,11 @@ def alert_channel() -> str:
     return "twilio" if os.getenv("ALERT_CHANNEL", "email_sms").strip().lower() == "twilio" else "email_sms"
 
 
+def alert_channel_valid() -> bool:
+    """An unset channel uses the safe default; a misspelling must never silently select a live provider."""
+    return os.getenv("ALERT_CHANNEL", "").strip().lower() in {"", "email_sms", "twilio"}
+
+
 _GATEWAY_DOMAIN = re.compile(r"^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$")
 
 

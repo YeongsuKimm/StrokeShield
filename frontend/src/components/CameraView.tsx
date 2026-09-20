@@ -228,7 +228,9 @@ export function CameraView({ guide, overlay, hideGuideWhileCapturing = true }: P
                 </span>
                 <div role="alert">
                   <p className="text-lg font-semibold text-stage-ink">{pick(locale, 'The camera did not start', 'La c\u00e1mara no se inici\u00f3')}</p>
-                  <p className="mt-1 max-w-sm text-[1rem] text-stage-ink-2">{smartQuotes(summary.error?.message ?? '')}</p>
+                  <p className="mt-1 max-w-sm text-[1rem] text-stage-ink-2">
+                    {smartQuotes(translateRuntimeText(locale, summary.error?.message ?? ''))}
+                  </p>
                 </div>
                 <Button tone="stage" icon="refresh" onClick={() => engine.restart()}>
                   {pick(locale, 'Try the camera again', 'Intentar con la c\u00e1mara de nuevo')}

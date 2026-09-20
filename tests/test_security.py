@@ -279,5 +279,5 @@ def test_sms_body_contains_only_the_spec_fields():
 
     req = AlertRequest.model_validate({**ALERT, "lastKnownWell": "10 min ago", "location": {"lat": 1.5, "lng": 2.5, "accuracyM": 10}})
     assert twilio_service.build_message(req) == (
-        "StrokeShield ALERT: possible stroke. Symptoms: droop. Patient: Sam. Last known well: 10 min ago. "
+        "StrokeShield ALERT: possible stroke. Symptoms: droop. Last known well: 10 min ago. "
         "Location: https://maps.google.com/?q=1.5,2.5 (±10 m). Demo message.")

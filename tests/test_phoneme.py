@@ -191,6 +191,17 @@ def test_torch_missing_returns_none_without_raising(monkeypatch):
     P.warmup()  # must not raise
 
 
+def test_inference_readiness_reflects_failed_warmup_not_just_cached_files(monkeypatch):
+    monkeypatch.setenv("PHONEME_SCORING", "true")
+    monkeypatch.setattr(P, "_deps_importable", lambda: True)
+    monkeypatch.setattr(P, "model_cached", lambda: True)
+    monkeypatch.setattr(P, "_WARMUP_READY", None)
+    assert P.inference_ready() is True
+    monkeypatch.setattr(P, "_load", lambda local_only=True: (_ for _ in ()).throw(RuntimeError("broken cache")))
+    assert P.warmup() is False
+    assert P.inference_ready() is False
+
+
 def test_import_and_pure_functions_work_without_torch():
     code = (
         "import sys; sys.modules['torch']=None; sys.modules['transformers']=None;"

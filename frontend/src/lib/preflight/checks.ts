@@ -2,7 +2,8 @@
 // Every check is a small async function over an injected environment, returns green / amber / red with a one-line fix,
 // and NEVER throws or hangs (each is raced against a timeout). Nothing is captured, recorded or stored: the camera and
 // microphone are only *enumerated* and their permission *queried*; no stream is ever opened. Backend readiness uses
-// a secret-free boolean snapshot; no voice conversation or alert is started.
+// a secret-free boolean snapshot; no voice conversation or alert is started. A green service row means the environment
+// is internally consistent, not that an SMTP login, carrier delivery, or ElevenLabs conversation has been live-tested.
 import type { HealthResponse } from '../contracts'
 import type { PreflightResponse } from '../api'
 
@@ -155,22 +156,32 @@ export function buildChecks(env: PreflightEnv): CheckDef[] {
     },
     {
       id: 'live-services',
-      label: 'Live alerts and voice guides',
+      label: 'Alert and voice-guide configuration',
       run: async () => {
         try {
           const r = await env.preflight()
+          const destinationReady = r.alertChannel === 'email_sms' ? r.gatewayValid : r.demoPhoneConfigured
           const providerReady = r.alertChannel === 'email_sms' ? r.smtpConfigured : r.twilioConfigured
-          const alertReady = r.gatewayValid && (r.dryRun || providerReady)
-          const missing = [!alertReady && 'live alert', !r.agentConfigured && 'English guide', !r.agentConfiguredEs && 'Spanish guide'].filter(Boolean)
+          const alertReady = r.alertChannelValid && destinationReady && providerReady
+          const missing = [
+            !alertReady && 'live alert',
+            !r.agentConfigured && 'English guide',
+            !r.agentConfiguredEs && 'Spanish guide',
+            !r.phonemeReady && 'speech articulation model',
+          ].filter(Boolean)
           if (missing.length) {
             return {
               status: 'fail',
               detail: `Not ready: ${missing.join(', ')}.`,
-              fix: 'Check DEMO_PHONE_NUMBER, alert credentials, ELEVENLABS_API_KEY and both agent IDs in .env.',
+              fix: 'Check alert and ElevenLabs settings. For speech, set PHONEME_SCORING=true, install requirements-ml.txt, then run python -m models.phoneme --download and restart the backend.',
             }
           }
-          const alert = r.dryRun ? 'alerts are dry-run' : `${r.alertChannel} alerts are live`
-          return { status: 'ok', detail: `Both language guides are configured; ${alert}.`, fix: '' }
+          const alert = r.dryRun ? 'alerts are dry-run' : `${r.alertChannel} alerts are armed`
+          return {
+            status: 'ok',
+            detail: `Configuration present for both language guides and the speech articulation model; ${alert}.`,
+            fix: r.dryRun ? '' : 'Configuration only: run the live agent probe and send one consented test text before the demo.',
+          }
         } catch (e) {
           return { status: 'fail', detail: fmtErr(e), fix: 'Check the backend and the alert and ElevenLabs settings in .env.' }
         }

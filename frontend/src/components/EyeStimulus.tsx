@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { EYE_PROTOCOL, EYE_PROTOCOL_TOTAL_MS, type EyeTarget } from '../lib/vision/eyeProtocol'
+import { pick, useLocale } from '../lib/i18n'
 
 interface Props {
   /**
@@ -25,6 +26,7 @@ interface Props {
 const POS_PCT: Record<EyeTarget, number> = { left: 10, center: 50, right: 90 }
 
 export function EyeStimulus({ onTargetChange, onDone, mirrored = false, showCaption = true }: Props) {
+  const locale = useLocale((s) => s.locale)
   const [target, setTarget] = useState<EyeTarget>('center')
   const cbs = useRef({ onTargetChange, onDone })
   useEffect(() => {
@@ -61,7 +63,7 @@ export function EyeStimulus({ onTargetChange, onDone, mirrored = false, showCapt
       />
       {showCaption && (
         <p className="absolute inset-x-0 bottom-3 text-center text-sm font-medium text-white">
-          Keep your head still. Follow the dot with your eyes only.
+          {pick(locale, 'Keep your head still. Follow the dot with your eyes only.', 'Mantén la cabeza quieta. Sigue el punto solo con los ojos.')}
         </p>
       )}
     </div>

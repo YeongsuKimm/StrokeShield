@@ -18,7 +18,7 @@ def _phoneme_requested() -> bool:
 
 
 def _phoneme_ready() -> bool:
-    """Requested AND torch + transformers importable AND the model already cached locally. Never raises, no network."""
+    """Return whether the requested articulation model completed a real warmup inference."""
     if not _phoneme_requested():
         return False
     try:
@@ -26,7 +26,7 @@ def _phoneme_ready() -> bool:
             return False
         from models import phoneme
 
-        return phoneme.model_cached()
+        return phoneme.inference_ready()
     except Exception:
         return False
 
@@ -47,6 +47,8 @@ def snapshot() -> dict[str, bool | str]:
     """Booleans and one short enum only. No secrets, no phone number, no addresses."""
     return {
         "alertChannel": settings.alert_channel(),
+        "alertChannelValid": settings.alert_channel_valid(),
+        "demoPhoneConfigured": settings.demo_phone_number() is not None,
         "dryRun": settings.dry_run(),
         "smtpConfigured": email_sms_service.smtp_config() is not None,
         "twilioConfigured": all(os.getenv(k, "").strip() for k in ("TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_FROM_NUMBER")),
@@ -62,6 +64,8 @@ def warnings() -> list[str]:
     """Human-readable, secret-free problems. Never includes a value from the environment."""
     out: list[str] = []
     channel = settings.alert_channel()
+    if not settings.alert_channel_valid():
+        out.append("ALERT_CHANNEL is invalid: every alert will be refused; use email_sms or twilio")
     if settings.dry_run():
         out.append("DRY_RUN is on: alerts are only logged, nothing is sent (right for development, wrong for the live demo)")
     else:
@@ -79,8 +83,10 @@ def warnings() -> list[str]:
 
     if not _agent_configured():
         out.append("ELEVENLABS_API_KEY / ELEVENLABS_AGENT_ID missing: the voice guide is unavailable (the tests still work)")
+    if not _agent_es_configured():
+        out.append("ELEVENLABS_API_KEY / ELEVENLABS_AGENT_ID_ES missing: the Spanish voice guide is unavailable")
     if _phoneme_requested() and not _phoneme_ready():
-        out.append("PHONEME_SCORING is on but torch/transformers or the cached model is missing: speech uses acoustic-only scoring")
+        out.append("PHONEME_SCORING is on but model warmup inference failed: speech uses acoustic-only scoring")
     if settings.second_opinion_enabled() and not _gemini_key_present():
         out.append("SECOND_OPINION is on but GEMINI_API_KEY is empty: the second opinion will report 'unclear'")
     return out

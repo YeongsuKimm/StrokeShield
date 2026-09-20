@@ -89,7 +89,7 @@ Rule: **no destination number in `AlertRequest`.** Backend reads `DEMO_PHONE_NUM
 | Method & path | Request | Response | Owner |
 |---|---|---|---|
 | `GET /api/health` | — | `{ok:true, dryRun, demoMode}` | Backend |
-| `GET /api/preflight` | — | `{alertChannel, dryRun, smtpConfigured, twilioConfigured, gatewayValid, agentConfigured, agentConfiguredEs, phonemeReady, secondOpinionEnabled}` — booleans + the channel name only (never a secret, address or the phone number). NOT a contract type: `backend/preflight.py`, no `schemas.py`/`contracts.ts` mirror. The frontend demo-preflight panel consumes it so alert delivery and both language agents cannot be missing behind a green health check. The same checks are logged as `preflight:` warnings at startup. | Backend |
+| `GET /api/preflight` | — | `{alertChannel, alertChannelValid, dryRun, smtpConfigured, twilioConfigured, gatewayValid, demoPhoneConfigured, agentConfigured, agentConfiguredEs, phonemeReady, secondOpinionEnabled}` — booleans + the channel name only (never a secret, address or phone number). NOT a contract type: `backend/preflight.py`, no `schemas.py`/`contracts.ts` mirror. The frontend demo-preflight panel checks the selected alert provider and destination, both language agents, and successful phoneme-model inference so missing demo dependencies cannot hide behind a green health check. The same checks are logged as `preflight:` warnings at startup. | Backend |
 | `GET /api/agent/signed-url` | — | `{signedUrl}` | Backend/Agent |
 | `POST /api/speech/analyze` | multipart: `audio` (wav), `target_phrase` | `TestResult` (+`transcript`, `metrics`) | Speech |
 | `GET /api/agent/signed-url?lang=en\|es` | none | `{signedUrl}` (Spanish uses `ELEVENLABS_AGENT_ID_ES`; 503 if unset) | Agent |

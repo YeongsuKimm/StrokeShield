@@ -15,15 +15,16 @@ The backend image is **torch-free** (`Dockerfile` at the repo root): no phoneme 
 | `ALERT_CHANNEL` | `email_sms` (or `twilio` for the legacy path) |
 | `SMS_GATEWAY_DOMAIN` | `vtext.com` (Verizon) |
 | `SMTP_USER`, `SMTP_APP_PASSWORD` | Gmail address + app password (docs/SMS-SETUP.md) |
-| `ELEVENLABS_API_KEY`, `ELEVENLABS_AGENT_ID` | voice guide (signed URL is minted server-side) |
+| `ELEVENLABS_API_KEY`, `ELEVENLABS_AGENT_ID`, `ELEVENLABS_AGENT_ID_ES` | English and Spanish voice guides (signed URLs are minted server-side) |
 | `ALLOWED_ORIGINS` | the exact Vercel origin, e.g. `https://strokeshield.vercel.app` (comma-separated for several) |
 | `SECOND_OPINION`, `GEMINI_API_KEY` | leave off unless the volunteers consented (docs/PRIVACY.md) |
 
 3. The container runs `uvicorn ... --proxy-headers --forwarded-allow-ips='*' --no-access-log`: the per-IP rate limits see the real
    client address behind Railway's proxy, and request lines are not logged.
-4. Check it: `GET https://<backend>/api/health` and **`GET /api/preflight`** (booleans only: alert channel, dry run,
+4. Check it: `GET https://<backend>/api/health` and **`GET /api/preflight`** (booleans only: alert channel validity, dry run,
    SMTP configured, gateway valid, agent configured, ...). Startup also logs `preflight:` warnings for an inconsistent
-   configuration (no secrets in them).
+   configuration (no secrets in them). This checks configuration only: run `python scripts/agent_probe.py --tools` and
+   `python scripts/sms_check.py --send` separately to verify the live providers.
 
 ## Frontend on Vercel
 1. Project root `frontend/`, build `pnpm build`, output `dist`.

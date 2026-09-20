@@ -10,6 +10,7 @@
 //    fills the outline is far enough back for both wrists to stay in frame.
 // Both live in the MIRRORED layer; they are symmetric, so mirroring does not matter.
 import type { ReactNode } from 'react'
+import { pick, useLocale } from '../../lib/i18n'
 
 type GuideTone = 'waiting' | 'ok'
 
@@ -51,9 +52,10 @@ function Layer({ children, label }: { children: ReactNode; label: string }) {
 
 /** Dashed oval for the close-up checks (speech, eyes, face): "put your head here". */
 export function HeadGuide({ tone = 'waiting' }: { tone?: GuideTone }) {
+  const locale = useLocale((s) => s.locale)
   const color = STROKE[tone]
   return (
-    <Layer label="Outline showing where to place your head">
+    <Layer label={pick(locale, 'Outline showing where to place your head', 'Contorno que muestra dónde colocar la cabeza')}>
       <div
         className="absolute left-1/2 top-[46%] w-[38%] -translate-x-1/2 -translate-y-1/2 rounded-[50%] border-2 border-dashed transition-colors duration-300"
         style={{ borderColor: color, aspectRatio: '3 / 4' }}
@@ -65,9 +67,10 @@ export function HeadGuide({ tone = 'waiting' }: { tone?: GuideTone }) {
 
 /** Head, shoulders and torso for the arms check: "step back until you fill this". */
 export function BodyGuide({ tone = 'waiting' }: { tone?: GuideTone }) {
+  const locale = useLocale((s) => s.locale)
   const color = STROKE[tone]
   return (
-    <Layer label="Outline showing where to stand for the arm check">
+    <Layer label={pick(locale, 'Outline showing where to stand for the arm check', 'Contorno que muestra dónde colocarse para la revisión de brazos')}>
       <svg
         viewBox="0 0 100 100"
         preserveAspectRatio="xMidYMid meet"

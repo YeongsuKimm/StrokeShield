@@ -85,7 +85,7 @@ function AgentControl() {
           aria-label={pick(locale, 'Voice guide consent', 'Consentimiento para la gu\u00eda de voz')}
           className="absolute bottom-full right-0 mb-3 w-[min(20rem,calc(100vw-2.5rem))] rounded-[var(--radius-panel)] border border-line-strong bg-surface p-4 shadow-[var(--shadow-lift)] sm:bottom-auto sm:left-1/2 sm:right-auto sm:top-full sm:mb-0 sm:mt-3 sm:-translate-x-1/2"
         >
-          <p className="text-[0.9375rem] leading-snug text-ink-2">{pick(locale, VOICE_CONSENT_TEXT, 'La gu\u00eda de voz transmite el audio de tu micr\u00f3fono a ElevenLabs mientras est\u00e9 activa. ElevenLabs puede conservar el audio y la transcripci\u00f3n seg\u00fan su pol\u00edtica de privacidad.')}</p>
+          <p className="text-[0.9375rem] leading-snug text-ink-2">{pick(locale, VOICE_CONSENT_TEXT, 'La gu\u00eda de voz transmite el audio de tu micr\u00f3fono a ElevenLabs mientras est\u00e9 activa. No se guarda el audio, pero ElevenLabs puede conservar una transcripci\u00f3n hasta por un d\u00eda.')}</p>
           <div className="mt-3 flex gap-2">
             <button type="button" onClick={begin} className="min-h-11 rounded-full bg-ink px-4 py-2 text-[0.875rem] font-semibold text-paper hover:opacity-80">
               {pick(locale, 'Allow and start', 'Permitir e iniciar')}

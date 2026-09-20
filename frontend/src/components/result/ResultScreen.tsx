@@ -121,6 +121,8 @@ export function ResultScreen() {
   const reset = useSession((s) => s.reset)
   const alertStatus = useSession((s) => s.alertStatus)
   const alertResponse = useSession((s) => s.alertResponse)
+  const demoEnabled = useSession((s) => s.demoEnabled)
+  const hasLocation = useSession((s) => !!s.location)
 
   const value = risk?.risk ?? 0
   const band = phase === 'alerted' || phase === 'alerting' ? 'high' : resultBand(value)
@@ -155,9 +157,17 @@ export function ResultScreen() {
         />
         <ActionCard
           icon="user"
-          title={pick(locale, 'Text the demo contact', 'Escribir al contacto de demo')}
-          body={pick(locale, 'Send a text to the demo phone we set up ahead of time, with your location if you allowed it and what the checks found. It does not reach emergency services.', 'Env\u00eda un mensaje al tel\u00e9fono de demo configurado, con tu ubicaci\u00f3n si la autorizaste y lo que encontraron las revisiones. No contacta a emergencias.')}
-          action={pick(locale, 'Send the text', 'Enviar mensaje')}
+          title={pick(locale, demoEnabled ? 'Demo: send the text anyway' : 'Text the demo contact', demoEnabled ? 'Demo: enviar el mensaje de todos modos' : 'Escribir al contacto de demo')}
+          body={pick(
+            locale,
+            demoEnabled
+              ? `Send to the configured demo phone regardless of this result. ${hasLocation ? 'Your allowed location will be included.' : 'Location will be included if it was allowed.'} It does not reach emergency services.`
+              : 'Send a text to the demo phone we set up ahead of time, with your location if you allowed it and what the checks found. It does not reach emergency services.',
+            demoEnabled
+              ? `Env\u00eda al tel\u00e9fono de demo configurado sin importar este resultado. ${hasLocation ? 'Se incluir\u00e1 tu ubicaci\u00f3n autorizada.' : 'La ubicaci\u00f3n se incluir\u00e1 si la autorizaste.'} No contacta a emergencias.`
+              : 'Env\u00eda un mensaje al tel\u00e9fono de demo configurado, con tu ubicaci\u00f3n si la autorizaste y lo que encontraron las revisiones. No contacta a emergencias.',
+          )}
+          action={pick(locale, demoEnabled ? 'Send demo text' : 'Send the text', demoEnabled ? 'Enviar mensaje de demo' : 'Enviar mensaje')}
           onClick={() => requestEmergency('user_request')}
         />
         <ActionCard

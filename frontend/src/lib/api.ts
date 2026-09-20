@@ -5,6 +5,8 @@ import type { Locale } from './i18n'
 
 export interface PreflightResponse {
   alertChannel: 'email_sms' | 'twilio'
+  alertChannelValid: boolean
+  demoPhoneConfigured: boolean
   dryRun: boolean
   smtpConfigured: boolean
   twilioConfigured: boolean

@@ -279,6 +279,7 @@ def score_posteriors(
 _LOCK = threading.Lock()  # guards model loading
 _INFER_LOCK = threading.Lock()  # one forward pass at a time: bounds RAM (~1.4 GB) and CPU when analyses overlap
 _STATE: dict = {}  # "model", "labels", "blank", "torch"
+_WARMUP_READY: bool | None = None
 
 
 def _env_true(name: str) -> bool:
@@ -351,17 +352,23 @@ def _log_posteriors(x16k: np.ndarray, st: dict) -> np.ndarray:
     return log_softmax(logits.float().numpy())
 
 
-def warmup() -> None:
-    """Load the model once (idempotent) and run a dummy inference. Never raises."""
+def warmup() -> bool:
+    """Load the model once and run a dummy inference. Return readiness; never raise."""
+    global _WARMUP_READY
     try:
         if not _deps_importable():
-            return
+            _WARMUP_READY = False
+            return False
         st = _load(local_only=True)
         rng = np.random.default_rng(0)
         _log_posteriors(rng.standard_normal(MODEL_SAMPLE_RATE).astype(np.float32) * 0.05, st)
+        _WARMUP_READY = True
+        return True
     except Exception as exc:
+        _WARMUP_READY = False
         log.warning("phoneme warmup failed (%s: %s); run `python -m models.phoneme --download`",
                     type(exc).__name__, exc)
+        return False
 
 
 def score_phonemes(samples: np.ndarray, sample_rate: int, target_phrase: str) -> PhonemeScores | None:
@@ -434,6 +441,13 @@ def _cached_size_mb() -> float | None:
 def model_cached() -> bool:
     """True when the model is fully in the local HF cache (no network access)."""
     return _cached_size_mb() is not None
+
+
+def inference_ready() -> bool:
+    """Whether configured scoring can run; after startup, reflects the actual warm-up result."""
+    if not phoneme_scoring_enabled():
+        return False
+    return _WARMUP_READY if _WARMUP_READY is not None else model_cached()
 
 
 def _smoke() -> None:

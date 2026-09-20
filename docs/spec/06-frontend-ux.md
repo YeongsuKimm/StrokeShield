@@ -51,7 +51,9 @@ Routing is `store.route` plus `store.phase` — no router library. `App.tsx` pic
   Escape, outside click and after a choice. The component is adapted from **Drilldown Menu by ruixen.ui on 21st.dev**
   (retrieved with `npx @21st-dev/cli get`, not `add`: the CLI's install path runs `shadcn add`, which would init shadcn
   and rewrite `index.css`). New dependency: `framer-motion` (~+159 kB gzipped on the main bundle).
-- **Result** (`ResultScreen`): banner in one of three bands, three actions (call 911 / alert a contact / ER nearby),
+- **Result** (`ResultScreen`): banner in one of three bands, three actions (call 911 / alert a contact / ER nearby). In
+  demo mode, the contact action explicitly says it sends regardless of the result and whether the permitted location
+  fix will be included; it still uses the normal cancel countdown, rate limit and backend-only `DEMO_PHONE_NUMBER`,
   alert status with dry-run badge, and the risk dashboard underneath.
 - **Risk dashboard** (`Dashboard`): per-test card (severity bar, confidence, max weight, flags, raw metrics in an
   expandable table), combined risk gauge with threshold marker, and the per-test noisy-OR arithmetic. Judge-facing.
@@ -96,6 +98,8 @@ result screen says and offers.
   position, since the hint pill and the page heading already say it.
 - The camera view shows a "stand here" guide: `HeadGuide` for the close-up checks (sized as a % of frame WIDTH, to
   match the face-width gate) and `BodyGuide` for arms (anchored to frame height), plus two reference pictures (`public/images/arms-stand.jpg`, `arms-raise.jpg`) beside the camera.
+  Their screen-reader descriptions follow the current locale. Camera startup, permission, device, model-load and
+  mid-check failure messages are translated on the Spanish route rather than exposing runtime English.
 - **Skip hatch:** after `SKIP_OFFER_MS` (15 s) on any check, a "Skip this check" card appears, **pinned to the bottom-right of the window** (`position: fixed`), so it is
   visible however short the screen while staying clear of the centred controls (Start recording, camera captions) and
   the bottom-left Call 911 button. It is a bordered accent-blue card with a large button and a spring-in entrance,
@@ -148,8 +152,8 @@ for how to get the site onto a device and what is still unverified there.
   sensible distance in a room. Everything downstream reads the real `videoWidth / videoHeight`, so a portrait stream is
   measured correctly with no other change. Desktop is untouched at 16:9.
 - **Arm distance.** No distance is quoted anywhere any more (screen, voice agent, or prompt docs): how far back is far
-  enough depends on the camera, and the framing gate already measures the real thing. The phone estimate is ~6 ft, and
-  the arm screen tells phone users to stand the device up first, since nobody can hold it at that distance.
+  enough depends on the camera, and the framing gate already measures the real thing. The screen tells the patient to
+  keep moving until the outline turns green and tells phone users to stand the device up first.
 - **The camera stage may not grow under the floating controls.** `--cam-max-h` (index.css) caps it below `sm`; the cap
   is applied as a MAX-WIDTH derived from the real aspect, because capping height would stretch the video and misalign
   the landmark overlay. Call 911 and the voice guide sit bottom-left and bottom-right, exactly where the hands are.
@@ -162,6 +166,10 @@ for how to get the site onto a device and what is still unverified there.
 - **Safe areas.** The page draws edge to edge (`viewport-fit=cover`); every fixed bottom control adds `var(--safe-b)`
   so it clears the iPhone home bar. `overscroll-behavior-y: contain` stops Android's pull-to-refresh reloading the page
   and losing the session mid-check.
+- **Demo controls.** On phones the optional demo panel sits above the voice-guide control instead of occupying the same
+  bottom-right position. Its body scrolls within the viewport on short screens, so the one-click healthy/stroke paths
+  and reset action remain reachable. Launching a scenario or countdown collapses the panel so it cannot cover the
+  result or emergency countdown.
 - **Touch.** 44 px minimum tap target; the drilldown menu scales its whole em grid up on a coarse pointer.
 - **Unsupported browsers** (`browserSupport.ts`, pure + tested). In-app web views (Instagram, TikTok, a chat app) block
   camera access, so they get a red "open this in Safari or Chrome" banner. Anything that is not WebKit or Blink gets one

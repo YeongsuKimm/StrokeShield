@@ -1,6 +1,6 @@
-"""Is the alert ready to send? (Twilio, or email-to-SMS when ALERT_CHANNEL=email_sms.) Diagnoses the whole chain and tells you what to fix. Sends NOTHING unless --send.
+"""Is the configured alert path ready? Diagnoses email-to-SMS (default) or legacy Twilio. Sends NOTHING unless --send.
 
-    python scripts/sms_check.py            # read-only: checks .env, then asks Twilio (no message sent, no cost)
+    python scripts/sms_check.py            # read-only: checks .env and provider login/config (no message sent)
     python scripts/sms_check.py --send     # after all checks pass, sends ONE real test SMS to DEMO_PHONE_NUMBER
 
 Secrets are never printed (only "set" / lengths / masked numbers). --send goes through the same code path as the app

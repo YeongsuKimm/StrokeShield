@@ -16,7 +16,7 @@ SECRETS = {
     "DEMO_PHONE_NUMBER": "+14105550123",
     "TWILIO_AUTH_TOKEN": "twilio_secret_token",
 }
-ENV_KEYS = [*SECRETS, "ALERT_CHANNEL", "SMS_GATEWAY_DOMAIN", "TWILIO_ACCOUNT_SID", "TWILIO_FROM_NUMBER"]
+ENV_KEYS = [*SECRETS, "ALERT_CHANNEL", "SMS_GATEWAY_DOMAIN", "TWILIO_ACCOUNT_SID", "TWILIO_FROM_NUMBER", "ELEVENLABS_AGENT_ID_ES"]
 
 
 @pytest.fixture(autouse=True)
@@ -32,6 +32,7 @@ def _good(monkeypatch):
     monkeypatch.setenv("DEMO_PHONE_NUMBER", SECRETS["DEMO_PHONE_NUMBER"])
     monkeypatch.setenv("ELEVENLABS_API_KEY", SECRETS["ELEVENLABS_API_KEY"])
     monkeypatch.setenv("ELEVENLABS_AGENT_ID", SECRETS["ELEVENLABS_AGENT_ID"])
+    monkeypatch.setenv("ELEVENLABS_AGENT_ID_ES", "agent_es_configured")
     monkeypatch.setenv("DRY_RUN", "false")
 
 
@@ -84,6 +85,13 @@ def test_twilio_channel_needs_twilio_credentials(monkeypatch):
     assert _has(preflight.warnings(), "Twilio credentials are incomplete")
 
 
+def test_invalid_alert_channel_is_refused_and_reported(monkeypatch):
+    _good(monkeypatch)
+    monkeypatch.setenv("ALERT_CHANNEL", "twlio")
+    assert preflight.snapshot()["alertChannelValid"] is False
+    assert _has(preflight.warnings(), "ALERT_CHANNEL is invalid")
+
+
 def test_missing_agent_config(monkeypatch):
     _good(monkeypatch)
     monkeypatch.setenv("ELEVENLABS_AGENT_ID", "")
@@ -121,7 +129,7 @@ def test_endpoint_returns_only_the_documented_keys_and_no_secrets(monkeypatch):
         res = client.get("/api/preflight")
     assert res.status_code == 200
     body = res.json()
-    assert set(body) == {"alertChannel", "dryRun", "smtpConfigured", "twilioConfigured", "gatewayValid", "agentConfigured", "agentConfiguredEs", "phonemeReady", "secondOpinionEnabled"}
+    assert set(body) == {"alertChannel", "alertChannelValid", "demoPhoneConfigured", "dryRun", "smtpConfigured", "twilioConfigured", "gatewayValid", "agentConfigured", "agentConfiguredEs", "phonemeReady", "secondOpinionEnabled"}
     assert body["alertChannel"] == "email_sms" and body["dryRun"] is False and body["gatewayValid"] is True
     assert all(isinstance(v, (bool, str)) for v in body.values())
     for secret in SECRETS.values():

@@ -69,7 +69,7 @@ export function ArmsTest() {
           )}
           <p className="col-span-2 flex items-start gap-2 text-[0.875rem] leading-snug text-ink-3 lg:col-span-1">
             <Icon name="pin" size={14} className="mt-px shrink-0" />
-            {pick(locale, 'You need clear space behind you: about six feet on a phone, less on a laptop.', 'Necesitas espacio libre detr\u00e1s: unos dos metros con un tel\u00e9fono y menos con una computadora.')}
+            {pick(locale, 'Keep stepping back until the outline turns green. Camera lenses vary, so use the on-screen guide.', 'Sigue retrocediendo hasta que el contorno se vuelva verde. Como las cámaras varían, usa la guía en pantalla.')}
           </p>
         </aside>
       }

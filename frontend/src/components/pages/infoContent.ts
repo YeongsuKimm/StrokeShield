@@ -210,7 +210,7 @@ export const FAQS: Faq[] = [
   },
   {
     q: 'What happens to the video and audio?',
-    a: 'Your video never leaves your browser: face and arm tracking run on this device, and nothing from the camera is uploaded or stored. Audio goes to two places, and only if you use them. The speech test sends one short recording to our server for analysis and to no other company; we do not store it. The optional voice guide, once you press Start guide, streams your microphone audio to ElevenLabs for as long as it is on, and ElevenLabs may keep the recording and transcript under its own privacy policy. No photos or video frames are sent anywhere.',
+    a: 'Your video never leaves your browser: face and arm tracking run on this device, and nothing from the camera is uploaded or stored. Audio goes to two places, and only if you use them. The speech test sends one short recording to our server for analysis and to no other company; we do not store it. The optional voice guide, once you press Start guide, streams your microphone audio to ElevenLabs for as long as it is on. Audio saving is off, but ElevenLabs may keep a transcript for up to one day. No photos or video frames are sent anywhere.',
   },
   {
     q: 'What data does this use?',
@@ -283,7 +283,7 @@ const STATS_ES: Stat[] = [
 
 const FAQS_ES: Faq[] = [
   { q: '\u00bfEsto es un diagn\u00f3stico?', a: 'No. StrokeShield solo gu\u00eda una revisi\u00f3n BE-FAST. No tiene precisi\u00f3n cl\u00ednica, no es un dispositivo m\u00e9dico y no ha sido validado: no puede diagnosticar ni descartar un derrame cerebral. Si sospechas un derrame, llama al 911 de inmediato.' },
-  { q: '\u00bfQu\u00e9 pasa con el video y el audio?', a: 'El video nunca sale del navegador. La prueba de habla env\u00eda una grabaci\u00f3n corta a nuestro servidor para analizarla y no la guardamos. Si activas la gu\u00eda de voz, ElevenLabs recibe el audio del micr\u00f3fono mientras est\u00e9 conectada y puede conservar la grabaci\u00f3n y la transcripci\u00f3n seg\u00fan su propia pol\u00edtica.' },
+  { q: '\u00bfQu\u00e9 pasa con el video y el audio?', a: 'El video nunca sale del navegador. La prueba de habla env\u00eda una grabaci\u00f3n corta a nuestro servidor para analizarla y no la guardamos. Si activas la gu\u00eda de voz, ElevenLabs recibe el audio del micr\u00f3fono mientras est\u00e9 conectada. No se guarda el audio, pero ElevenLabs puede conservar una transcripci\u00f3n hasta por un d\u00eda.' },
   { q: '\u00bfQu\u00e9 datos utiliza?', a: 'La c\u00e1mara, procesada solo en este navegador; el micr\u00f3fono; y tu ubicaci\u00f3n si la autorizas. Los resultados se mantienen solo en la memoria de esta pesta\u00f1a. No usamos anal\u00edtica ni rastreadores publicitarios. Borrar mis datos detiene los dispositivos y elimina la informaci\u00f3n de la sesi\u00f3n.' },
   { q: '\u00bfQu\u00e9 hago si una revisi\u00f3n no funciona?', a: 'Puedes omitir cualquier revisi\u00f3n. Si la c\u00e1mara no puede medir algo, se excluye del puntaje en vez de adivinar. Incluso si todo funciona, esta herramienta no puede asegurarte que no haya un derrame cerebral.' },
   { q: '\u00bfRealmente llama a una ambulancia?', a: 'No. En esta demo, el mensaje autom\u00e1tico solo llega a un tel\u00e9fono de demostraci\u00f3n aprobado, nunca a emergencias. El bot\u00f3n rojo llama al 911 desde tu propio dispositivo.' },

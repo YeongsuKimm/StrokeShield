@@ -37,8 +37,8 @@ function MuteWarning() {
   if (verdict.reason !== 'track-off' && verdict.reason !== 'no-sound') return null
   const text =
     verdict.reason === 'track-off'
-      ? pick(locale, 'Your microphone is muted. Unmute it so the assistant can hear you.', 'Tu micr\u00f3fono est\u00e1 silenciado. Act\u00edvalo para que la gu\u00eda pueda o\u00edrte.')
-      : pick(locale, 'I cannot hear anything. Check that the right microphone is selected and unmuted.', 'No se oye nada. Comprueba que el micr\u00f3fono correcto est\u00e9 seleccionado y activado.')
+      ? pick(locale, 'Your microphone is muted. Unmute it so the assistant can hear you.', 'Tu micrófono está silenciado. Actívalo para que la guía pueda oírte.')
+      : pick(locale, 'I cannot hear anything. Check that the right microphone is selected and unmuted.', 'No se oye nada. Comprueba que el micrófono correcto esté seleccionado y activado.')
   return (
     <p
       className="flex items-start gap-2.5 rounded-[var(--radius-control)] border border-caution/30 bg-caution-wash px-4 py-3 text-[1rem] text-caution"

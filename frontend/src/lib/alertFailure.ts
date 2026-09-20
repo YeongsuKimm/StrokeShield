@@ -92,19 +92,19 @@ export function describeAlertFailure(res: AlertResponse | undefined): AlertFailu
       retryAfterS: 0,
     }
   }
+  if (/not (set|configured)|needs a us|credentials|alert_channel is invalid/.test(text)) {
+    return {
+      category: 'not_configured',
+      title: 'Alerts are not set up on this server',
+      detail: 'No text can be sent from here. Call 911 yourself.',
+      retryAfterS: 0,
+    }
+  }
   if (text.includes('below threshold') || text.includes('alert refused')) {
     return {
       category: 'refused',
       title: 'The server declined to send the alert',
       detail: 'The check results were below its alert level. Use "Send the text" to ask for help yourself.',
-      retryAfterS: 0,
-    }
-  }
-  if (/not (set|configured)|needs a us|credentials/.test(text)) {
-    return {
-      category: 'not_configured',
-      title: 'Alerts are not set up on this server',
-      detail: 'No text can be sent from here. Call 911 yourself.',
       retryAfterS: 0,
     }
   }

@@ -115,6 +115,6 @@ export const clientTools = {
   },
   cancel_emergency: async (): Promise<string> => {
     s().cancelCountdown()
-    return 'Emergency call cancelled.'
+    return 'Alert countdown cancelled.'
   },
 }

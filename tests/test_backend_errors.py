@@ -59,6 +59,22 @@ def test_invalid_demo_number_is_refused_not_used(monkeypatch):
         assert res.status_code == 200 and res.json()["ok"] is False
 
 
+def test_invalid_alert_channel_fails_closed(monkeypatch):
+    monkeypatch.setenv("ALERT_CHANNEL", "twlio")
+    res = client.post("/api/alert", json=BODY)
+    assert res.status_code == 200
+    assert res.json()["ok"] is False
+    assert "ALERT_CHANNEL is invalid" in res.json()["error"]
+
+
+def test_legacy_twilio_message_never_includes_patient_name():
+    from backend.schemas import AlertRequest
+
+    message = twilio_service.build_message(AlertRequest.model_validate(BODY))
+    assert "Sam Private" not in message
+    assert "Patient:" not in message
+
+
 # ---- Twilio failure is graceful and leak-free -------------------------------------------------------------------------
 
 def test_twilio_failure_returns_ok_false_without_leaking(monkeypatch):

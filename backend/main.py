@@ -33,8 +33,11 @@ async def lifespan(_: FastAPI):
         from models import phoneme
 
         if phoneme.phoneme_scoring_enabled():
-            await run_in_threadpool(phoneme.warmup)
-            log.info("phoneme model warmed up")
+            ready = await run_in_threadpool(phoneme.warmup)
+            if ready:
+                log.info("phoneme model warmed up")
+            else:
+                log.warning("phoneme model is enabled but did not warm up; speech will use timing and voice only")
     except Exception as exc:  # torch missing, model not downloaded, etc.: speech falls back to acoustic-only scoring
         log.warning("phoneme warm-up skipped (%s)", type(exc).__name__)
     yield

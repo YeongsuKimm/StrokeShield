@@ -4,7 +4,7 @@ import { isPreflightSearch } from './store'
 
 const healthy = (): PreflightEnv => ({
   health: async () => ({ ok: true, dryRun: true, demoMode: false }),
-  preflight: async () => ({ alertChannel: 'email_sms', dryRun: true, smtpConfigured: false, twilioConfigured: false, gatewayValid: true, agentConfigured: true, agentConfiguredEs: true, phonemeReady: true, secondOpinionEnabled: false }),
+  preflight: async () => ({ alertChannel: 'email_sms', alertChannelValid: true, demoPhoneConfigured: true, dryRun: true, smtpConfigured: true, twilioConfigured: false, gatewayValid: true, agentConfigured: true, agentConfiguredEs: true, phonemeReady: true, secondOpinionEnabled: false }),
   isSecureContext: () => true,
   hostname: () => 'localhost',
   hasGetUserMedia: () => true,
@@ -35,6 +35,26 @@ describe('preflight checks', () => {
     const r = await run({ ...healthy(), preflight: async () => ({ ...base, dryRun: false, smtpConfigured: false, agentConfiguredEs: false }) })
     expect(r['live-services']).toMatchObject({ status: 'fail' })
     expect(r['live-services'].detail).toMatch(/live alert|Spanish guide/)
+  })
+
+  it('fails visibly when the speech articulation model is unavailable', async () => {
+    const base = await healthy().preflight()
+    const r = await run({ ...healthy(), preflight: async () => ({ ...base, phonemeReady: false }) })
+    expect(r['live-services']).toMatchObject({ status: 'fail' })
+    expect(r['live-services'].detail).toMatch(/speech articulation model/)
+    expect(r['live-services'].fix).toMatch(/PHONEME_SCORING=true/)
+  })
+
+  it('fails closed for a misspelled channel and accepts a non-US Twilio destination', async () => {
+    const base = await healthy().preflight()
+    const typo = await run({ ...healthy(), preflight: async () => ({ ...base, alertChannelValid: false }) })
+    expect(typo['live-services'].status).toBe('fail')
+
+    const twilio = await run({
+      ...healthy(),
+      preflight: async () => ({ ...base, alertChannel: 'twilio', dryRun: false, gatewayValid: false, demoPhoneConfigured: true, twilioConfigured: true }),
+    })
+    expect(twilio['live-services'].status).toBe('ok')
   })
 
   it('backend down: red with a hint that the camera checks still work', async () => {

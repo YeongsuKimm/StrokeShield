@@ -25,8 +25,6 @@ def _clip(text: str) -> str:
 def build_message(req: AlertRequest) -> str:
     symptoms = "; ".join(_clip(x) for x in req.symptoms) or "not specified"
     parts = [f"StrokeShield ALERT: possible stroke. Symptoms: {symptoms}."]
-    if req.patient.name:
-        parts.append(f"Patient: {_clip(req.patient.name)}.")
     parts.append(f"Last known well: {_clip(req.last_known_well) if req.last_known_well else 'unknown'}.")
     if req.location:
         acc = f" (±{round(req.location.accuracy_m)} m)" if req.location.accuracy_m else ""
@@ -54,6 +52,9 @@ def risk_confirmed(req: AlertRequest) -> bool:
 def place_alert(req: AlertRequest) -> AlertResponse:
     """Blocking. Call from a threadpool."""
     global _last_alert_at
+
+    if not settings.alert_channel_valid():
+        return AlertResponse(ok=False, dry_run=settings.dry_run(), error="ALERT_CHANNEL is invalid; alert refused")
 
     to = settings.demo_phone_number()
     if to is None:

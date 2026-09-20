@@ -21,7 +21,7 @@ export const CONSENT_POINTS: { label: string; text: string }[] = [
   },
   {
     label: 'Voice guide',
-    text: 'Optional. When on, your microphone streams to ElevenLabs, which may keep the recording and transcript.',
+    text: 'Optional. When on, your microphone streams to ElevenLabs. Audio saving is off, but ElevenLabs may keep a transcript for up to one day.',
   },
   {
     label: 'Alert text',
@@ -37,7 +37,7 @@ export const CONSENT_CHECKBOX_LABEL = 'I have read this and agree to these uses.
 
 /** Shown before the voice guide connects (a separate, per-feature opt-in). */
 export const VOICE_CONSENT_TEXT =
-  'The voice guide streams your microphone audio to ElevenLabs, a third party, while it is on. ElevenLabs may keep the recording and transcript under its own privacy policy. End guide stops it.'
+  'The voice guide streams your microphone audio to ElevenLabs, a third party, while it is on. Audio saving is off, but ElevenLabs may keep a transcript for up to one day. End guide stops it.'
 
 /**
  * Second-opinion still frames (NOT wired yet: no capture code exists). When built, it must be a separate checkbox,
