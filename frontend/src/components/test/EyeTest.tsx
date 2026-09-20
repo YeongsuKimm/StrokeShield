@@ -43,7 +43,8 @@ export function EyeTest() {
         overlay={
           tracking ? (
             <div className="pointer-events-none absolute inset-0">
-              <EyeStimulus onTargetChange={() => {}} onDone={() => {}} />
+              {/* No caption of its own: the bar at the bottom of the camera says the same thing. */}
+              <EyeStimulus onTargetChange={() => {}} onDone={() => {}} showCaption={false} />
             </div>
           ) : null
         }

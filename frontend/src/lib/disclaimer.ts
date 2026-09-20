@@ -8,10 +8,10 @@ export const DISCLAIMER_SHORT =
 
 /** Full statement: home, consent panel, every result band, the info page. */
 export const DISCLAIMER_LONG =
-  'StrokeShield is only a tool to help guide someone through the BE-FAST stroke check. It is not clinically accurate, not a medical device, and cannot diagnose or rule out a stroke. If you think someone may be having a stroke, call 911 right away.'
+  'StrokeShield is only a tool to help guide someone through the BE-FAST stroke check and promote public awareness. It is not clinically accurate, not a medical device, and cannot diagnose or rule out a stroke. If you think someone may be having a stroke, call 911 right away.'
 
 export const DISCLAIMER_SHORT_ES =
   'Solo es una gu\u00eda para la revisi\u00f3n BE-FAST: no tiene precisi\u00f3n cl\u00ednica, no es un dispositivo m\u00e9dico y no puede diagnosticar ni descartar un derrame cerebral.'
 
 export const DISCLAIMER_LONG_ES =
-  'StrokeShield solo ayuda a guiar una revisi\u00f3n BE-FAST. No tiene precisi\u00f3n cl\u00ednica, no es un dispositivo m\u00e9dico y no puede diagnosticar ni descartar un derrame cerebral. Si crees que alguien puede estar sufriendo un derrame cerebral, llama al 911 de inmediato.'
+  'StrokeShield solo ayuda a guiar una revisi\u00f3n BE-FAST y promover la concientizaci\u00f3n p\u00fablica. No tiene precisi\u00f3n cl\u00ednica, no es un dispositivo m\u00e9dico y no puede diagnosticar ni descartar un derrame cerebral. Si crees que alguien puede estar sufriendo un derrame cerebral, llama al 911 de inmediato.'

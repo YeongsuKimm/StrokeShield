@@ -17,7 +17,9 @@
     "calibrate": "vitest run --config vitest.calibrate.config.ts",
     "tune": "vitest run --config vitest.tune.config.ts",
     "validate": "vitest run --config vitest.validate.config.ts",
-    "freeze": "vitest run --config vitest.freeze.config.ts"
+    "freeze": "vitest run --config vitest.freeze.config.ts",
+    "dev:phone": "SS_PHONE=1 vite --host",
+    "test:mobile": "node scripts/mobile-check.mjs"
   },
   "dependencies": {
     "@elevenlabs/react": "^1.15.2",
@@ -34,8 +36,10 @@
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
+    "@vitejs/plugin-basic-ssl": "^2.3.0",
     "@vitejs/plugin-react": "^6.1.1",
     "oxlint": "^1.81.0",
+    "playwright": "^1.63.0",
     "tailwindcss": "^4.3.3",
     "typescript": "~6.0.2",
     "vite": "^8.3.0",

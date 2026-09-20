@@ -17,7 +17,7 @@ export function ClearDataButton({ className = '' }: { className?: string }) {
 
   return (
     <div className={className}>
-      <Button tone="quiet" size="sm" onClick={() => void clear()} disabled={state === 'busy'}>
+      <Button tone="quiet" size="sm" className="min-h-11" onClick={() => void clear()} disabled={state === 'busy'}>
         {pick(locale, 'Clear my data', 'Borrar mis datos')}
       </Button>
       <p role="status" className="mt-2 text-[0.875rem] leading-snug text-ink-3">

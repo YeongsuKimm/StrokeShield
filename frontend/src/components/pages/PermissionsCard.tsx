@@ -130,8 +130,9 @@ export function PermissionsCard() {
   const outstanding = rows.filter((r) => permissions[r.key] !== 'granted')
 
   return (
-    <section className="rounded-[var(--radius-panel)] border border-line bg-surface p-5 shadow-[var(--shadow-panel)]">
-      <h2 className="text-lg font-semibold tracking-tight">{pick(locale, 'Before we start', 'Antes de empezar')}</h2>
+    <section className="rounded-[var(--radius-panel)] border border-accent bg-surface p-5 shadow-[var(--shadow-panel)]">
+      {/* Inline weight: the global heading rule in index.css (weight 500, unlayered) would otherwise beat font-bold. */}
+      <h2 className="text-[1.3125rem] tracking-tight" style={{ fontWeight: 700 }}>{pick(locale, 'Before we start', 'Antes de empezar')}</h2>
 
       <ul className="mt-3 space-y-2 text-[0.9375rem] leading-snug text-ink-2">
         {pick(locale, CONSENT_POINTS, CONSENT_POINTS_ES).map(({ label, text }) => (
@@ -148,7 +149,7 @@ export function PermissionsCard() {
           type="checkbox"
           checked={consented}
           onChange={(e) => (e.target.checked ? giveConsent() : void clearAllLocalData())}
-          className="mt-0.5 size-5 shrink-0 accent-[var(--color-accent)]"
+          className="mt-0.5 size-6 shrink-0 accent-[var(--color-accent)]"
         />
         <span className="text-[0.9375rem] font-medium leading-snug">
           {pick(locale, CONSENT_CHECKBOX_LABEL, 'Entiendo y doy mi consentimiento para realizar esta revisi\u00f3n de demostraci\u00f3n.')}

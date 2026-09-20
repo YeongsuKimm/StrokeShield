@@ -33,8 +33,16 @@
   --color-control-edge: #7a848f; /* borders of buttons and checkboxes: >= 3:1 on white, paper and sunken (WCAG 1.4.11) */
 
   /* Ink */
+  /* How tall the camera stage may get. Desktop has room to spare; a phone in portrait does not, and a stage that
+     runs to the bottom of the screen ends up underneath the floating Call 911 and voice-guide buttons, which sit
+     exactly where the patient's hands have to be during the arm check. Capped here, applied in CameraView. */
+  --cam-max-h: 200dvh;
+
+  /* Height of the iPhone home bar (0 on every other device). See the .safe-bottom utility below. */
+  --safe-b: env(safe-area-inset-bottom, 0px);
   --color-ink: #12161b; /* off-black, never #000 — 15.8:1 on paper */
   --color-ink-2: #4a5561; /*  7.5:1 on paper */
+  --color-ink-body: #2f3842; /* info-page body copy: darker than ink-2, still clearly lighter than titles (ink); ~11:1 on paper */
   --color-ink-3: #5e6975; /*  5.4:1 on paper, 5.0:1 on sunken: safe for small text */
 
   /* One accent. Deep clinical blue, 6.7:1 against white. */
@@ -69,10 +77,21 @@
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+@media (max-width: 639px) {
+  :root {
+    /* Viewport minus the header above the stage and the floating controls below it. */
+    --cam-max-h: calc(100dvh - 18rem);
+  }
+}
+
 @layer base {
   html {
-    -webkit-text-size-adjust: 100%;
+    -webkit-text-size-adjust: 100%; /* iOS Safari inflates text in landscape without this */
+    text-size-adjust: 100%;
     scrollbar-gutter: stable; /* home (short) to info (long) must not shift sideways */
+    /* Stops Android Chrome's pull-to-refresh: a swipe down at the top of the info page would otherwise RELOAD the
+       page and throw away the session mid-check. Set on both html and body, which is what Chrome honours. */
+    overscroll-behavior-y: contain;
   }
 
   /* Line breaking: balance short blocks, avoid single-word last lines in paragraphs. Unsupported browsers ignore it. */
@@ -108,6 +127,7 @@
   }
 
   body {
+    overscroll-behavior-y: contain;
     background-color: var(--color-paper);
     color: var(--color-ink);
     font-family: var(--font-sans);
@@ -144,6 +164,13 @@
 }
 
 @layer utilities {
+  /* Fixed bottom controls (Call 911, the voice guide, the skip card) sit under the iPhone home bar now that the page
+     draws edge to edge (viewport-fit=cover in index.html). `--safe-b` is that bar's height, 0 everywhere else, so
+     `bottom-[calc(1.25rem+var(--safe-b))]` reads as "the usual gap, plus the bar if there is one". */
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
   /* Micro-label: the only place uppercase + letterspacing is allowed. Avenir, not a third font. */
   .label-micro {
     font-family: var(--font-sans);

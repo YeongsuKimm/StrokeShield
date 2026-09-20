@@ -96,6 +96,10 @@ export function CameraView({ guide, overlay, hideGuideWhileCapturing = true }: P
   const capturing = !!progress && ['neutral', 'smile', 'hold'].includes(progress.phase)
   const timed = progress && progress.secondsLeft !== null && progress.phase !== 'cue'
   const showGuide = guide && !(hideGuideWhileCapturing && capturing)
+  // The eyes and face checks are done close to the screen, so their prompts can be small; a big bar over a phone-sized
+  // camera hides the very thing being measured, and in the eyes check it covered the moving dot. The arms check stays
+  // large: the patient is several feet back, reading it from across the room.
+  const compact = progress?.test === 'eyes' || progress?.test === 'face'
 
   // ONE polite live region speaks for the whole stage, at most once every 3 s: the intro / get-ready caption, the framing
   // hint, and the seconds left only on 5 s marks. The on-screen pills, digits and ring below are visual duplicates, so
@@ -118,8 +122,8 @@ export function CameraView({ guide, overlay, hideGuideWhileCapturing = true }: P
   return (
     <div className="on-stage">
       <div
-        className={`relative w-full overflow-hidden rounded-[var(--radius-panel)] bg-stage ring-4 transition-shadow duration-500 ease-out ${ring}`}
-        style={{ aspectRatio: aspect }}
+        className={`relative mx-auto w-full overflow-hidden rounded-[var(--radius-panel)] bg-stage ring-4 transition-shadow duration-500 ease-out ${ring}`}
+        style={{ aspectRatio: aspect, maxWidth: `calc(var(--cam-max-h) * ${aspect})` }}
       >
         <div ref={hostRef} className="absolute inset-0" />
         <canvas ref={canvasRef} aria-hidden className="pointer-events-none absolute inset-0 h-full w-full" />
@@ -130,45 +134,47 @@ export function CameraView({ guide, overlay, hideGuideWhileCapturing = true }: P
         {showGuide && <div className="absolute inset-0">{guide}</div>}
         {overlay}
 
-        {/* Positioning hint, top centre. Amber while it is an instruction, green the moment framing is good. */}
-        {hint && progress?.phase !== 'intro' && (
-          <div className="absolute inset-x-3 top-3 flex justify-center">
-            <p
-              className="flex max-w-full items-center gap-2.5 rounded-full bg-caution px-5 py-3 text-center text-xl font-semibold text-white shadow-[var(--shadow-lift)] sm:text-2xl"
-            >
-              <Icon name="alert" size={22} className="shrink-0" />
-              {smartQuotes(translateRuntimeText(locale, hint))}
-            </p>
-          </div>
-        )}
-        {!hint && framingOk && !capturing && progress?.phase !== 'intro' && (
-          <div className="absolute inset-x-3 top-3 flex justify-center">
-            <p className="flex items-center gap-2.5 rounded-full bg-ok px-5 py-3 text-xl font-semibold text-white shadow-[var(--shadow-lift)] sm:text-2xl">
-              <Icon name="check" size={22} />
-              {pick(locale, 'Hold it right there', 'Mantente justo ah\u00ed')}
-            </p>
-          </div>
-        )}
-
-        {/* "SMILE!" cue: the moment the relax timer ends and the smile is due, a small card at the top of the camera box
-            says so, so the change of phase is impossible to miss. */}
-        {progress?.test === 'face' && progress.phase === 'smile' && (
-          <div className="absolute inset-x-3 top-3 flex justify-center">
-            <p className="pop rounded-full bg-accent px-7 py-2.5 text-3xl font-extrabold tracking-wide text-white shadow-[var(--shadow-lift)] sm:text-4xl">
+        {/* Top of the camera: the "SMILE!" cue, then the positioning hint, stacked in one column so they can never sit
+            on top of each other (they used to share the same corner). Amber while it is an instruction, green the
+            moment framing is good. Kept short and small for the close-up checks: see `compact` above. */}
+        <div className="pointer-events-none absolute inset-x-3 top-3 flex flex-col items-center gap-2">
+          {/* The moment the relax timer ends and the smile is due, so the change of phase is impossible to miss. */}
+          {progress?.test === 'face' && progress.phase === 'smile' && (
+            <p className="pop rounded-full bg-accent px-5 py-1.5 text-2xl font-extrabold tracking-wide text-white shadow-[var(--shadow-lift)] sm:text-3xl">
               {pick(locale, 'SMILE!', '\u00a1SONR\u00cdE!')}
             </p>
-          </div>
-        )}
+          )}
+          {hint && progress?.phase !== 'intro' && (
+            <p
+              className={`flex max-w-full items-center rounded-full bg-caution text-center font-semibold text-white shadow-[var(--shadow-lift)] ${
+                compact ? 'gap-2 px-3.5 py-1.5 text-base leading-snug' : 'gap-2.5 px-5 py-3 text-xl sm:text-2xl'
+              }`}
+            >
+              <Icon name="alert" size={compact ? 16 : 22} className="shrink-0" />
+              {smartQuotes(translateRuntimeText(locale, hint))}
+            </p>
+          )}
+          {!hint && framingOk && !capturing && progress?.phase !== 'intro' && (
+            <p
+              className={`flex items-center rounded-full bg-ok font-semibold text-white shadow-[var(--shadow-lift)] ${
+                compact ? 'gap-2 px-3.5 py-1.5 text-base' : 'gap-2.5 px-5 py-3 text-xl sm:text-2xl'
+              }`}
+            >
+              <Icon name="check" size={compact ? 16 : 22} />
+              {pick(locale, 'Hold it right there', 'Mantente justo ah\u00ed')}
+            </p>
+          )}
+        </div>
 
         {/* Instruction card, dead centre, before anything is measured (face / eyes). It is the ONLY thing asked of the
             patient during this beat, so it is big and solid; the check starts by itself when it goes away. */}
         {progress?.phase === 'intro' && progress.caption && (
           <div className="absolute inset-0 flex items-center justify-center p-4">
             <div
-              className="pop max-w-[34rem] rounded-[var(--radius-panel)] bg-accent px-7 py-6 text-center text-white shadow-[var(--shadow-lift)]"
+              className="pop max-w-[26rem] rounded-[var(--radius-panel)] bg-accent px-5 py-4 text-center text-white shadow-[var(--shadow-lift)]"
             >
-              <p className="text-balance text-2xl font-semibold leading-snug sm:text-3xl">{smartQuotes(translateRuntimeText(locale, progress.caption))}</p>
-              <p className="mt-3 text-[1rem] font-medium text-white/85">{pick(locale, `Starting in ${progress.secondsLeft}\u2026`, `Comienza en ${progress.secondsLeft}\u2026`)}</p>
+              <p className="text-balance text-xl font-semibold leading-snug sm:text-2xl">{smartQuotes(translateRuntimeText(locale, progress.caption))}</p>
+              <p className="mt-2 text-[0.9375rem] font-medium text-white/85">{pick(locale, `Starting in ${progress.secondsLeft}\u2026`, `Comienza en ${progress.secondsLeft}\u2026`)}</p>
             </div>
           </div>
         )}
@@ -193,12 +199,20 @@ export function CameraView({ guide, overlay, hideGuideWhileCapturing = true }: P
           // The action prompt: big, solid and unmissable. Phases where the patient must DO something (smile, hold the
           // arms, follow the dot) get the accent colour; "relax" stays calm.
           <div
-            className={`absolute inset-x-3 bottom-3 flex items-center justify-center gap-4 rounded-[var(--radius-panel)] px-5 py-4 shadow-[var(--shadow-lift)] ${
-              progress.phase === 'neutral' ? 'bg-stage/95 text-stage-ink' : 'bg-accent text-white'
-            }`}
+            className={`absolute inset-x-3 bottom-3 flex items-center justify-center rounded-[var(--radius-panel)] shadow-[var(--shadow-lift)] ${
+              compact ? 'gap-2.5 px-3 py-2' : 'gap-4 px-5 py-4'
+            } ${progress.phase === 'neutral' ? 'bg-stage/95 text-stage-ink' : 'bg-accent text-white'}`}
           >
-            {timed && <Ring fraction={progress.fraction} label={String(progress.secondsLeft)} size={56} stroke={5} tone="#ffffff" />}
-            <p className="text-balance text-center text-2xl font-semibold leading-tight sm:text-3xl">
+            {timed && (
+              <Ring
+                fraction={progress.fraction}
+                label={String(progress.secondsLeft)}
+                size={compact ? 36 : 56}
+                stroke={compact ? 4 : 5}
+                tone="#ffffff"
+              />
+            )}
+            <p className={`text-balance text-center font-semibold ${compact ? 'text-base leading-snug sm:text-lg' : 'text-2xl leading-tight sm:text-3xl'}`}>
               {smartQuotes(translateRuntimeText(locale, progress.caption))}
             </p>
           </div>

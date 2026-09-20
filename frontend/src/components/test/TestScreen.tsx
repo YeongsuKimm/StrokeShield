@@ -77,13 +77,14 @@ export function TestScreen({ test, title, lede, children, rail, footer }: Props)
 
   return (
     <div
-      className={`mx-auto w-full max-w-6xl px-4 pt-24 sm:px-6 sm:pb-28 sm:pt-28 ${
+      className={`mx-auto w-full max-w-6xl px-4 pt-20 sm:px-6 sm:pb-28 sm:pt-28 ${
         // While the skip card is up on a phone it floats over the bottom of the page; extra padding lets the
         // controls scroll clear of it instead of being trapped underneath.
         offered ? 'pb-56' : 'pb-28'
       }`}
     >
-      <div className="mb-8 flex flex-col items-center gap-6">
+      {/* Tight on a phone: every pixel here pushes the camera further down, and the camera is the check. */}
+      <div className="mb-4 flex flex-col items-center gap-3 sm:mb-8 sm:gap-6">
         <ProgressDots />
         {/* Polite live region: when the instruction changes mid-check (relax -> smile, retry reasons) it is read out once.
             The heading itself takes focus when the screen first appears, which announces the first instruction. */}
@@ -91,7 +92,8 @@ export function TestScreen({ test, title, lede, children, rail, footer }: Props)
           <h1 ref={headingRef} tabIndex={-1} className="text-balance text-3xl font-semibold tracking-tight outline-none sm:text-4xl">
             {smartQuotes(title)}
           </h1>
-          {lede && <p className="mx-auto mt-2 max-w-[48ch] text-pretty text-lg text-ink-2">{smartQuotes(lede)}</p>}
+          {/* Hidden on phones: the same instruction is already on the camera itself, in much larger type. */}
+          {lede && <p className="mx-auto mt-2 hidden max-w-[48ch] text-pretty text-lg text-ink-2 sm:block">{smartQuotes(lede)}</p>}
         </div>
       </div>
 
@@ -115,7 +117,7 @@ export function TestScreen({ test, title, lede, children, rail, footer }: Props)
         // Bottom-RIGHT on wide screens: the centred controls (Start recording, the camera caption) stay clear, and the
         // Call 911 button owns the bottom-left. Full-width above that button on phones.
         <div
-          className="fixed inset-x-4 bottom-24 z-30 sm:inset-x-auto sm:bottom-7 sm:right-7 sm:w-72"
+          className="fixed inset-x-4 bottom-[calc(6rem+var(--safe-b))] z-30 sm:inset-x-auto sm:bottom-[calc(1.75rem+var(--safe-b))] sm:right-7 sm:w-72"
           role="region"
           aria-live="polite"
           aria-label={pick(locale, 'Skip this check', 'Omitir esta revisi\u00f3n')}

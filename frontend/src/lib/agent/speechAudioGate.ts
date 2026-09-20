@@ -2,6 +2,7 @@
 // agent's `start_speech_test` tool), so it also works when the patient presses Start recording before the agent has
 // finished talking or has called the tool. Spec: docs/spec/04-voice-agent.md
 import { useSpeechProgress } from '../speech/speechProgressStore'
+import { muteAllMedia } from './mediaSilence'
 
 export interface SpeechAudioGateDeps {
   /** Agent playback volume, 0..1. */
@@ -13,6 +14,11 @@ export interface SpeechAudioGateDeps {
   toolPending: () => boolean
   /** The recording ended unusable and nobody else will tell the patient: the agent should. */
   onRetryNeeded: (hint: string) => void
+  /**
+   * Silence the agent's actual audio output, returning a restore function. Defaults to muting every media element,
+   * which is the only thing that works on iOS: see mediaSilence.ts. Injectable so tests need no DOM.
+   */
+  silenceOutput?: () => () => void
 }
 
 const swallow = (fn: () => void) => {
@@ -28,18 +34,24 @@ const swallow = (fn: () => void) => {
 export function bindAgentToSpeechRecording(deps: SpeechAudioGateDeps): () => void {
   let silenced = false
   let mutedBefore = false
+  let unsilence: (() => void) | null = null
+  const silenceOutput = deps.silenceOutput ?? muteAllMedia
 
   const silence = () => {
     if (silenced) return
     silenced = true
     mutedBefore = deps.isMuted()
     swallow(() => deps.setVolume(0))
+    // Belt and braces, and on iOS the only one of the two that actually stops the sound.
+    swallow(() => (unsilence = silenceOutput()))
     swallow(() => deps.setMuted(true))
   }
   const restore = () => {
     if (!silenced) return
     silenced = false
     swallow(() => deps.setVolume(1))
+    swallow(() => unsilence?.())
+    unsilence = null
     swallow(() => deps.setMuted(mutedBefore))
   }
 

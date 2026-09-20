@@ -5,7 +5,7 @@ import { CountdownModal } from './components/CountdownModal'
 import { DemoPanel } from './components/DemoPanel'
 import { RecordPanel } from './components/RecordPanel'
 import { EmergencyButton } from './components/chrome/EmergencyButton'
-import { ConnectivityBanner, ResumeNotice } from './components/chrome/StatusBanners'
+import { BrowserBanner, ConnectivityBanner, ResumeNotice } from './components/chrome/StatusBanners'
 import { SiteHeader } from './components/chrome/SiteHeader'
 import { HomePage } from './components/pages/HomePage'
 import { ResultScreen } from './components/result/ResultScreen'
@@ -183,7 +183,7 @@ function AppContent() {
         </AnimatePresence>
       </main>
       {/* Persistent on every route and phase. Bottom padding keeps it clear of the fixed Call 911 / guide buttons. */}
-      <footer className="mx-auto max-w-3xl px-4 pb-28 text-center sm:pb-24">
+      <footer className="mx-auto max-w-3xl px-4 pb-[calc(7rem+var(--safe-b))] text-center sm:pb-[calc(6rem+var(--safe-b))]">
         {/* Not during a check: the test screen already shows this same line, so a second copy at the very bottom just repeats it. */}
         {!(route === 'home' && isTestPhase(phase)) && (
           <Disclaimer variant="short" className="text-[0.8125rem] leading-snug text-ink-3" />
@@ -191,11 +191,12 @@ function AppContent() {
         <button
           type="button"
           onClick={() => setPreflightOpen(true)}
-          className="mt-2 text-[0.75rem] text-ink-3 underline underline-offset-2 hover:text-ink"
+          className="mt-2 inline-flex min-h-11 items-center px-3 text-[0.75rem] text-ink-3 underline underline-offset-2 hover:text-ink"
         >
           {pick(locale, 'Demo preflight', 'Comprobaci\u00f3n de la demo')}
         </button>
       </footer>
+      <BrowserBanner />
       <ConnectivityBanner />
       <ResumeNotice />
       {demoEnabled && <DemoPanel />}

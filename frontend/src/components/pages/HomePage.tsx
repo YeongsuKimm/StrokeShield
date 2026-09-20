@@ -72,7 +72,7 @@ export function HomePage() {
 
           {/* One quiet line, no card and no icons: what happens next, in about a dozen words. */}
           <p className="mt-3 text-pretty text-[0.9375rem] leading-snug text-ink-3">{pick(locale, homeStepsHint(CHECK_COUNT_WORD[steps.length] ?? String(steps.length)), `Primero da tu consentimiento; despu\u00e9s completa ${steps.length} revisiones cortas y recibe un resultado.`)}</p>
-          {!consented && <p id="start-hint" className="mt-1 text-[0.9375rem] text-ink-3">{pick(locale, 'Read and tick the consent box first.', 'Lee y marca primero la casilla de consentimiento.')}</p>}
+          {!consented && <p id="start-hint" className="mt-1 text-[1.0625rem] text-ink-body">{pick(locale, 'Read and tick the consent box first.', 'Lee y marca primero la casilla de consentimiento.')}</p>}
 
           <ol className="mt-10 flex flex-wrap items-center gap-x-2 gap-y-3 border-t border-line pt-6 [@media(max-height:800px)]:mt-7 [@media(max-height:800px)]:pt-5">
             {steps.map((t, i) => (

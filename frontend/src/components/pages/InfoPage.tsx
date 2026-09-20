@@ -9,7 +9,7 @@ import { Button } from '../ui/Button'
 import { Disclaimer } from '../ui/Disclaimer'
 import { Icon } from '../ui/Icon'
 import { MicroLabel, SectionHead } from '../ui/Primitives'
-import { getFaqs, getHotlines, getInfoSections, getProcessSteps, getStats, getTimeNote, TEAM } from './infoContent'
+import { getFaqs, getHotlines, getInfoSections, getProcessSteps, getStats, getTimeNote, RESOURCE_GROUPS, RESOURCES, TEAM } from './infoContent'
 import { pick, useLocale } from '../../lib/i18n'
 
 /** The long scrollable document behind the home screen: what the checks are, why they matter, who to call. */
@@ -73,7 +73,7 @@ export function InfoPage() {
               </div>
               <div>
                 <h3 className="text-xl font-semibold tracking-tight">{step.instruction}</h3>
-                <p className="mt-2 max-w-[62ch] leading-relaxed text-ink-2">{step.looksFor}</p>
+                <p className="mt-2 max-w-[62ch] leading-relaxed text-ink-body">{step.looksFor}</p>
                 <p className="mt-2 max-w-[62ch] text-[0.9375rem] leading-relaxed text-ink-3">{step.measured}</p>
               </div>
             </li>
@@ -83,7 +83,7 @@ export function InfoPage() {
               <span className="font-serif text-5xl leading-none text-ink-3">{timeNote.letter}</span>
               <span className="label-micro text-ink-3">{`05 · ${timeNote.name}`}</span>
             </div>
-            <p className="max-w-[62ch] leading-relaxed text-ink-2">{timeNote.body}</p>
+            <p className="max-w-[62ch] leading-relaxed text-ink-body">{timeNote.body}</p>
           </li>
         </ol>
       </section>
@@ -96,17 +96,17 @@ export function InfoPage() {
             <p className="text-2xl leading-snug text-pretty">
               {pick(locale, 'Every minute a stroke goes untreated, the brain loses roughly 1.9 million neurons. The medicines that can reverse it only work for the first few hours. That is why a stroke is treated as an emergency even when the signs are mild or come and go.', 'Por cada minuto sin tratamiento, el cerebro pierde cerca de 1.9 millones de neuronas. Los medicamentos que pueden revertir un derrame solo funcionan durante las primeras horas. Por eso se trata como una emergencia aunque los signos sean leves o aparezcan y desaparezcan.')}
             </p>
-            <p className="mt-5 max-w-[62ch] text-lg leading-relaxed text-ink-2">
+            <p className="mt-5 max-w-[62ch] text-lg leading-relaxed text-ink-body">
               {pick(locale, 'Many people wait because they are alone, or because they do not want to overreact. The wait is the costly part. A guided two-minute check walks you through the signs, but it is only a prompt to call 911, never a substitute for it.', 'Muchas personas esperan porque est\u00e1n solas o no quieren exagerar. La espera es lo peligroso. Una revisi\u00f3n guiada de dos minutos repasa los signos, pero solo es un aviso para llamar al 911, nunca un sustituto.')}
             </p>
-            <p className="mt-4 max-w-[62ch] text-lg leading-relaxed text-ink-2">
+            <p className="mt-4 max-w-[62ch] text-lg leading-relaxed text-ink-body">
               {pick(locale, 'If the camera cannot get a good look at you, that check is left out and the result will not factor in that data. Even when every check works, this tool cannot rule a stroke out, so it can never reassure you.', 'Si la c\u00e1mara no obtiene una imagen adecuada, esa revisi\u00f3n se excluye del resultado. Incluso si todas funcionan, esta herramienta no puede descartar un derrame cerebral ni confirmar que est\u00e9s bien.')}
             </p>
           </div>
           <aside className="sm:col-span-2">
             <div className="rounded-[var(--radius-panel)] border border-line bg-surface p-6">
               <MicroLabel className="mb-3">{pick(locale, 'What it won\u2019t do', 'Lo que no har\u00e1')}</MicroLabel>
-              <ul className="space-y-3 text-[1rem] leading-snug text-ink-2">
+              <ul className="space-y-3 text-[1rem] leading-snug text-ink-body">
                 {pick(locale,
                   ['Claim any medical accuracy. It has never been validated.', 'Tell you whether or not you are having a stroke.', 'Replace a call to emergency services.', 'Save your video, or keep your speech clip on our server.', 'Text anyone you haven\u2019t set up ahead of time.'],
                   ['Afirmar precisi\u00f3n m\u00e9dica. Nunca ha sido validado.', 'Decirte si est\u00e1s teniendo un derrame cerebral.', 'Sustituir una llamada a emergencias.', 'Guardar tu video o conservar el audio del habla en nuestro servidor.', 'Enviar mensajes a alguien que no hayas configurado previamente.'],
@@ -132,9 +132,42 @@ export function InfoPage() {
                 <SlotNumber value={s.figure} className="tnum font-serif text-6xl leading-none" />
                 <span className="label-micro text-ink-3">{s.unit}</span>
               </p>
-              <p className="mt-4 max-w-[34ch] leading-relaxed text-ink-2">{s.caption}</p>
+              <p className="mt-4 max-w-[34ch] leading-relaxed text-ink-body">{s.caption}</p>
               <p className="mt-3 text-[0.875rem] text-ink-3">{s.source}</p>
             </article>
+          ))}
+        </div>
+
+        {/* Where to read more: education first, then the papers behind the four figures above. */}
+        <div id="resources" className="mt-14 scroll-mt-28">
+          <h3 className="text-2xl tracking-tight sm:text-3xl">{pick(locale, 'Where to learn more', 'D\u00f3nde aprender m\u00e1s')}</h3>
+          {(Object.keys(RESOURCE_GROUPS) as (keyof typeof RESOURCE_GROUPS)[]).map((g) => (
+            <div key={g} className="mt-8">
+              <MicroLabel className="mb-1">{pick(locale, RESOURCE_GROUPS[g].label, g === 'learn' ? 'Conoce los signos' : 'La investigaci\u00f3n detr\u00e1s de las cifras')}</MicroLabel>
+              <p className="mb-4 max-w-[62ch] text-ink-body">{pick(locale, RESOURCE_GROUPS[g].lede, g === 'learn' ? 'Gu\u00edas en lenguaje sencillo de organizaciones de salud de Estados Unidos. Las fuentes enlazadas est\u00e1n en ingl\u00e9s.' : 'Los estudios publicados de los que procede cada cifra anterior. Las fuentes enlazadas est\u00e1n en ingl\u00e9s.')}</p>
+              <ul className="grid gap-3 sm:grid-cols-3">
+                {RESOURCES.filter((r) => r.group === g).map((r) => (
+                  <li key={r.href} className="flex">
+                    <a
+                      href={r.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group flex min-h-11 w-full flex-col rounded-[var(--radius-panel)] border border-line bg-surface p-5 transition-colors hover:border-accent hover:bg-sunken"
+                    >
+                      <span className="flex items-start justify-between gap-3">
+                        <span className="text-[1.0625rem] font-semibold leading-snug tracking-tight text-ink group-hover:text-accent">
+                          {r.title}
+                        </span>
+                        <Icon name="arrowUpRight" size={18} className="mt-0.5 shrink-0 text-ink-3 group-hover:text-accent" />
+                      </span>
+                      <span className="mt-2 text-[0.9375rem] leading-snug text-ink-3">{r.org}</span>
+                      <span className="mt-3 text-[1rem] leading-snug text-ink-body">{r.detail}</span>
+                      <span className="sr-only">{pick(locale, '(opens in a new tab)', '(se abre en una pesta\u00f1a nueva)')}</span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
           ))}
         </div>
       </section>
@@ -156,7 +189,7 @@ export function InfoPage() {
                 <p className={`text-lg font-semibold tracking-tight ${h.urgent ? 'text-danger' : ''}`}>{h.label}</p>
                 <Icon name="phone" size={18} className={h.urgent ? 'text-danger' : 'text-ink-3'} />
               </div>
-              <p className="mt-2 max-w-[40ch] text-[1rem] leading-snug text-ink-2">{h.detail}</p>
+              <p className="mt-2 max-w-[40ch] text-[1rem] leading-snug text-ink-body">{h.detail}</p>
             </a>
           ))}
         </div>
@@ -164,7 +197,7 @@ export function InfoPage() {
         <div id="faq" className="scroll-mt-28 divide-y divide-line border-y border-line">
           {faqs.map((f) => (
             <details key={f.q} className="group py-5">
-              <summary className="flex cursor-pointer list-none items-start justify-between gap-4 text-lg font-medium tracking-tight [&::-webkit-details-marker]:hidden">
+              <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-4 text-lg font-medium tracking-tight [&::-webkit-details-marker]:hidden">
                 {f.q}
                 <Icon
                   name="chevronDown"
@@ -172,7 +205,7 @@ export function InfoPage() {
                   className="mt-1 shrink-0 text-ink-3 transition-transform duration-200 group-open:rotate-180"
                 />
               </summary>
-              <p className="mt-3 max-w-[64ch] leading-relaxed text-ink-2">{f.a}</p>
+              <p className="mt-3 max-w-[64ch] leading-relaxed text-ink-body">{f.a}</p>
             </details>
           ))}
         </div>
@@ -185,8 +218,8 @@ export function InfoPage() {
           {TEAM.map((m) => (
             <li key={m.name} className="bg-surface p-7">
               <p className="text-lg font-semibold tracking-tight">{m.name}</p>
-              <p className="mt-1 text-ink-2">{m.affiliation}</p>
-              <p className="mt-1 text-ink-2">{m.major}</p>
+              <p className="mt-1 text-ink-body">{m.affiliation}</p>
+              <p className="mt-1 text-ink-body">{m.major}</p>
             </li>
           ))}
         </ul>

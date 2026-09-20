@@ -106,7 +106,7 @@ export function useAgent() {
 			}
 			if (phase === 'arms') {
 				sendUserMessage(
-					'The website is now on the arms step. Immediately instruct the user to step back about three feet, until both hands are visible, then call start_arm_test. Do not discuss the previous step.',
+					'The website is now on the arms step. Immediately instruct the user to keep stepping back until both hands are visible, then call start_arm_test. Do not discuss the previous step.',
 				)
 				return
 			}
