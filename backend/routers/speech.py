@@ -1,6 +1,6 @@
 """POST /api/speech/analyze: thin, defensive wrapper around models.audio.analyze_speech.
 
-Contract: multipart `audio` (WAV) + form `target_phrase` -> TestResult (camelCase). For the patient flow this endpoint
+Contract: multipart `audio` (WAV) + form `target_phrase` (+ optional form `lang`, "en" default or "es") -> TestResult (camelCase). For the patient flow this endpoint
 never answers 5xx: unusable audio, timeouts and unexpected errors all come back as a normal retry-style TestResult.
 Client mistakes that no retry can fix (no file, too big, phrase too long) are 4xx JSON errors.
 """
@@ -16,7 +16,7 @@ from fastapi.routing import APIRoute
 
 from backend.schemas import TestResult
 from models.audio import analyze_speech
-from models.config import TARGET_PHRASE
+from models.config import DEFAULT_LANG, LANGS, target_phrase_for
 
 logger = logging.getLogger("strokeshield.speech")
 
@@ -38,13 +38,14 @@ SLOT_WAIT_S = 4.0
 _SLOTS = threading.BoundedSemaphore(MAX_CONCURRENT_ANALYSES)
 
 
-def _analyze_limited(data: bytes, phrase: str) -> TestResult | None:
+def _analyze_limited(data: bytes, phrase: str, lang: str = DEFAULT_LANG) -> TestResult | None:
     """Run one analysis inside a slot; None when no slot freed up in time. analyze_speech keeps no shared mutable state
     (the phoneme model serialises its own forward passes), so overlapping analyses cannot corrupt each other."""
     if not _SLOTS.acquire(timeout=SLOT_WAIT_S):
         return None
     try:
-        return analyze_speech(data, phrase)
+        # English calls keep the original two-argument shape; other languages say so (no phoneme model for them).
+        return analyze_speech(data, phrase) if lang == DEFAULT_LANG else analyze_speech(data, phrase, lang=lang)
     finally:
         _SLOTS.release()
 
@@ -102,8 +103,11 @@ router = APIRouter(prefix="/api", route_class=_CappedBodyRoute)
 @router.post("/speech/analyze", response_model=TestResult, response_model_by_alias=True)
 async def analyze(
     audio: UploadFile | None = File(None),
-    target_phrase: str = Form(TARGET_PHRASE, max_length=MAX_PHRASE_CHARS),
+    target_phrase: str = Form("", max_length=MAX_PHRASE_CHARS),
+    lang: str = Form(DEFAULT_LANG),
 ) -> TestResult:
+    if lang not in LANGS:
+        raise HTTPException(422, f"unsupported lang: use one of {', '.join(LANGS)}")
     if audio is None:
         raise HTTPException(422, "missing audio: send multipart/form-data with a WAV file in the 'audio' field")
     t0 = time.monotonic()
@@ -119,9 +123,9 @@ async def analyze(
         logger.info("speech analyze: unusable upload (%d bytes)", len(data))
         return _retry(FLAG_UNUSABLE, started_at)
 
-    phrase = target_phrase.strip() or TARGET_PHRASE
+    phrase = target_phrase.strip() or target_phrase_for(lang)
     try:
-        result = await asyncio.wait_for(run_in_threadpool(_analyze_limited, data, phrase), ANALYZE_TIMEOUT_S)
+        result = await asyncio.wait_for(run_in_threadpool(_analyze_limited, data, phrase, lang), ANALYZE_TIMEOUT_S)
     except TimeoutError:
         # The worker thread cannot be cancelled and finishes in the background; its result is discarded.
         logger.warning("speech analyze timed out after %.1fs (%d bytes)", ANALYZE_TIMEOUT_S, len(data))

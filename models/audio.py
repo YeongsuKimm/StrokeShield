@@ -1,11 +1,14 @@
 """Speech analysis orchestrator (docs/spec/03-speech.md): QC -> features -> weighted severity -> TestResult.
 
-Entry point: `analyze_speech(wav_bytes, target_phrase, transcriber=None) -> TestResult`. It never raises: any
+Entry point: `analyze_speech(wav_bytes, target_phrase, transcriber=None, lang="en") -> TestResult`. It never raises: any
 problem becomes a `needs_retry` result whose `flags[0]` is a short spoken-style reason.
 
 Optional evidence, each of which only ADDS components (weights are renormalized over what is available):
 - a transcript from a pluggable `Transcriber` (models/transcribe.py) -> CER / WER / word timing
 - phoneme scores from `models.phoneme.score_phonemes` (agent B, needs torch) -> PER / GOP
+
+`lang="es"` (or any non-English value) skips the phoneme model (it is English-only), adds an honest flag and caps severity
+(config.NON_ENGLISH_SEVERITY_CAP), so a Spanish recording is scored from timing and voice signals alone, conservatively.
 
 Thresholds and weights live in models/config.py and are UNCALIBRATED.
 """
@@ -213,6 +216,7 @@ REASON_WRONG_SENTENCE = "that didn't sound like the sentence, please read it exa
 REASON_TOO_LONG = "that recording was too long, please say just the sentence"
 FLAG_NOISY = "noisy room, this result may be unreliable"
 FLAG_PHONEME_UNAVAILABLE = "phoneme check unavailable, timing and voice only"
+FLAG_PHONEME_ENGLISH_ONLY = "phoneme scoring is English-only, DSP checks only"
 
 _RETRY_FOR_TERM = {
     "snr": "too much background noise",
@@ -274,18 +278,20 @@ def _transcript_metrics(target: str, tr: Transcript) -> tuple[dict[str, float], 
 # ----------------------------------------------------------------------------------------------------------
 # Orchestrator
 # ----------------------------------------------------------------------------------------------------------
-def analyze_speech(wav_bytes: bytes, target_phrase: str, transcriber: Transcriber | None = None) -> TestResult:
-    """Analyze a recording of the patient repeating `target_phrase`. Never raises."""
+def analyze_speech(wav_bytes: bytes, target_phrase: str, transcriber: Transcriber | None = None, lang: str = C.DEFAULT_LANG) -> TestResult:
+    """Analyze a recording of the patient repeating `target_phrase`. Never raises.
+
+    `lang` is the language of the sentence ("en" or "es"); anything other than English is scored without the phoneme model."""
     started_at = int(time.time() * 1000)
     t0 = time.perf_counter()
     try:
-        return _analyze(wav_bytes, target_phrase, transcriber, started_at, t0)
+        return _analyze(wav_bytes, target_phrase, transcriber, started_at, t0, lang)
     except Exception as exc:  # noqa: BLE001
         log.error("speech analysis failed (%s)", type(exc).__name__)  # type only: no traceback/message from audio data
         return _retry("something went wrong analysing that, please try again", started_at, t0)
 
 
-def _analyze(wav_bytes: bytes, target_phrase: str, transcriber: Transcriber | None, started_at: int, t0: float) -> TestResult:
+def _analyze(wav_bytes: bytes, target_phrase: str, transcriber: Transcriber | None, started_at: int, t0: float, lang: str = C.DEFAULT_LANG) -> TestResult:
     sr = C.SAMPLE_RATE
     samples, err = load_wav(wav_bytes, sr)
     if samples is None:
@@ -348,7 +354,10 @@ def _analyze(wav_bytes: bytes, target_phrase: str, transcriber: Transcriber | No
         flags.extend(ac_flags)
 
         # Phoneme scores (agent B), optional
-        ph_wanted = _phoneme_wanted()
+        english = lang == C.DEFAULT_LANG
+        if not english:
+            flags.append(FLAG_PHONEME_ENGLISH_ONLY)  # the wav2vec2 phoneme model only knows English sounds: never run it here
+        ph_wanted = english and _phoneme_wanted()
         ph = _phoneme_scores(trimmed, target_phrase) if ph_wanted else None
         bad_phones: list[str] = []
         if ph is not None:
@@ -433,6 +442,8 @@ def _analyze(wav_bytes: bytes, target_phrase: str, transcriber: Transcriber | No
         severity = min(severity, C.POOR_CONDITIONS_SEVERITY_CAP)
         confidence *= C.POOR_CONDITIONS_CONFIDENCE_FACTOR
         flags.append(FLAG_NOISY)
+    if not english:
+        severity = min(severity, C.NON_ENGLISH_SEVERITY_CAP)  # English-calibrated timing only: never a high severity on its own
     if confidence < C.MIN_CONFIDENCE:
         return _retry(_RETRY_FOR_TERM[weakest], started_at, t0, metrics, confidence)
 

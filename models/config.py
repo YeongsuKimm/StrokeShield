@@ -5,12 +5,26 @@ Every number below is a first guess from the literature / spec, checked only aga
 """
 
 TARGET_PHRASE = "You can't teach an old dog new tricks."
+# The Spanish site (docs/spec/03 "Spanish") reads this sentence; it must match frontend/src/lib/config.ts and the Spanish
+# agent prompt (docs/agent-prompt.es.md) exactly.
+TARGET_PHRASE_ES = "No se le pueden enseñar trucos nuevos a un perro viejo."
+
+# Languages the speech endpoint accepts (form field `lang`). Phoneme scoring exists for English only.
+LANGS = ("en", "es")
+DEFAULT_LANG = "en"
+
+
+def target_phrase_for(lang: str) -> str:
+    """The fixed test sentence for a language (English for anything unknown)."""
+    return TARGET_PHRASE_ES if lang == "es" else TARGET_PHRASE
+
 
 # Syllable / word counts of the phrases we rotate through (normalized text -> syllables). Hardcoded on purpose:
 # the phrase is fixed so we need no pronunciation dictionary. Unknown phrases fall back to a vowel-group heuristic.
 PHRASE_SYLLABLES = {
     "you cant teach an old dog new tricks": 8,  # syllables
     "nothing beats a jolly good breakfast": 9,  # syllables
+    "no se le pueden enseñar trucos nuevos a un perro viejo": 18,  # syllables: no se le pue-den en-se-ñar tru-cos nue-vos a un pe-rro vie-jo
 }
 
 # ---------------------------------------------------------------------------------------------------------
@@ -129,6 +143,12 @@ TIMING_SUPPORT_MIN = 0.15  # 0..1; an elevated timing component needs a second t
 QUALITY_ONLY_CAP = 0.20  # quality signals elevated, no timing component agrees
 TIMING_ONLY_CAP = {"rate": 0.35, "pausing": 0.30, "prosody": 0.20, "intelligibility": 0.40}  # a lone timing signal (max over the elevated ones)
 NO_SIGNAL_CAP = 0.15  # no component reaches AGREE_MIN
+
+# Spanish (lang != "en"): the phoneme model is English-only, so it is not run, and the timing ramps above were set on English
+# speech (a syllable-timed language like Spanish is spoken faster, so "slow" is called even less often). To stay conservative,
+# a non-English result is capped so that on its own it can never reach the result screen's caution band (speech weight 0.5 x
+# severity 0.5 = 0.25 < CAUTION_RISK 0.3). It can still add to other checks through the noisy-OR. UNCALIBRATED.
+NON_ENGLISH_SEVERITY_CAP = 0.5  # severity units, 0..1
 
 # Phoneme evidence is trusted less as conditions worsen: articulation is multiplied by trust in 0..1.
 PHONEME_SNR_DB = (15.0, 25.0)  # dB: trust PHONEME_TRUST_FLOOR at the low end, 1 at the high end
